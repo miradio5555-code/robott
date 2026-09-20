@@ -7,7 +7,7 @@ window.CARGO_CONFIG = {
 
   // 1) Адрес проекта Supabase (Project Settings → Data API → Project URL)
   //    Пример: "https://abcdefgh.supabase.co"
-  SUPABASE_URL: "ВСТАВЬТЕ_СЮДА_ADDRESS",
+  SUPABASE_URL: "https://gjybwrvllxlafkxybstg.supabase.co/rest/v1/",
 
   // 2) Публичный ключ (Project Settings → API Keys → Publishable key или anon public)
   //    ВАЖНО: только publishable / anon. Ключ secret / service_role сюда НЕЛЬЗЯ.
