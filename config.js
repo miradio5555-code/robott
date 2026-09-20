@@ -11,7 +11,7 @@ window.CARGO_CONFIG = {
 
   // 2) Публичный ключ (Project Settings → API Keys → Publishable key или anon public)
   //    ВАЖНО: только publishable / anon. Ключ secret / service_role сюда НЕЛЬЗЯ.
-  SUPABASE_ANON_KEY: "ВСТАВЬТЕ_СЮДА_КЛЮЧ",
+  SUPABASE_ANON_KEY: "sb_publishable_ze8a3eCRCuT4ZNe3ARuSOg_Ui-PHgO4",
 
   // 3) Склад в Китае
   WAREHOUSE: {
