@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1B5CE0">
+  <title>Cargo China</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ============ ПОДСКАЗКА: НЕ ЗАПОЛНЕН config.js ============ -->
+  <main id="view-config" class="center-screen hidden">
+    <div class="panel">
+      <div class="brand brand-large"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+      <h1 data-i18n="config_title"></h1>
+      <p id="config-text" data-i18n="config_text"></p>
+    </div>
+  </main>
+
+  <!-- ============ ВХОД ============ -->
+  <main id="view-login" class="center-screen hidden">
+    <form id="login-form" class="panel" autocomplete="on">
+      <div class="brand brand-large"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+      <h1 data-i18n="login_title"></h1>
+      <p class="muted" data-i18n="login_hint"></p>
+
+      <label class="field">
+        <span data-i18n="email"></span>
+        <input id="login-email" type="email" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span data-i18n="password"></span>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+      </label>
+
+      <p id="login-error" class="form-error hidden" role="alert"></p>
+      <button id="login-btn" class="btn btn-primary btn-block" type="submit" data-i18n="login_btn"></button>
+
+      <div class="lang-switch lang-center">
+        <button type="button" data-lang="ru">🇷🇺 Русский</button>
+        <button type="button" data-lang="zh">🇨🇳 中文</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- ============ АДМИНКА ============ -->
+  <div id="view-admin" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+        <div class="topbar-actions">
+          <div class="lang-switch">
+            <button type="button" data-lang="ru">🇷🇺 Русский</button>
+            <button type="button" data-lang="zh">🇨🇳 中文</button>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost" type="button" data-i18n="logout"></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <!-- Склад -->
+      <section class="warehouse" aria-labelledby="wh-title">
+        <div class="warehouse-text">
+          <h2 id="wh-title">📍 <span data-i18n="warehouse_title"></span></h2>
+          <p id="wh-address" class="warehouse-address" lang="zh-CN"></p>
+          <div id="wh-contacts" class="warehouse-contacts"></div>
+        </div>
+        <button id="wh-copy" class="btn btn-light" type="button" data-i18n="copy_address"></button>
+      </section>
+
+      <!-- Сводка -->
+      <section class="summary" aria-label="summary">
+        <div class="summary-item">
+          <span class="summary-label" data-i18n="sum_orders"></span>
+          <span id="sum-orders" class="summary-value">0</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label" data-i18n="sum_total"></span>
+          <span class="summary-value"><span id="sum-total">0</span> <small class="cur"></small></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label" data-i18n="sum_paid"></span>
+          <span class="summary-value paid"><span id="sum-paid">0</span> <small class="cur"></small></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label" data-i18n="sum_debt"></span>
+          <span class="summary-value debt"><span id="sum-debt">0</span> <small class="cur"></small></span>
+        </div>
+      </section>
+      <p class="fine-print" data-i18n="sum_note"></p>
+
+      <!-- Статусы: счётчики и фильтр в одном -->
+      <div id="chips" class="chips" role="tablist"></div>
+
+      <!-- Поиск и фильтр по дате -->
+      <section class="toolbar">
+        <input id="search" class="search" type="search" data-i18n-placeholder="search_placeholder" autocomplete="off">
+        <label class="date-field">
+          <span data-i18n="date_from"></span>
+          <input id="date-from" type="date">
+        </label>
+        <label class="date-field">
+          <span data-i18n="date_to"></span>
+          <input id="date-to" type="date">
+        </label>
+        <button id="reset-filters" class="btn" type="button" data-i18n="reset"></button>
+        <button id="new-order" class="btn btn-primary toolbar-new" type="button">+ <span data-i18n="new_order"></span></button>
+      </section>
+
+      <div id="loading" class="state-box hidden" data-i18n="loading"></div>
+      <div id="orders" class="orders"></div>
+      <div id="empty" class="state-box hidden"></div>
+    </main>
+
+    <button id="fab" class="fab" type="button" aria-label="+">+</button>
+  </div>
+
+  <!-- ============ СТРАНИЦА КЛИЕНТА ============ -->
+  <div id="view-client" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+        <div class="lang-switch">
+          <button type="button" data-lang="ru">🇷🇺 Русский</button>
+          <button type="button" data-lang="zh">🇨🇳 中文</button>
+        </div>
+      </div>
+    </header>
+    <main id="client-content" class="container container-narrow"></main>
+  </div>
+
+  <!-- ============ ОКНО: ФОРМА ЗАКАЗА ============ -->
+  <div id="modal-order" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="order-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 id="order-form-title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <fieldset>
+          <legend data-i18n="sec_main"></legend>
+          <div class="grid-3">
+            <label class="field"><span data-i18n="f_order_number"></span>
+              <input id="f-order_number" type="text" required></label>
+            <label class="field"><span data-i18n="f_date"></span>
+              <input id="f-order_date" type="date" required></label>
+            <label class="field"><span data-i18n="f_status"></span>
+              <select id="f-status"></select></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="sec_client"></legend>
+          <div class="grid-3">
+            <label class="field"><span data-i18n="f_client"></span>
+              <input id="f-client_name" type="text" required></label>
+            <label class="field"><span data-i18n="f_phone"></span>
+              <input id="f-client_phone" type="tel" inputmode="tel"></label>
+            <label class="field"><span data-i18n="f_wechat"></span>
+              <input id="f-client_wechat" type="text"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="sec_product"></legend>
+          <div class="grid-2">
+            <label class="field"><span data-i18n="f_product_ru"></span>
+              <input id="f-product_ru" type="text" required></label>
+            <label class="field"><span data-i18n="f_product_zh"></span>
+              <input id="f-product_zh" type="text" lang="zh-CN"></label>
+            <label class="field"><span data-i18n="f_supplier"></span>
+              <input id="f-supplier" type="text"></label>
+            <label class="field"><span data-i18n="f_link"></span>
+              <input id="f-supplier_link" type="url" inputmode="url" placeholder="https://"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="sec_money"></legend>
+          <div class="grid-3">
+            <label class="field"><span data-i18n="f_qty"></span>
+              <input id="f-quantity" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_price"></span>
+              <input id="f-unit_price_cny" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_rate"></span>
+              <input id="f-exchange_rate" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_weight"></span>
+              <input id="f-weight_kg" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_delivery"></span>
+              <input id="f-delivery_cost" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_paid"></span>
+              <input id="f-paid_amount" type="text" inputmode="decimal"></label>
+          </div>
+
+          <div class="calc" aria-live="polite">
+            <div class="calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">¥ 0</b></div>
+            <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="calc-goods-som">0</b></div>
+            <div class="calc-row"><span data-i18n="c_delivery"></span><b id="calc-delivery">0</b></div>
+            <div class="calc-row calc-total"><span data-i18n="c_total"></span><b id="calc-total">0</b></div>
+            <div class="calc-row"><span data-i18n="c_paid"></span><b id="calc-paid">0</b></div>
+            <div class="calc-row calc-balance"><span data-i18n="c_balance"></span><b id="calc-balance">0</b></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="sec_photos"></legend>
+          <label class="btn btn-file">
+            <input id="f-photos" type="file" accept="image/*" multiple>
+            <span data-i18n="add_photos"></span>
+          </label>
+          <div id="photo-previews" class="photo-previews"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="sec_comments"></legend>
+          <label class="field"><span data-i18n="f_delivery_info"></span>
+            <textarea id="f-delivery_info" rows="2"></textarea></label>
+          <label class="field"><span data-i18n="f_comment_client"></span>
+            <textarea id="f-client_comment" rows="2"></textarea></label>
+          <label class="field"><span data-i18n="f_comment_admin"></span>
+            <textarea id="f-admin_comment" rows="3"></textarea></label>
+        </fieldset>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="order-save" class="btn btn-primary" type="submit" data-i18n="save"></button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ ОКНО: КАРТОЧКА ЗАКАЗА ============ -->
+  <div id="modal-detail" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="detail-title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div id="detail-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: СТАТУС ============ -->
+  <div id="modal-status" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="change_status"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div id="status-list" class="modal-body status-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: ССЫЛКА КЛИЕНТУ ============ -->
+  <div id="modal-link" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="link_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="link_hint"></p>
+        <input id="link-input" class="link-input" type="text" readonly>
+        <div class="stack">
+          <button id="link-copy" class="btn btn-primary" type="button" data-i18n="copy"></button>
+          <a id="link-wa" class="btn" target="_blank" rel="noopener" data-i18n="link_whatsapp"></a>
+          <a id="link-open" class="btn" target="_blank" rel="noopener" data-i18n="link_open"></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ПРОСМОТР ФОТО ============ -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <button class="lb-close" type="button" data-lb-close aria-label="Close">×</button>
+    <button class="lb-nav lb-prev" type="button" data-lb-prev aria-label="Previous">‹</button>
+    <img id="lb-img" alt="">
+    <button class="lb-nav lb-next" type="button" data-lb-next aria-label="Next">›</button>
+    <div id="lb-count" class="lb-count"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
