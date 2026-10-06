@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Знак ULA Factory: кольцо и перекрещённые дуги (упрощённая версия логотипа) -->
+  <rect width="64" height="64" rx="14" fill="#fff"/>
+  <g fill="none" stroke="#151417" stroke-linecap="round">
+    <path d="M14.5 47A22 22 0 1 1 49.5 47" stroke-width="4.2"/>
+    <g stroke-width="2.4">
+      <path d="M15 19C29 21 39 31 45 52"/>
+      <path d="M17 15C32 17 43 28 49.5 47"/>
+      <path d="M49 19C35 21 25 31 19 52"/>
+      <path d="M47 15C32 17 21 28 14.5 47"/>
+    </g>
+  </g>
+  <rect x="12" y="55" width="40" height="3.2" rx="1.6" fill="#A30F1F"/>
+</svg>
