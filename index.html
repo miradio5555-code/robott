@@ -4,8 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#1B5CE0">
-  <title>Cargo China</title>
+  <meta name="theme-color" content="#151417">
+  <title>ULA Factory</title>
+  <link rel="icon" href="img/mark.svg" type="image/svg+xml">
+  <link rel="icon" href="img/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <!-- Шрифты грузятся «в фоне»: если Google Fonts недоступен (например, в Китае),
+       сайт сразу покажется со шрифтами системы и не будет ждать. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +24,7 @@
   <!-- ============ ПОДСКАЗКА: НЕ ЗАПОЛНЕН config.js ============ -->
   <main id="view-config" class="center-screen hidden">
     <div class="panel">
-      <div class="brand brand-large"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+      <img class="logo-full" src="img/logo-full.jpg" alt="ULA Factory" width="520" height="468">
       <h1 data-i18n="config_title"></h1>
       <p id="config-text" data-i18n="config_text"></p>
     </div>
@@ -24,7 +33,7 @@
   <!-- ============ ВХОД ============ -->
   <main id="view-login" class="center-screen hidden">
     <form id="login-form" class="panel" autocomplete="on">
-      <div class="brand brand-large"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+      <img class="logo-full" src="img/logo-full.jpg" alt="ULA Factory" width="520" height="468">
       <h1 data-i18n="login_title"></h1>
       <p class="muted" data-i18n="login_hint"></p>
 
@@ -40,29 +49,133 @@
       <p id="login-error" class="form-error hidden" role="alert"></p>
       <button id="login-btn" class="btn btn-primary btn-block" type="submit" data-i18n="login_btn"></button>
 
-      <div class="lang-switch lang-center">
-        <button type="button" data-lang="ru">🇷🇺 Русский</button>
-        <button type="button" data-lang="zh">🇨🇳 中文</button>
+      <div class="lang-switch lang-center" role="group" aria-label="Language">
+        <button type="button" data-lang="ru" title="Русский">RU</button>
+        <button type="button" data-lang="en" title="English">EN</button>
+        <button type="button" data-lang="zh" title="中文">中文</button>
       </div>
     </form>
   </main>
 
-  <!-- ============ АДМИНКА ============ -->
+  <!-- ============ РЕГИСТРАЦИЯ БАЙЕРА ПО ПРИГЛАШЕНИЮ (#/join/КОД) ============ -->
+  <main id="view-join" class="center-screen hidden">
+    <div class="panel">
+      <img class="logo-full" src="img/logo-full.jpg" alt="ULA Factory" width="520" height="468">
+
+      <!-- проверяем приглашение -->
+      <p id="join-checking" class="muted" data-i18n="loading"></p>
+
+      <!-- приглашение недействительно -->
+      <div id="join-invalid" class="hidden">
+        <h1 data-i18n="join_invalid_title"></h1>
+        <p class="muted" data-i18n="join_invalid_text"></p>
+      </div>
+
+      <!-- форма регистрации -->
+      <form id="join-form" class="hidden" novalidate>
+        <h1 data-i18n="join_title"></h1>
+        <p class="muted" data-i18n="join_hint"></p>
+        <label class="field"><span data-i18n="join_name"></span>
+          <input id="join-name" type="text" autocomplete="name" maxlength="120" required></label>
+        <label class="field"><span data-i18n="join_ws"></span>
+          <input id="join-ws" type="text" autocomplete="organization" maxlength="120"></label>
+        <label class="field"><span data-i18n="email"></span>
+          <input id="join-email" type="email" autocomplete="email" required></label>
+        <label class="field"><span data-i18n="join_password"></span>
+          <input id="join-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <p id="join-error" class="form-error hidden" role="alert"></p>
+        <button id="join-btn" class="btn btn-primary btn-block" type="submit" data-i18n="join_btn"></button>
+      </form>
+
+      <!-- письмо отправлено -->
+      <div id="join-done" class="hidden">
+        <h1 data-i18n="join_done_title"></h1>
+        <p id="join-done-text" class="muted"></p>
+        <a class="btn btn-primary btn-block" href="./" data-i18n="login_btn"></a>
+      </div>
+
+      <div class="lang-switch lang-center" role="group" aria-label="Language">
+        <button type="button" data-lang="ru" title="Русский">RU</button>
+        <button type="button" data-lang="en" title="English">EN</button>
+        <button type="button" data-lang="zh" title="中文">中文</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ КАБИНЕТ ============ -->
   <div id="view-admin" class="hidden">
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="brand"><span class="brand-mark">CC</span><span>Cargo China</span></div>
+        <div class="brand"><img class="brand-mark" src="img/mark.svg" alt="" width="36" height="36"><span class="brand-name"><b>ULA</b> Factory</span></div>
         <div class="topbar-actions">
-          <div class="lang-switch">
-            <button type="button" data-lang="ru">🇷🇺 Русский</button>
-            <button type="button" data-lang="zh">🇨🇳 中文</button>
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="ru" title="Русский">RU</button>
+            <button type="button" data-lang="en" title="English">EN</button>
+            <button type="button" data-lang="zh" title="中文">中文</button>
           </div>
-          <button id="logout-btn" class="btn btn-ghost" type="button" data-i18n="logout"></button>
+          <button id="logout-btn" class="btn btn-ghost btn-logout" type="button">
+            <!-- значок «выход» (дверь со стрелкой) -->
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+            <span class="logout-text" data-i18n="logout"></span>
+          </button>
         </div>
+        <!-- Разделы кабинета: Заказы / Клиенты -->
+        <nav class="tabs" aria-label="Sections">
+          <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
+          <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
+          <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
+        </nav>
       </div>
     </header>
 
-    <main class="container">
+    <!-- Плашка: админ смотрит чужой кабинет -->
+    <div id="ws-banner" class="ws-banner hidden" role="status">
+      <div class="ws-banner-inner">
+        <span id="ws-banner-text"></span>
+        <button id="ws-back" class="btn btn-light" type="button" data-i18n="back_to_mine"></button>
+      </div>
+    </div>
+
+    <!-- ============ РАЗДЕЛ: БАЙЕРЫ (только админ) ============ -->
+    <main id="tab-buyers" class="container hidden">
+      <section class="client-block">
+        <h2 data-i18n="b_invite_title"></h2>
+        <p class="muted b-lead" data-i18n="b_invite_hint"></p>
+        <div class="invite-row">
+          <input id="invite-note" type="text" maxlength="200" data-i18n-placeholder="b_invite_note" autocomplete="off">
+          <button id="invite-create" class="btn btn-primary" type="button" data-i18n="b_invite_btn"></button>
+        </div>
+        <div id="invite-result" class="invite-result hidden">
+          <p data-i18n="b_invite_ready"></p>
+          <input id="invite-link" class="link-input" type="text" readonly>
+          <div class="stack stack-row">
+            <button id="invite-copy" class="btn btn-primary" type="button" data-i18n="copy"></button>
+            <a id="invite-wa" class="btn" target="_blank" rel="noopener" data-i18n="link_whatsapp"></a>
+          </div>
+        </div>
+        <h3 class="b-sub" data-i18n="b_invites"></h3>
+        <div id="invites" class="invites"></div>
+      </section>
+
+      <h2 class="section-title" data-i18n="b_workspaces"></h2>
+      <div id="buyers-loading" class="state-box hidden" data-i18n="loading"></div>
+      <div id="buyers" class="clients"></div>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: КЛИЕНТЫ ============ -->
+    <main id="tab-clients" class="container hidden">
+      <section class="toolbar toolbar-clients">
+        <input id="clients-search" class="search" type="search" data-i18n-placeholder="clients_search" autocomplete="off">
+        <button id="clients-export" class="btn btn-primary" type="button" data-i18n="export_csv"></button>
+      </section>
+      <p id="clients-count" class="fine-print"></p>
+      <div id="clients-loading" class="state-box hidden" data-i18n="loading"></div>
+      <div id="clients" class="clients"></div>
+      <div id="clients-empty" class="state-box hidden"></div>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: ЗАКАЗЫ ============ -->
+    <main id="tab-orders" class="container">
 
       <!-- Склад -->
       <section class="warehouse" aria-labelledby="wh-title">
@@ -71,7 +184,10 @@
           <p id="wh-address" class="warehouse-address" lang="zh-CN"></p>
           <div id="wh-contacts" class="warehouse-contacts"></div>
         </div>
-        <button id="wh-copy" class="btn btn-light" type="button" data-i18n="copy_address"></button>
+        <div class="warehouse-actions">
+          <button id="wh-copy" class="btn btn-light" type="button" data-i18n="copy_address"></button>
+          <button id="wh-edit" class="btn btn-on-dark" type="button" data-write data-owner data-i18n="wh_edit"></button>
+        </div>
       </section>
 
       <!-- Сводка -->
@@ -110,7 +226,7 @@
           <input id="date-to" type="date">
         </label>
         <button id="reset-filters" class="btn" type="button" data-i18n="reset"></button>
-        <button id="new-order" class="btn btn-primary toolbar-new" type="button">+ <span data-i18n="new_order"></span></button>
+        <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
       </section>
 
       <div id="loading" class="state-box hidden" data-i18n="loading"></div>
@@ -118,17 +234,18 @@
       <div id="empty" class="state-box hidden"></div>
     </main>
 
-    <button id="fab" class="fab" type="button" aria-label="+">+</button>
+    <button id="fab" class="fab" type="button" aria-label="+" data-write>+</button>
   </div>
 
   <!-- ============ СТРАНИЦА КЛИЕНТА ============ -->
   <div id="view-client" class="hidden">
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="brand"><span class="brand-mark">CC</span><span>Cargo China</span></div>
-        <div class="lang-switch">
-          <button type="button" data-lang="ru">🇷🇺 Русский</button>
-          <button type="button" data-lang="zh">🇨🇳 中文</button>
+        <div class="brand"><img class="brand-mark" src="img/mark.svg" alt="" width="36" height="36"><span class="brand-name"><b>ULA</b> Factory</span></div>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="ru" title="Русский">RU</button>
+          <button type="button" data-lang="en" title="English">EN</button>
+          <button type="button" data-lang="zh" title="中文">中文</button>
         </div>
       </div>
     </header>
@@ -149,7 +266,7 @@
           <legend data-i18n="sec_main"></legend>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_order_number"></span>
-              <input id="f-order_number" type="text" required></label>
+              <input id="f-order_number" type="text" readonly data-i18n-placeholder="auto_number"></label>
             <label class="field"><span data-i18n="f_date"></span>
               <input id="f-order_date" type="date" required></label>
             <label class="field"><span data-i18n="f_status"></span>
@@ -233,6 +350,35 @@
       <div class="modal-foot">
         <button class="btn" type="button" data-close data-i18n="cancel"></button>
         <button id="order-save" class="btn btn-primary" type="submit" data-i18n="save"></button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ ОКНО: НАСТРОЙКИ КАБИНЕТА ============ -->
+  <div id="modal-settings" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="settings-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 data-i18n="settings"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span data-i18n="s_name"></span>
+          <input id="s-name" type="text" maxlength="120" required></label>
+        <label class="field"><span data-i18n="s_prefix"></span>
+          <input id="s-prefix" type="text" maxlength="5" autocapitalize="characters" spellcheck="false" required>
+          <p class="field-hint" data-i18n="s_prefix_hint"></p></label>
+        <label class="field"><span data-i18n="s_address"></span>
+          <textarea id="s-address" rows="3" maxlength="500" lang="zh-CN"></textarea>
+          <p class="field-hint" data-i18n="s_address_hint"></p></label>
+        <label class="field"><span data-i18n="s_contacts"></span>
+          <textarea id="s-contacts" rows="3" maxlength="500"></textarea>
+          <p class="field-hint" data-i18n="s_contacts_hint"></p></label>
+        <p id="settings-error" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="settings-save" class="btn btn-primary" type="submit" data-i18n="s_save"></button>
       </div>
     </form>
   </div>
