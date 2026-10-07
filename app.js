@@ -212,6 +212,40 @@
     return base + "?order=" + o.public_token;
   }
 
+  // ---------- Тема: светлая / тёмная / авто ----------
+  function getTheme() {
+    try { var th = localStorage.getItem("cc_theme"); return th === "light" || th === "dark" ? th : "auto"; }
+    catch (e) { return "auto"; }
+  }
+
+  function applyTheme(th) {
+    try { localStorage.setItem("cc_theme", th); } catch (e) { /* ignore */ }
+    if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
+    else document.documentElement.removeAttribute("data-theme");
+    var dark = th === "dark" || (th === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", dark ? "#18171B" : "#151417");
+  }
+
+  // ---------- Вход через Google ----------
+  // Кнопку показываем, только если Google включён в настройках Supabase
+  async function showGoogleIfEnabled(url, key) {
+    try {
+      var r = await fetch(url.replace(/\/$/, "") + "/auth/v1/settings", { headers: { apikey: key } });
+      var j = await r.json();
+      var on = !!(j && j.external && j.external.google);
+      $$("[data-oauth]").forEach(function (el) { el.classList.toggle("hidden", !on); });
+    } catch (e) { /* нет сети — кнопку не показываем */ }
+  }
+
+  async function signInWithGoogle() {
+    var res = await db.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname }
+    });
+    if (res.error) toast(t("google_failed"), "error");
+  }
+
   // ---------- Запуск ----------
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
@@ -239,19 +273,25 @@
     }
 
     db = window.supabase.createClient(url, key);
+    $$("[data-google]").forEach(function (b) { b.addEventListener("click", signInWithGoogle); });
 
     // Какая страница открыта:
     //   ?order=ТОКЕН     — страница клиента
     //   #/join/КОД       — регистрация байера по приглашению
     //   иначе            — вход и кабинет
     var token = new URLSearchParams(location.search).get("order");
-    var join = location.hash.match(/^#\/join\/([a-f0-9]{32})$/i);
+    var join = location.hash.match(/^#\/join(?:\/([a-f0-9]{32}))?$/i);
+    window.addEventListener("hashchange", function () {
+      if (/^#\/join/.test(location.hash) || location.hash === "") location.reload();
+    });
+    showGoogleIfEnabled(url, key);
+
     if (token) {
       mode = "client";
       initClient(token);
     } else if (join) {
       mode = "join";
-      initJoin(join[1].toLowerCase());
+      initJoin(join[1] ? join[1].toLowerCase() : null);
     } else {
       mode = "admin";
       initAdmin();
@@ -282,7 +322,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         if ($("#lightbox").classList.contains("open")) { closeLightbox(); return; }
-        var open = $$(".modal.open");
+        var open = $$(".modal.open").filter(function (m) { return m.id !== "modal-onboard"; });
         if (open.length) closeModal(open[open.length - 1].id);
       } else if ($("#lightbox").classList.contains("open")) {
         if (e.key === "ArrowLeft") lbStep(-1);
@@ -403,18 +443,23 @@
 
   // После входа: узнаём роль (админ / байер) и кабинет пользователя
   async function enterAdmin(user) {
-    var prof = await db.from("profiles").select("role, full_name, is_active").eq("user_id", user.id).maybeSingle();
+    var PROFILE = "role, full_name, phone, is_active";
+    var prof = await db.from("profiles").select(PROFILE).eq("user_id", user.id).maybeSingle();
     var p = prof.data;
 
-    // Пришёл по приглашению, но кабинет при регистрации не создался — пробуем ещё раз
+    // Профиля нет (кабинет при регистрации не создался) — создаём сейчас.
+    // Регистрация свободная: любой вошедший получает свой кабинет байера.
     var meta = user.user_metadata || {};
-    if (!prof.error && !p && meta.invite_code) {
-      var cl = await db.rpc("claim_invite", {
-        p_code: meta.invite_code, p_full_name: meta.full_name || null,
-        p_ws_name: meta.workspace_name || null, p_phone: meta.phone || null
-      });
+    if (!prof.error && !p) {
+      var name = meta.full_name || meta.name || null;
+      var cl = meta.invite_code
+        ? await db.rpc("claim_invite", { p_code: meta.invite_code, p_full_name: name, p_ws_name: meta.workspace_name || null, p_phone: meta.phone || null })
+        : { error: true };
+      if (cl.error) {
+        cl = await db.rpc("register_me", { p_full_name: name, p_ws_name: meta.workspace_name || null, p_phone: meta.phone || null });
+      }
       if (!cl.error) {
-        prof = await db.from("profiles").select("role, full_name, is_active").eq("user_id", user.id).maybeSingle();
+        prof = await db.from("profiles").select(PROFILE).eq("user_id", user.id).maybeSingle();
         p = prof.data;
       }
     }
@@ -441,7 +486,7 @@
       return;
     }
 
-    state.me = { id: user.id, email: user.email, role: p.role, name: p.full_name || user.email };
+    state.me = { id: user.id, email: user.email, role: p.role, name: p.full_name || "", phone: p.phone || "" };
     state.myWs = myWs;
     document.body.classList.toggle("is-admin", p.role === "admin");
     setLoginError("");
@@ -449,6 +494,48 @@
 
     if (myWs) await openWorkspace(myWs);
     else switchTab("buyers");
+
+    // нет телефона (например, вход через Google) — попросить указать
+    if (p.role === "buyer" && !p.phone) openOnboard();
+  }
+
+  // ---------- Завершение регистрации: телефон обязателен ----------
+  function openOnboard() {
+    $("#o-phone").value = "";
+    $("#o-ws").value = state.myWs ? state.myWs.name : "";
+    setFormError("#onboard-error", "");
+    openModal("modal-onboard");
+    $("#o-phone").focus();
+  }
+
+  async function saveOnboard(e) {
+    e.preventDefault();
+    var phone = cleanPhone($("#o-phone").value);
+    if (!/^\+?\d{9,15}$/.test(phone)) { setFormError("#onboard-error", t("e_phone")); $("#o-phone").focus(); return; }
+    var wsName = $("#o-ws").value.trim();
+    var btn = $("#onboard-save");
+    btn.disabled = true;
+    try {
+      var res = await db.from("profiles").update({ phone: phone }).eq("user_id", state.me.id);
+      if (res.error) throw res.error;
+      state.me.phone = phone;
+      if (wsName && state.myWs && wsName !== state.myWs.name) {
+        var w = await db.from("workspaces").update({ name: wsName }).eq("id", state.myWs.id).select(WS_FIELDS).single();
+        if (!w.error) { state.myWs = w.data; if (state.ws && state.ws.id === w.data.id) state.ws = w.data; }
+      }
+      closeModal("modal-onboard");
+      toast(t("s_saved"), "ok");
+    } catch (err) {
+      handleError(err);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setFormError(sel, msg) {
+    var el = $(sel);
+    el.textContent = msg || "";
+    el.classList.toggle("hidden", !msg);
   }
 
   var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
@@ -461,7 +548,7 @@
     document.body.classList.toggle("readonly", state.readOnly);
     state.orders = [];
     state.clients = [];
-    state.q = ""; state.status = "all"; state.from = ""; state.to = ""; state.limit = PAGE_SIZE;
+    state.q = ""; state.status = "all"; state.from = ""; state.to = ""; state.limit = PAGE_SIZE; state.hintFilter = null;
     $("#search").value = ""; $("#date-from").value = ""; $("#date-to").value = "";
     renderWsBanner();
     renderWarehouse();
@@ -528,10 +615,33 @@
       var ok = text ? await copyText(text) : false;
       toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
     });
-    $("#wh-edit").addEventListener("click", openSettings);
-    $(".warehouse").addEventListener("click", function (e) {
-      if (e.target.closest("[data-act='wh-add']")) openSettings();
+    // 💡 помощник: свернуть / развернуть, кнопки в подсказках
+    $("#as-toggle").addEventListener("click", function () {
+      var box = $("#assistant");
+      var collapsed = !box.classList.contains("collapsed");
+      box.classList.toggle("collapsed", collapsed);
+      $("#as-toggle").setAttribute("aria-expanded", String(!collapsed));
+      try { localStorage.setItem("cc_as_collapsed", collapsed ? "1" : ""); } catch (e) { /* ignore */ }
     });
+    try {
+      if (localStorage.getItem("cc_as_collapsed")) { $("#assistant").classList.add("collapsed"); $("#as-toggle").setAttribute("aria-expanded", "false"); }
+    } catch (e) { /* ignore */ }
+    $("#as-list").addEventListener("click", onHintClick);
+    $("#hint-filter-clear").addEventListener("click", function () { setHintFilter(null); });
+
+    // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
+    $("#settings-btn").addEventListener("click", function () { openSettings(); });
+    $("#wh-edit").addEventListener("click", function () { openSettings("s-warehouse"); });
+    $(".warehouse").addEventListener("click", function (e) {
+      if (e.target.closest("[data-act='wh-add']")) openSettings("s-warehouse");
+    });
+    // тема и язык меняются сразу, без кнопки «Сохранить»
+    $("#settings-form").addEventListener("change", function (e) {
+      if (e.target.name === "theme") applyTheme(e.target.value);
+      if (e.target.name === "s-lang") { setLang(e.target.value); onLangChange(); }
+    });
+    $("#onboard-form").addEventListener("submit", saveOnboard);
+    $("[data-onboard-logout]").addEventListener("click", function () { $("#logout-btn").click(); closeModal("modal-onboard"); });
     $("#settings-form").addEventListener("submit", saveSettings);
     // в настройках: валюта клиента изменилась — обновить список валют доставки
     $("#s-def-client").addEventListener("change", function () {
@@ -570,7 +680,8 @@
     $("#date-from").addEventListener("change", function (e) { state.from = e.target.value; state.limit = PAGE_SIZE; renderOrders(); });
     $("#date-to").addEventListener("change", function (e) { state.to = e.target.value; state.limit = PAGE_SIZE; renderOrders(); });
     $("#reset-filters").addEventListener("click", function () {
-      state.q = ""; state.from = ""; state.to = ""; state.status = "all"; state.limit = PAGE_SIZE;
+      state.q = ""; state.from = ""; state.to = ""; state.status = "all"; state.limit = PAGE_SIZE; state.hintFilter = null;
+      renderHintFilter();
       $("#search").value = ""; $("#date-from").value = ""; $("#date-to").value = "";
       renderChips(); renderOrders();
     });
@@ -609,6 +720,19 @@
     $("#f-purchase_currency").addEventListener("change", onCurrencyChange);
     $("#f-client_currency").addEventListener("change", onCurrencyChange);
     $("#f-delivery_currency").addEventListener("change", onDeliveryCurrencyChange);
+    // наценка в % → цена для клиента = себестоимость × (1 + %)
+    $("#f-markup").addEventListener("input", function () {
+      var m = $("#f-markup").value.trim();
+      var cost = currentCost();
+      if (m !== "" && cost > 0) $("#f-client_price").value = String(Math.round(cost * (1 + parseNum(m) / 100)));
+      updateCalc();
+    });
+    // цену вписали вручную → показать, какая это наценка
+    $("#f-client_price").addEventListener("input", function () {
+      var cost = currentCost(), cp = parseNum($("#f-client_price").value);
+      $("#f-markup").value = cost > 0 && cp > 0 ? String(Math.round((cp / cost - 1) * 1000) / 10) : "";
+      updateCalc();
+    });
     // вес или тариф поменялись — сумма доставки = вес × тариф
     ["weight_kg", "delivery_tariff"].forEach(function (id) {
       $("#f-" + id).addEventListener("input", function () {
@@ -692,6 +816,7 @@
   // ---------- Отрисовка админки ----------
   function renderAll() {
     renderSummary();
+    renderAssistant();
     renderChips();
     renderOrders();
   }
@@ -720,9 +845,31 @@
   }
 
   // ---------- Настройки кабинета ----------
-  function openSettings() {
-    if (state.readOnly || !state.ws) return;
-    var w = state.ws;
+  // Кабинет можно менять, только если открыт свой (а не чужой — у админа)
+  function canEditWs() {
+    return !!(state.myWs && state.ws && state.myWs.id === state.ws.id);
+  }
+
+  function openSettings(scrollTo) {
+    // внешний вид
+    $$('input[name="theme"]').forEach(function (r) { r.checked = r.value === getTheme(); });
+    $$('input[name="s-lang"]').forEach(function (r) { r.checked = r.value === getLang(); });
+    // профиль
+    $("#p-name").value = (state.me && state.me.name) || "";
+    $("#p-phone").value = state.me && state.me.phone ? fmtPhone(state.me.phone) : "";
+    $("#p-password").value = "";
+    // разделы кабинета — только для своего кабинета
+    var ws = canEditWs();
+    $$("[data-ws-section]").forEach(function (el) { el.classList.toggle("hidden", !ws); });
+    setSettingsError("");
+    if (ws) fillWsSettings(state.ws);
+    openModal("modal-settings");
+    var body = $("#settings-form .modal-body");
+    var target = scrollTo && document.getElementById(scrollTo);
+    if (body) body.scrollTop = target ? target.offsetTop - 12 : 0;
+  }
+
+  function fillWsSettings(w) {
     $("#s-name").value = w.name || "";
     $("#s-prefix").value = w.order_prefix || "CN";
     $("#s-address").value = w.warehouse_address || "";
@@ -731,8 +878,6 @@
     fillCurrencySelect($("#s-def-client"), w.default_client_currency || "KGS");
     fillCurrencySelect($("#s-def-delivery"), w.default_delivery_currency || "USD", deliveryCurrencies(w.default_client_currency || "KGS"));
     $("#s-def-tariff").value = numStr(w.default_delivery_tariff);
-    setSettingsError("");
-    openModal("modal-settings");
   }
 
   function setSettingsError(msg) {
@@ -743,6 +888,43 @@
 
   async function saveSettings(e) {
     e.preventDefault();
+    var btn = $("#settings-save");
+
+    // 1) профиль: имя, телефон, пароль
+    var pName = $("#p-name").value.trim();
+    var pPhone = cleanPhone($("#p-phone").value);
+    var pPass = $("#p-password").value;
+    if (pPhone && !/^\+?\d{9,15}$/.test(pPhone)) { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
+    if (!pPhone && state.me.role === "buyer") { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
+    if (pPass && pPass.length < 8) { setSettingsError(t("e_password")); $("#p-password").focus(); return; }
+
+    btn.disabled = true;
+    try {
+      if (pName !== state.me.name || pPhone !== state.me.phone) {
+        var pr = await db.from("profiles").update({ full_name: pName || null, phone: pPhone || null }).eq("user_id", state.me.id);
+        if (pr.error) throw pr.error;
+        state.me.name = pName;
+        state.me.phone = pPhone;
+      }
+      if (pPass) {
+        var pw = await db.auth.updateUser({ password: pPass });
+        if (pw.error) throw pw.error;
+        toast(t("password_changed"), "ok");
+      }
+    } catch (err) {
+      btn.disabled = false;
+      handleError(err);
+      return;
+    }
+
+    // 2) кабинет — только свой
+    if (!canEditWs()) {
+      btn.disabled = false;
+      closeModal("modal-settings");
+      if (!pPass) toast(t("s_saved"), "ok");
+      return;
+    }
+    btn.disabled = false;
     var v = {
       name: $("#s-name").value.trim(),
       order_prefix: $("#s-prefix").value.trim().toUpperCase(),
@@ -756,7 +938,6 @@
     if (!v.name) { setSettingsError(t("e_ws_name")); $("#s-name").focus(); return; }
     if (!/^[A-Z]{1,5}$/.test(v.order_prefix)) { setSettingsError(t("e_prefix")); $("#s-prefix").focus(); return; }
 
-    var btn = $("#settings-save");
     btn.disabled = true;
     try {
       var res = await db.from("workspaces").update(v).eq("id", state.ws.id).select(WS_FIELDS).single();
@@ -776,12 +957,14 @@
   function renderSummary() {
     var active = state.orders.filter(function (o) { return o.status !== "cancelled"; });
     // Разные валюты не складываем: считаем каждую отдельно
-    var total = {}, paid = {}, debt = {};
+    var total = {}, paid = {}, debt = {}, profit = {};
     active.forEach(function (o) {
       var c = o.client_currency || "KGS";
       total[c] = (total[c] || 0) + num(o.total_som);
       paid[c] = (paid[c] || 0) + num(o.paid_amount);
       debt[c] = (debt[c] || 0) + Math.max(0, num(o.balance_som));
+      // прибыль считаем только по заказам, где указана цена для клиента
+      if (o.profit_som != null) profit[c] = (profit[c] || 0) + num(o.profit_som);
     });
     function lines(map) {
       var codes = Object.keys(map);
@@ -792,6 +975,7 @@
     $("#sum-total").innerHTML = lines(total);
     $("#sum-paid").innerHTML = lines(paid);
     $("#sum-debt").innerHTML = lines(debt);
+    $("#sum-profit").innerHTML = lines(profit);
   }
 
   function renderChips() {
@@ -810,7 +994,9 @@
   function filtered() {
     var q = state.q.trim().toLowerCase();
     var qDigits = q.replace(/\D/g, "");
+    var hint = state.hintFilter && HINT_FILTERS[state.hintFilter];
     return state.orders.filter(function (o) {
+      if (hint && !hint(o)) return false;
       if (state.status !== "all" && o.status !== state.status) return false;
       if (state.from && o.order_date < state.from) return false;
       if (state.to && o.order_date > state.to) return false;
@@ -862,14 +1048,22 @@
       "</dl>";
   }
 
-  function moneyHtml(o) {
+  // Деньги в карточке (видит только байер).
+  // full = true — в подробной карточке ещё товар и доставка отдельно.
+  function moneyHtml(o, full) {
+    var c = o.client_currency;
     var bal = num(o.balance_som);
+    var hasPrice = o.profit_som != null;
+    var pr = num(o.profit_som);
     return '<dl class="money">' +
-      "<div><dt>" + t("l_goods_som") + "</dt><dd>" + cur(o.goods_som, o.client_currency) + "</dd></div>" +
-      "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" +
-      '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, o.client_currency) + "</dd></div>" +
-      "<div><dt>" + t("l_paid") + "</dt><dd>" + money(o.paid_amount) + "</dd></div>" +
-      '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, o.client_currency) + "</dd></div>" +
+      (full ? "<div><dt>" + t("l_goods_som") + "</dt><dd>" + cur(o.goods_som, c) + "</dd></div>" +
+              "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" : "") +
+      '<div class="money-cost"><dt>' + t("l_cost") + "</dt><dd>" + cur(o.cost_som, c) + "</dd></div>" +
+      '<div class="money-total"><dt>' + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
+      '<div class="money-profit' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
+        (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
+      "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
+      '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
       "</dl>";
   }
 
@@ -1109,6 +1303,137 @@
   }
 
   // =====================================================
+  //  УМНЫЙ ПОМОЩНИК (бесплатный, без ИИ)
+  //  Сам смотрит заказы и подсказывает, что требует внимания.
+  // =====================================================
+  function isActive(o) { return CLOSED.indexOf(o.status) === -1; }
+
+  // Подсказки, которые можно «Показать» — это фильтры списка заказов
+  var HINT_FILTERS = {
+    no_price: function (o) { return isActive(o) && o.client_price == null; },
+    no_address: function (o) { return isActive(o) && !o.client; },
+    no_rate: function (o) {
+      var goodsNoRate = o.purchase_currency !== o.client_currency && num(o.unit_price_cny) > 0 && num(o.exchange_rate) === 0;
+      var dlvNoRate = o.delivery_currency && o.delivery_currency !== o.client_currency && num(o.delivery_cost) > 0 && num(o.delivery_rate) === 0;
+      return isActive(o) && (goodsNoRate || dlvNoRate);
+    }
+  };
+
+  function daysSince(d) { return Math.floor((Date.now() - new Date(d).getTime()) / 86400000); }
+
+  function buildHints() {
+    var list = state.orders;
+    var hints = [];
+    function add(level, text, action) { hints.push({ level: level, text: text, action: action }); }
+
+    // нет адреса склада
+    if (state.ws && !state.ws.warehouse_address && !state.readOnly) {
+      add("warn", t("h_no_wh"), { type: "settings" });
+    }
+    // группы заказов
+    ["no_price", "no_address", "no_rate"].forEach(function (k) {
+      var n = list.filter(HINT_FILTERS[k]).length;
+      if (n) add(k === "no_rate" ? "bad" : "warn", t("h_" + k, { n: n }), { type: "filter", key: k });
+    });
+    // заказы в убытке
+    list.filter(function (o) { return o.profit_som != null && num(o.profit_som) < 0; }).slice(0, 3).forEach(function (o) {
+      add("bad", t("h_loss", { num: o.order_number, sum: money(o.profit_som) + " " + (o.client_currency || "") }), { type: "order", id: o.id });
+    });
+    // клиент должен, а товар уже прибыл
+    list.filter(function (o) { return (o.status === "arrived" || o.status === "delivered") && num(o.balance_som) > 0; })
+      .sort(function (a, b) { return num(b.balance_som) - num(a.balance_som); }).slice(0, 3).forEach(function (o) {
+        add("bad", t("h_debt", { name: (o.client && o.client.name) || o.client_name, sum: money(o.balance_som) + " " + (o.client_currency || ""), num: o.order_number }),
+          { type: "order", id: o.id });
+      });
+    // «застрявшие» заказы: больше 10 дней без изменений
+    list.filter(function (o) { return isActive(o) && o.updated_at && daysSince(o.updated_at) >= 10; })
+      .sort(function (a, b) { return String(a.updated_at).localeCompare(String(b.updated_at)); }).slice(0, 3).forEach(function (o) {
+        add("warn", t("h_stuck", { num: o.order_number, days: daysSince(o.updated_at) }), { type: "order", id: o.id });
+      });
+    // прибыль за текущий месяц (хорошая новость — в конце)
+    var month = todayISO().slice(0, 7), profit = {};
+    list.forEach(function (o) {
+      if (o.status !== "cancelled" && o.profit_som != null && String(o.order_date).slice(0, 7) === month) {
+        var c = o.client_currency || "";
+        profit[c] = (profit[c] || 0) + num(o.profit_som);
+      }
+    });
+    var pCodes = Object.keys(profit);
+    if (pCodes.length) {
+      add("good", t("h_profit_month", { sum: pCodes.map(function (c) { return money(profit[c]) + " " + c; }).join(", ") }), null);
+    }
+    return hints;
+  }
+
+  function hintHtml(h, i) {
+    var btn = "";
+    if (h.action && h.action.type === "filter") btn = '<button type="button" class="btn" data-hint="' + i + '">' + esc(t("as_show")) + "</button>";
+    else if (h.action) btn = '<button type="button" class="btn" data-hint="' + i + '">' + esc(t("as_open")) + "</button>";
+    return '<div class="hint ' + h.level + '"><span class="hint-text">' + esc(h.text) + "</span>" + btn + "</div>";
+  }
+
+  var currentHints = [];
+  function renderAssistant() {
+    if (!state.ws) return;
+    currentHints = buildHints();
+    var problems = currentHints.filter(function (h) { return h.level !== "good"; }).length;
+    $("#as-count").textContent = problems ? String(problems) : "";
+    $("#as-list").innerHTML = currentHints.length
+      ? currentHints.map(hintHtml).join("") + (problems ? "" : '<div class="hint-ok">' + esc(t("as_all_good")) + "</div>")
+      : '<div class="hint-ok">' + esc(t("as_all_good")) + "</div>";
+    renderHintFilter();
+  }
+
+  function onHintClick(e) {
+    var b = e.target.closest("[data-hint]");
+    if (!b) return;
+    var h = currentHints[Number(b.getAttribute("data-hint"))];
+    if (!h || !h.action) return;
+    if (h.action.type === "filter") setHintFilter(h.action.key);
+    else if (h.action.type === "order") openDetail(h.action.id);
+    else if (h.action.type === "settings") openSettings("s-warehouse");
+  }
+
+  function setHintFilter(key) {
+    state.hintFilter = key;
+    state.status = "all";
+    state.limit = PAGE_SIZE;
+    renderChips();
+    renderOrders();
+    renderHintFilter();
+    if (key) $("#orders").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderHintFilter() {
+    var key = state.hintFilter;
+    $("#hint-filter").classList.toggle("hidden", !key);
+    if (key) {
+      var n = state.orders.filter(HINT_FILTERS[key]).length;
+      $("#hint-filter-text").textContent = t("as_filter", { t: t("h_" + key, { n: n }) });
+    }
+  }
+
+  // Помощник администратора — по списку кабинетов
+  function renderAdminAssistant() {
+    var ws = state.buyers || [];
+    var hints = [];
+    var buyers = ws.filter(function (w) { return w.owner_role === "buyer"; });
+    var fresh = buyers.filter(function (w) { return daysSince(w.created_at) <= 7; }).length;
+    if (fresh) hints.push({ level: "good", text: t("ha_new", { n: fresh }) });
+    buyers.filter(function (w) { return w.owner_active && Number(w.orders_count) === 0 && daysSince(w.created_at) >= 3; })
+      .slice(0, 5).forEach(function (w) {
+        hints.push({ level: "warn", text: t("ha_idle", { name: w.owner_name || w.owner_email || w.name, days: daysSince(w.created_at) }) });
+      });
+    var blocked = buyers.filter(function (w) { return !w.owner_active; }).length;
+    if (blocked) hints.push({ level: "bad", text: t("ha_blocked", { n: blocked }) });
+    var orders = ws.reduce(function (sum, w) { return sum + Number(w.orders_count || 0); }, 0);
+    hints.push({ level: "info", text: t("ha_total", { n: ws.length, o: orders }) });
+    $("#as-admin-list").innerHTML = hints.map(function (h) {
+      return '<div class="hint ' + h.level + '"><span class="hint-text">' + esc(h.text) + "</span></div>";
+    }).join("");
+  }
+
+  // =====================================================
   //  ВКЛАДКА «БАЙЕРЫ» (только админ)
   // =====================================================
   async function loadBuyers() {
@@ -1138,6 +1463,7 @@
 
   function renderBuyers() {
     if (!state.me || state.me.role !== "admin") return;
+    renderAdminAssistant();
 
     $("#invites").innerHTML = state.invites.length
       ? state.invites.map(function (i) {
@@ -1220,14 +1546,17 @@
   // =====================================================
   //  РЕГИСТРАЦИЯ БАЙЕРА ПО ПРИГЛАШЕНИЮ (#/join/КОД)
   // =====================================================
+  // code = код приглашения или null (свободная регистрация)
   async function initJoin(code) {
     showView("join");
-    var ok = false;
-    try {
-      var res = await db.rpc("check_invite", { p_code: code });
-      ok = !res.error && res.data === true;
-    } catch (err) {
-      console.error(err);
+    var ok = !code;
+    if (code) {
+      try {
+        var res = await db.rpc("check_invite", { p_code: code });
+        ok = !res.error && res.data === true;
+      } catch (err) {
+        console.error(err);
+      }
     }
     $("#join-checking").classList.add("hidden");
     $("#join-invalid").classList.toggle("hidden", ok);
@@ -1257,7 +1586,9 @@
           email: email,
           password: pass,
           options: {
-            data: { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone },
+            data: code
+              ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone }
+              : { full_name: name, workspace_name: wsName || name, phone: phone },
             emailRedirectTo: location.origin + location.pathname
           }
         });
@@ -1346,7 +1677,7 @@
         (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0) + "</div>" : "") +
         clientBoxHtml(o.client) +
         specsHtml(o) +
-        moneyHtml(o) +
+        moneyHtml(o, true) +
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
           "<div><dt>" + t("l_phone") + "</dt><dd>" + phone + "</dd></div>" +
@@ -1466,6 +1797,9 @@
       set("weight_kg", numStr(o.weight_kg));
       set("delivery_cost", numStr(o.delivery_cost));
       set("paid_amount", numStr(o.paid_amount));
+      set("client_price", o.client_price == null ? "" : String(num(o.client_price)));
+      set("markup", o.client_price != null && num(o.cost_som) > 0
+        ? String(Math.round((num(o.client_price) / num(o.cost_som) - 1) * 1000) / 10) : "");
       set("delivery_info", o.delivery_info);
       set("client_comment", o.client_comment);
       set("admin_comment", o.admin_comment);
@@ -1486,12 +1820,20 @@
       set("delivery_cost", "");
       set("delivery_rate", lastRateFor($("#f-delivery_currency").value, $("#f-client_currency").value));
       set("paid_amount", "");
+      set("client_price", "");
+      set("markup", "");
     }
     updateCalc();
     renderPhotoPreviews();
     openModal("modal-order");
     var body = $("#order-form .modal-body");
     if (body) body.scrollTop = 0;
+  }
+
+  // Себестоимость по тому, что сейчас вписано в форме (в валюте клиента)
+  function currentCost() {
+    return parseNum($("#f-quantity").value) * parseNum($("#f-unit_price_cny").value) * parseNum($("#f-exchange_rate").value) +
+      parseNum($("#f-delivery_cost").value) * parseNum($("#f-delivery_rate").value);
   }
 
   // Последний курс для пары валют (например CNY→KGS) — подставляется в новый заказ
@@ -1507,6 +1849,7 @@
     $("#lbl-price").textContent = t("f_price_cur", { c: a });
     $("#lbl-rate").textContent = same ? t("f_rate_same") : t("f_rate_cur", { a: a, b: b });
     $("#lbl-paid").textContent = t("f_paid_cur", { c: b });
+    $("#lbl-client-price").textContent = t("f_client_price_cur", { c: b });
     var rate = $("#f-exchange_rate");
     rate.readOnly = same;
     if (same) rate.value = "1";
@@ -1552,7 +1895,10 @@
     var paid = parseNum($("#f-paid_amount").value);
     var goodsCny = q * p;
     var goodsSom = goodsCny * r;
-    var total = goodsSom + d;
+    var cost = goodsSom + d;                                  // себестоимость
+    var cp = $("#f-client_price").value.trim() ? parseNum($("#f-client_price").value) : null; // цена для клиента
+    var total = cp != null ? cp : cost;                       // к оплате клиентом
+    var profit = cp != null ? cp - cost : null;
     var bal = total - paid;
     $("#calc-goods-cny").textContent = money(q) + " × " + money(p) + " " + a + " = " + money(goodsCny) + " " + a;
     $("#calc-goods-som").textContent = a === b
@@ -1561,7 +1907,11 @@
     $("#calc-delivery").textContent = dc === b
       ? money(d) + " " + b
       : money(dAmount) + " " + dc + " × " + money(dRate) + " = " + money(d) + " " + b;
+    $("#calc-cost").textContent = money(cost) + " " + b;
     $("#calc-total").textContent = money(total) + " " + b;
+    $("#calc-profit").textContent = profit == null ? "—"
+      : money(profit) + " " + b + (cost > 0 ? " (" + money(Math.round(profit / cost * 1000) / 10) + "%)" : "");
+    $(".calc-profit").classList.toggle("loss", profit != null && profit < 0);
     $("#calc-paid").textContent = money(paid) + " " + b;
     $("#calc-balance").textContent = money(bal) + " " + b;
     $(".calc-balance").classList.toggle("owe", bal > 0);
@@ -1607,6 +1957,7 @@
       delivery_currency: $("#f-delivery_currency").value,
       delivery_tariff: parseNum(val("delivery_tariff")),
       delivery_rate: parseNum(val("delivery_rate")),
+      client_price: val("client_price") ? parseNum(val("client_price")) : null,
       paid_amount: parseNum(val("paid_amount")),
       delivery_info: val("delivery_info") || null,
       client_comment: val("client_comment") || null,
@@ -2054,10 +2405,9 @@
       '<section class="client-block">' +
         "<h2>" + esc(t("cl_payment")) + "</h2>" +
         '<dl class="money">' +
-          (num(o.delivery_cost) > 0 ? "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" : "") +
-          '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
+          '<div class="money-total"><dt>' + t("cl_due") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
           "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
-          '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" +
+          '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("cl_left") + "</dt><dd>" +
             (bal > 0 ? cur(bal, cc) : esc(t("cl_paid_full"))) + "</dd></div>" +
         "</dl>" +
       "</section>" +

@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#151417">
+  <script>
+    // Тема: "light", "dark" или "auto" (как в системе). Ставим до отрисовки страницы.
+    (function () {
+      try {
+        var th = localStorage.getItem("cc_theme");
+        if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
   <title>ULA Factory</title>
   <link rel="icon" href="img/mark.svg" type="image/svg+xml">
   <link rel="icon" href="img/favicon.png" type="image/png" sizes="64x64">
@@ -15,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261007">
+  <link rel="stylesheet" href="style.css?v=20261007d">
 </head>
 <body>
 
@@ -48,6 +57,16 @@
 
       <p id="login-error" class="form-error hidden" role="alert"></p>
       <button id="login-btn" class="btn btn-primary btn-block" type="submit" data-i18n="login_btn"></button>
+
+      <!-- Вход через Google (кнопка появляется, если Google включён в Supabase) -->
+      <div class="oauth hidden" data-oauth>
+        <div class="or"><span data-i18n="or"></span></div>
+        <button class="btn btn-block btn-google" type="button" data-google>
+          <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+          <span data-i18n="google_btn"></span>
+        </button>
+      </div>
+      <p class="switch-auth"><span data-i18n="no_account"></span> <a href="#/join" data-i18n="signup_link"></a></p>
 
       <div class="lang-switch lang-center" role="group" aria-label="Language">
         <button type="button" data-lang="ru" title="Русский">RU</button>
@@ -88,6 +107,14 @@
           <input id="join-password" type="password" autocomplete="new-password" minlength="8" required></label>
         <p id="join-error" class="form-error hidden" role="alert"></p>
         <button id="join-btn" class="btn btn-primary btn-block" type="submit" data-i18n="join_btn"></button>
+        <div class="oauth hidden" data-oauth>
+          <div class="or"><span data-i18n="or"></span></div>
+          <button class="btn btn-block btn-google" type="button" data-google>
+            <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+            <span data-i18n="google_btn"></span>
+          </button>
+        </div>
+        <p class="switch-auth"><span data-i18n="have_account"></span> <a href="./" data-i18n="login_btn"></a></p>
       </form>
 
       <!-- письмо отправлено -->
@@ -116,6 +143,11 @@
             <button type="button" data-lang="en" title="English">EN</button>
             <button type="button" data-lang="zh" title="中文">中文</button>
           </div>
+          <button id="settings-btn" class="icon-btn gear-btn" type="button" data-i18n-title="settings" aria-haspopup="dialog">
+            <!-- значок «шестерёнка» -->
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="sr-only" data-i18n="settings"></span>
+          </button>
           <button id="logout-btn" class="btn btn-ghost btn-logout" type="button">
             <!-- значок «выход» (дверь со стрелкой) -->
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -158,6 +190,14 @@
         </div>
         <h3 class="b-sub" data-i18n="b_invites"></h3>
         <div id="invites" class="invites"></div>
+      </section>
+
+      <section class="assistant" aria-labelledby="as-admin-title">
+        <div class="assistant-head as-static">
+          <span class="as-icon" aria-hidden="true">💡</span>
+          <span id="as-admin-title" class="as-title" data-i18n="as_admin_title"></span>
+        </div>
+        <div id="as-admin-list" class="assistant-list"></div>
       </section>
 
       <h2 class="section-title" data-i18n="b_workspaces"></h2>
@@ -211,8 +251,28 @@
           <span class="summary-label" data-i18n="sum_debt"></span>
           <span id="sum-debt" class="summary-value debt">0</span>
         </div>
+        <div class="summary-item summary-profit">
+          <span class="summary-label" data-i18n="sum_profit"></span>
+          <span id="sum-profit" class="summary-value paid">0</span>
+        </div>
       </section>
       <p class="fine-print" data-i18n="sum_note"></p>
+
+      <!-- Умный помощник: сам находит проблемы в заказах -->
+      <section id="assistant" class="assistant" aria-labelledby="as-title">
+        <button id="as-toggle" class="assistant-head" type="button" aria-expanded="true">
+          <span class="as-icon" aria-hidden="true">💡</span>
+          <span id="as-title" class="as-title" data-i18n="as_title"></span>
+          <span id="as-count" class="as-count"></span>
+          <span class="as-caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="as-list" class="assistant-list"></div>
+      </section>
+      <!-- активный фильтр от помощника -->
+      <div id="hint-filter" class="hint-filter hidden">
+        <span id="hint-filter-text"></span>
+        <button id="hint-filter-clear" class="btn btn-ghost" type="button" aria-label="×">×</button>
+      </div>
 
       <!-- Статусы: счётчики и фильтр в одном -->
       <div id="chips" class="chips" role="tablist"></div>
@@ -343,9 +403,15 @@
               <input id="f-delivery_rate" type="text" inputmode="decimal"></label>
           </div>
 
-          <!-- Оплата клиента -->
+          <!-- Цена для клиента и оплата. Клиент видит только «к оплате», «оплачено», «осталось» -->
           <h4 class="money-sub" data-i18n="k_payment"></h4>
           <div class="grid-3">
+            <label class="field"><span data-i18n="f_markup"></span>
+              <input id="f-markup" type="text" inputmode="decimal" placeholder="15">
+              <p class="field-hint" data-i18n="f_markup_hint"></p></label>
+            <label class="field"><span id="lbl-client-price"></span>
+              <input id="f-client_price" type="text" inputmode="decimal">
+              <p class="field-hint" data-i18n="f_client_price_hint"></p></label>
             <label class="field"><span id="lbl-paid"></span>
               <input id="f-paid_amount" type="text" inputmode="decimal"></label>
           </div>
@@ -354,7 +420,9 @@
             <div class="calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">0</b></div>
             <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="calc-goods-som">0</b></div>
             <div class="calc-row"><span data-i18n="c_delivery"></span><b id="calc-delivery">0</b></div>
-            <div class="calc-row calc-total"><span data-i18n="c_total"></span><b id="calc-total">0</b></div>
+            <div class="calc-row calc-cost"><span data-i18n="c_cost"></span><b id="calc-cost">0</b></div>
+            <div class="calc-row calc-total"><span data-i18n="c_client_price"></span><b id="calc-total">0</b></div>
+            <div class="calc-row calc-profit"><span data-i18n="c_profit"></span><b id="calc-profit">—</b></div>
             <div class="calc-row"><span data-i18n="c_paid"></span><b id="calc-paid">0</b></div>
             <div class="calc-row calc-balance"><span data-i18n="c_balance"></span><b id="calc-balance">0</b></div>
           </div>
@@ -395,36 +463,108 @@
         <h2 data-i18n="settings"></h2>
         <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
       </div>
-      <div class="modal-body">
-        <label class="field"><span data-i18n="s_name"></span>
-          <input id="s-name" type="text" maxlength="120" required></label>
-        <label class="field"><span data-i18n="s_prefix"></span>
-          <input id="s-prefix" type="text" maxlength="5" autocapitalize="characters" spellcheck="false" required>
-          <p class="field-hint" data-i18n="s_prefix_hint"></p></label>
-        <label class="field"><span data-i18n="s_address"></span>
-          <textarea id="s-address" rows="3" maxlength="500" lang="zh-CN"></textarea>
-          <p class="field-hint" data-i18n="s_address_hint"></p></label>
-        <label class="field"><span data-i18n="s_contacts"></span>
-          <textarea id="s-contacts" rows="3" maxlength="500"></textarea>
-          <p class="field-hint" data-i18n="s_contacts_hint"></p></label>
-        <div class="grid-2">
-          <label class="field"><span data-i18n="s_def_purchase"></span>
-            <select id="s-def-purchase" class="currency-select"></select></label>
-          <label class="field"><span data-i18n="s_def_client"></span>
-            <select id="s-def-client" class="currency-select"></select></label>
-        </div>
-        <div class="grid-2">
-          <label class="field"><span data-i18n="s_def_delivery"></span>
-            <select id="s-def-delivery" class="currency-select"></select></label>
-          <label class="field"><span data-i18n="s_def_tariff"></span>
-            <input id="s-def-tariff" type="text" inputmode="decimal"></label>
-        </div>
-        <p class="field-hint" data-i18n="s_currency_hint"></p>
+      <div class="modal-body settings-body">
+
+        <!-- Внешний вид: тема и язык (применяются сразу) -->
+        <section class="s-section">
+          <h3 data-i18n="s_sec_look"></h3>
+          <fieldset class="seg">
+            <legend data-i18n="s_theme"></legend>
+            <div class="seg-options seg-3">
+              <label><input type="radio" name="theme" value="auto"><span data-i18n="theme_auto"></span></label>
+              <label><input type="radio" name="theme" value="light"><span data-i18n="theme_light"></span></label>
+              <label><input type="radio" name="theme" value="dark"><span data-i18n="theme_dark"></span></label>
+            </div>
+          </fieldset>
+          <fieldset class="seg">
+            <legend data-i18n="s_language"></legend>
+            <div class="seg-options seg-3">
+              <label><input type="radio" name="s-lang" value="ru"><span>Русский</span></label>
+              <label><input type="radio" name="s-lang" value="en"><span>English</span></label>
+              <label><input type="radio" name="s-lang" value="zh"><span>中文</span></label>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- Профиль -->
+        <section class="s-section">
+          <h3 data-i18n="s_sec_profile"></h3>
+          <div class="grid-2">
+            <label class="field"><span data-i18n="join_name"></span>
+              <input id="p-name" type="text" maxlength="120" autocomplete="name"></label>
+            <label class="field"><span data-i18n="join_phone"></span>
+              <input id="p-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+996 555 123 456"></label>
+          </div>
+          <label class="field"><span data-i18n="s_new_password"></span>
+            <input id="p-password" type="password" autocomplete="new-password" minlength="8">
+            <p class="field-hint" data-i18n="s_password_hint"></p></label>
+        </section>
+
+        <!-- Кабинет -->
+        <section class="s-section" data-ws-section>
+          <h3 data-i18n="s_sec_workspace"></h3>
+          <div class="grid-2">
+            <label class="field"><span data-i18n="s_name"></span>
+              <input id="s-name" type="text" maxlength="120" required></label>
+            <label class="field"><span data-i18n="s_prefix"></span>
+              <input id="s-prefix" type="text" maxlength="5" autocapitalize="characters" spellcheck="false" required>
+              <p class="field-hint" data-i18n="s_prefix_hint"></p></label>
+          </div>
+        </section>
+
+        <!-- Склад в Китае -->
+        <section class="s-section" id="s-warehouse" data-ws-section>
+          <h3 data-i18n="warehouse_title"></h3>
+          <label class="field"><span data-i18n="s_address"></span>
+            <textarea id="s-address" rows="3" maxlength="500" lang="zh-CN"></textarea>
+            <p class="field-hint" data-i18n="s_address_hint"></p></label>
+          <label class="field"><span data-i18n="s_contacts"></span>
+            <textarea id="s-contacts" rows="3" maxlength="500"></textarea>
+            <p class="field-hint" data-i18n="s_contacts_hint"></p></label>
+        </section>
+
+        <!-- Валюты и доставка по умолчанию -->
+        <section class="s-section" data-ws-section>
+          <h3 data-i18n="s_sec_money"></h3>
+          <div class="grid-2">
+            <label class="field"><span data-i18n="s_def_purchase"></span>
+              <select id="s-def-purchase" class="currency-select"></select></label>
+            <label class="field"><span data-i18n="s_def_client"></span>
+              <select id="s-def-client" class="currency-select"></select></label>
+            <label class="field"><span data-i18n="s_def_delivery"></span>
+              <select id="s-def-delivery" class="currency-select"></select></label>
+            <label class="field"><span data-i18n="s_def_tariff"></span>
+              <input id="s-def-tariff" type="text" inputmode="decimal"></label>
+          </div>
+          <p class="field-hint" data-i18n="s_currency_hint"></p>
+        </section>
+
         <p id="settings-error" class="form-error hidden" role="alert"></p>
       </div>
       <div class="modal-foot">
         <button class="btn" type="button" data-close data-i18n="cancel"></button>
         <button id="settings-save" class="btn btn-primary" type="submit" data-i18n="s_save"></button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ ОКНО: ЗАВЕРШИТЕ РЕГИСТРАЦИЮ (нужен телефон) ============ -->
+  <div id="modal-onboard" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <form id="onboard-form" class="modal-sheet" novalidate>
+      <div class="modal-head"><h2 data-i18n="onboard_title"></h2></div>
+      <div class="modal-body">
+        <p class="muted b-lead" data-i18n="onboard_text"></p>
+        <label class="field"><span data-i18n="join_phone"></span>
+          <input id="o-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+996 555 123 456" required>
+          <p class="field-hint" data-i18n="cd_phone_hint"></p></label>
+        <label class="field"><span data-i18n="join_ws"></span>
+          <input id="o-ws" type="text" maxlength="120" autocomplete="organization"></label>
+        <p id="onboard-error" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" type="button" data-onboard-logout data-i18n="logout"></button>
+        <button id="onboard-save" class="btn btn-primary" type="submit" data-i18n="s_save"></button>
       </div>
     </form>
   </div>
@@ -484,9 +624,9 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261007"></script>
-  <script src="i18n.js?v=20261007"></script>
+  <script src="config.js?v=20261007d"></script>
+  <script src="i18n.js?v=20261007d"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261007"></script>
+  <script src="app.js?v=20261007d"></script>
 </body>
 </html>
