@@ -1458,7 +1458,10 @@
 
   function renderAiLog() {
     $("#ai-log").innerHTML = ai.history.map(function (m) {
-      return '<div class="ai-msg ' + (m.role === "user" ? "ai-me" : "ai-bot") + (m.error ? " ai-error" : "") + '">' + esc(m.text) + "</div>";
+      // **жирный** от ИИ показываем жирным, «# » в начале строки убираем
+      var html = m.role === "user" ? esc(m.text)
+        : esc(m.text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^#{1,6}\s*/gm, "");
+      return '<div class="ai-msg ' + (m.role === "user" ? "ai-me" : "ai-bot") + (m.error ? " ai-error" : "") + '">' + html + "</div>";
     }).join("") + (ai.busy ? '<div class="ai-msg ai-bot ai-wait">' + esc(t("ai_thinking")) + "</div>" : "");
     var log = $("#ai-log");
     log.scrollTop = log.scrollHeight;
