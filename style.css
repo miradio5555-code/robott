@@ -961,7 +961,9 @@ legend { padding: 0; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
 @media (max-width: 480px) {
   .brand-name { font-size: 14px; }
   .lang-switch button { min-width: 34px; padding: 0 7px; }
-  .btn-logout { width: 44px; padding: 0; }
+  .btn-logout { width: 40px; padding: 0; }
+  .topbar-actions { gap: 0; }
+  .topbar-actions .icon-btn { width: 40px; height: 40px; }
   /* на телефоне язык меняется в ⚙️ Настройках — в шапке место только для значков */
   #view-admin .topbar .lang-switch { display: none; }
   .logout-text {
@@ -1275,3 +1277,17 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
 /* Ссылки на условия и политику под формами входа и регистрации */
 .legal-links { margin: 10px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
 .legal-links a { color: var(--muted); }
+
+/* ↻ Кнопка «Обновить»: значок крутится, пока идёт загрузка */
+.spinning svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.client-actions { display: flex; align-items: center; gap: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .spinning svg { animation: none; opacity: 0.5; }
+}
+
+/* Очень узкие телефоны: на странице клиента — только значок логотипа, компактные языки */
+@media (max-width: 360px) {
+  #view-client .brand-name { display: none; }
+  #view-client .client-actions .icon-btn { width: 36px; height: 36px; }
+}

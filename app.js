@@ -639,6 +639,9 @@
       if (b) askAi(t(b.getAttribute("data-ai-ex")));
     });
 
+    // ↻ обновить данные открытой вкладки
+    $("#refresh-btn").addEventListener("click", refreshData);
+
     // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
     $("#settings-btn").addEventListener("click", function () { openSettings(); });
     $("#wh-edit").addEventListener("click", function () { openSettings("s-warehouse"); });
@@ -1443,6 +1446,39 @@
     }).join("");
   }
 
+  // ---------- ↻ Обновить данные ----------
+  // Подтягивает свежие данные из базы, не перезагружая страницу.
+  var refreshing = false;
+  async function refreshData() {
+    if (refreshing) return;
+    refreshing = true;
+    var btn = $("#refresh-btn");
+    btn.classList.add("spinning");
+    btn.disabled = true;
+    try {
+      if (state.ws) {
+        // настройки кабинета тоже могли измениться (адрес склада, валюты)
+        var w = await db.from("workspaces").select(WS_FIELDS).eq("id", state.ws.id).single();
+        if (!w.error) {
+          state.ws = w.data;
+          if (state.myWs && state.myWs.id === w.data.id) state.myWs = w.data;
+          renderWarehouse();
+        }
+      }
+      if (state.tab === "clients") await loadClients();
+      else if (state.tab === "buyers") await loadBuyers();
+      else await loadOrders();
+      // открытая карточка заказа — перерисовать со свежими данными
+      if ($("#modal-detail").classList.contains("open")) renderDetail();
+      toast(t("refreshed"), "ok");
+    } catch (err) {
+      handleError(err);
+    }
+    btn.classList.remove("spinning");
+    btn.disabled = false;
+    refreshing = false;
+  }
+
   // =====================================================
   //  🤖 ИИ-ПОМОЩНИК АДМИНИСТРАТОРА
   //  Вопрос уходит в функцию Supabase «ai-assistant», она проверяет,
@@ -2151,8 +2187,27 @@
   }
 
   // Все клики и ввод на странице клиента ловим в одном месте
+  // ↻ на странице клиента: заново загрузить заказ (статус, оплата, фото)
+  async function refreshClient() {
+    var btn = $("#client-refresh");
+    if (btn.disabled || cd.editing) return; // не мешаем, пока клиент заполняет форму
+    btn.disabled = true;
+    btn.classList.add("spinning");
+    try {
+      var res = await db.rpc("get_client_order", { p_token: cd.token });
+      if (res.error) throw res.error;
+      if (res.data) { state.client = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+    } catch (err) {
+      console.error(err);
+      toast(t("error_generic"), "error");
+    }
+    btn.classList.remove("spinning");
+    btn.disabled = false;
+  }
+
   function bindClientUI() {
     var box = $("#client-content");
+    $("#client-refresh").addEventListener("click", refreshClient);
 
     box.addEventListener("click", function (e) {
       var ph = e.target.closest("[data-photo]");
