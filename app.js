@@ -250,7 +250,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261007l"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261007m"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -541,6 +541,11 @@
     startSupportPolling();
     if (myWs) await openWorkspace(myWs);
     else switchTab("buyers");
+    // ссылка из Telegram «Ответить: …#/support» — сразу открыть поддержку
+    if (location.hash === "#/support") {
+      history.replaceState(null, "", location.pathname + location.search);
+      if (p.role === "admin") switchTab("support"); else openSupport(null, null);
+    }
 
     // нет телефона (например, вход через Google) — попросить указать
     if (p.role === "buyer" && !p.phone) openOnboard();
@@ -710,6 +715,7 @@
     $("#support-text").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendSupport(); }
     });
+    $("#tg-connect").addEventListener("click", connectTelegram);
     $("#support-threads").addEventListener("click", function (e) {
       var b = e.target.closest("[data-user]");
       if (!b) return;
@@ -1809,13 +1815,51 @@
     }
     box.value = "";
     toast(t("support_sent"), "ok");
+    // сообщить админу в Telegram (если подключено); ошибка здесь не мешает байеру
+    if (!support.user) {
+      try { db.functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
+    }
     await loadSupportLog(true);
     if (support.user && state.tab === "support") loadSupportThreads();
+  }
+
+  // ---------- Telegram-уведомления (админ) ----------
+  async function tgCall(action) {
+    var res = await db.functions.invoke("telegram-notify", { body: { action: action } });
+    if (res.error) return { error: "server_error" };
+    return res.data || {};
+  }
+
+  async function loadTgStatus() {
+    var el = $("#tg-status");
+    el.className = "tg-status";
+    el.textContent = t("loading");
+    var r = await tgCall("status");
+    if (r.ok && r.connected) {
+      el.textContent = t("tg_on", { bot: r.bot ? "@" + r.bot : "", name: r.chat_name || "" });
+      el.classList.add("on");
+    } else if (r.ok) {
+      el.textContent = t("tg_off_bot", { bot: "@" + r.bot });
+    } else {
+      el.textContent = t(r.error === "no_bot_token" ? "tg_no_token" : r.error === "bad_token" ? "tg_bad_token" : "tg_error");
+    }
+  }
+
+  async function connectTelegram() {
+    var btn = $("#tg-connect");
+    btn.disabled = true;
+    var r = await tgCall("connect");
+    btn.disabled = false;
+    if (r.ok) toast(t("tg_connected"), "ok");
+    else toast(t(r.error === "no_start" ? "tg_no_start" : r.error === "no_bot_token" ? "tg_no_token" :
+      r.error === "bad_token" ? "tg_bad_token" : "tg_error"), "error");
+    loadTgStatus();
   }
 
   // Админ: список переписок
   async function loadSupportThreads() {
     if (!state.me || state.me.role !== "admin") return;
+    loadTgStatus();
     var res = await db.rpc("admin_support_threads");
     if (res.error) { handleError(res.error); return; }
     support.threads = res.data || [];

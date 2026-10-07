@@ -1360,3 +1360,8 @@ body.is-admin .buyer-only { display: none !important; }
 .support-thread-top { display: flex; align-items: center; gap: 6px; }
 .support-thread-top small { margin-left: auto; }
 .support-thread-last { font-size: 14px; overflow-wrap: anywhere; }
+
+/* Telegram-уведомления */
+.tg-status { margin: 0 0 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--soft); border: 1px solid var(--line); font-size: 14px; }
+.tg-status.on { border-color: #2e9d5b; }
+.tg-steps { margin: 0 0 14px; padding-left: 20px; font-size: 14px; color: var(--muted); display: grid; gap: 6px; }

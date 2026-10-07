@@ -24,8 +24,9 @@
 | `migration_07_client_price.sql` | Цена для клиента, себестоимость и прибыль байера; клиент видит только к оплате / оплачено / осталось (после 06) |
 | `migration_08_custom_rates.sql` | Свои курсы валют байера («Мои курсы» во вкладке «Курс»), подставляются в новые заказы (после 07) |
 | `migration_09_support.sql` | Техподдержка: байер пишет через 💬, админ отвечает во вкладке «Поддержка» (после 08) |
+| `migration_10_telegram.sql` | Уведомления о техподдержке в Telegram + функция `supabase/functions/telegram-notify` (после 09) |
 
-**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql`.
+**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql` → `migration_10_telegram.sql`.
 
 ## Как это работает
 
