@@ -357,6 +357,7 @@
       renderClients();
       renderBuyers();
       renderWarehouse();
+      if (state.tab === "calc") renderFx(true);
       renderWsBanner();
       if ($("#modal-detail").classList.contains("open")) renderDetail();
       if ($("#modal-status").classList.contains("open")) renderStatusList();
@@ -638,6 +639,19 @@
       var b = e.target.closest("[data-ai-ex]");
       if (b) askAi(t(b.getAttribute("data-ai-ex")));
     });
+
+    // 💱 калькулятор валют
+    $("#fx-amount").addEventListener("input", function () { renderFx(); });
+    $("#fx-from").addEventListener("change", function () { saveFxPair(); renderFx(); });
+    $("#fx-to").addEventListener("change", function () { saveFxPair(); renderFx(); });
+    $("#fx-swap").addEventListener("click", function () {
+      var a = $("#fx-from").value;
+      $("#fx-from").value = $("#fx-to").value;
+      $("#fx-to").value = a;
+      saveFxPair();
+      renderFx();
+    });
+    $("#fx-use").addEventListener("click", useFxRate);
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1172,11 +1186,12 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || (name === "buyers" && isAdmin) ? name : "orders";
-    if (!state.ws && state.tab !== "buyers") state.tab = isAdmin ? "buyers" : "orders";
+    state.tab = name === "clients" || name === "calc" || (name === "buyers" && isAdmin) ? name : "orders";
+    if (!state.ws && state.tab !== "buyers" && state.tab !== "calc") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
+    $("#tab-calc").classList.toggle("hidden", state.tab !== "calc");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     $$(".tab").forEach(function (b) {
       var on = b.getAttribute("data-tab") === state.tab;
@@ -1186,6 +1201,7 @@
     window.scrollTo(0, 0);
     if (state.tab === "clients" && db && state.ws) loadClients();
     if (state.tab === "buyers" && db) loadBuyers();
+    if (state.tab === "calc") openFx();
   }
 
   // Загружаем всех клиентов вместе с номерами их заказов
@@ -1446,6 +1462,111 @@
     }).join("");
   }
 
+  // =====================================================
+  //  💱 КАЛЬКУЛЯТОР ВАЛЮТ
+  //  Курсы берём бесплатно с open.er-api.com (обновляются раз в день),
+  //  храним в браузере 6 часов, чтобы не запрашивать каждый раз.
+  // =====================================================
+  var fx = { rates: null, date: "", loading: false, error: false };
+  var FX_CACHE = "cc_fx_rates";
+
+  async function loadFxRates(force) {
+    if (!force) {
+      try {
+        var c = JSON.parse(localStorage.getItem(FX_CACHE) || "null");
+        if (c && Date.now() - c.saved < 6 * 3600 * 1000) { fx.rates = c.rates; fx.date = c.date; fx.error = false; renderFx(true); return; }
+      } catch (e) { /* ignore */ }
+    }
+    fx.loading = true;
+    renderFx(true);
+    try {
+      var r = await fetch("https://open.er-api.com/v6/latest/USD");
+      var d = await r.json();
+      if (d.result !== "success" || !d.rates) throw new Error("bad rates");
+      fx.rates = d.rates;
+      fx.date = d.time_last_update_utc || new Date().toUTCString();
+      fx.error = false;
+      try { localStorage.setItem(FX_CACHE, JSON.stringify({ rates: fx.rates, date: fx.date, saved: Date.now() })); } catch (e) { /* ignore */ }
+    } catch (err) {
+      console.error(err);
+      fx.error = !fx.rates;
+    }
+    fx.loading = false;
+    renderFx(true);
+  }
+
+  // Сколько единиц валюты b за 1 единицу валюты a
+  function fxRate(a, b) {
+    if (!fx.rates || !fx.rates[a] || !fx.rates[b]) return null;
+    return fx.rates[b] / fx.rates[a];
+  }
+
+  // Красивое число курса: 12,34 или 0,0123
+  function fxNum(n) {
+    var digits = n >= 100 ? 2 : n >= 1 ? 4 : 6;
+    return n.toLocaleString(locale(), { maximumFractionDigits: digits });
+  }
+
+  function openFx() {
+    var pair = null;
+    try { pair = JSON.parse(localStorage.getItem("cc_fx_pair") || "null"); } catch (e) { /* ignore */ }
+    var ws = state.ws || {};
+    var from = (pair && pair[0]) || ws.default_purchase_currency || "CNY";
+    var to = (pair && pair[1]) || ws.default_client_currency || "KGS";
+    fillCurrencySelect($("#fx-from"), from);
+    fillCurrencySelect($("#fx-to"), to);
+    if (fx.rates) renderFx(true);
+    loadFxRates(false);
+  }
+
+  function saveFxPair() {
+    try { localStorage.setItem("cc_fx_pair", JSON.stringify([$("#fx-from").value, $("#fx-to").value])); } catch (e) { /* ignore */ }
+  }
+
+  // full = true — перерисовать ещё и таблицу курсов и подписи
+  function renderFx(full) {
+    if (full) {
+      // перевести названия валют в выпадающих списках
+      fillCurrencySelect($("#fx-from"), $("#fx-from").value || "CNY");
+      fillCurrencySelect($("#fx-to"), $("#fx-to").value || "KGS");
+    }
+    var a = $("#fx-from").value, b = $("#fx-to").value;
+    var amount = parseNum($("#fx-amount").value);
+    var rate = fxRate(a, b);
+
+    if (fx.loading && !fx.rates) {
+      $("#fx-result").textContent = t("fx_loading");
+      $("#fx-rate").textContent = "";
+    } else if (fx.error || rate == null) {
+      $("#fx-result").textContent = "—";
+      $("#fx-rate").textContent = fx.error ? t("fx_error") : "";
+    } else {
+      $("#fx-result").textContent = money(amount * rate) + " " + b;
+      $("#fx-rate").textContent = "1 " + a + " = " + fxNum(rate) + " " + b + "   ·   1 " + b + " = " + fxNum(1 / rate) + " " + a;
+    }
+    $("#fx-use").disabled = rate == null || a === b;
+    $("#fx-updated").textContent = fx.date ? t("fx_updated", { d: new Date(fx.date).toLocaleDateString(locale()) }) : "";
+
+    if (!full) return;
+    // таблица: популярные валюты в валюте «В»
+    $("#fx-table-title").textContent = t("fx_table", { c: b });
+    $("#fx-table").innerHTML = fx.rates ? ["CNY", "USD", "EUR", "RUB", "KZT", "KGS", "UZS"]
+      .filter(function (c) { return c !== b && fx.rates[c]; })
+      .map(function (c) {
+        return '<div class="fx-cell"><span>1 ' + esc(c) + ' <small class="muted">' + esc(curName(c)) + "</small></span><b>" +
+          esc(fxNum(fxRate(c, b))) + " " + esc(b) + "</b></div>";
+      }).join("") : "";
+  }
+
+  // Сохранить курс, чтобы он сам подставлялся в новые заказы (для этой пары валют)
+  function useFxRate() {
+    var a = $("#fx-from").value, b = $("#fx-to").value, rate = fxRate(a, b);
+    if (rate == null || a === b) return;
+    var r = Math.round(rate * 10000) / 10000;
+    try { localStorage.setItem("cc_rate_" + a + "_" + b, String(r)); } catch (e) { /* ignore */ }
+    toast(t("fx_used", { r: "1 " + a + " = " + fxNum(r) + " " + b }), "ok");
+  }
+
   // ---------- ↻ Обновить данные ----------
   // Подтягивает свежие данные из базы, не перезагружая страницу.
   var refreshing = false;
@@ -1465,7 +1586,8 @@
           renderWarehouse();
         }
       }
-      if (state.tab === "clients") await loadClients();
+      if (state.tab === "calc") await loadFxRates(true);
+      else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
       else await loadOrders();
       // открытая карточка заказа — перерисовать со свежими данными

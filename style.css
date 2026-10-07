@@ -1291,3 +1291,26 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
   #view-client .brand-name { display: none; }
   #view-client .client-actions .icon-btn { width: 36px; height: 36px; }
 }
+
+/* =====================================================
+   💱 КАЛЬКУЛЯТОР ВАЛЮТ
+   ===================================================== */
+.fx-row { display: grid; grid-template-columns: 1fr; gap: 0 10px; align-items: end; }
+.fx-swap { width: 48px; justify-self: center; margin-bottom: 14px; font-size: 20px; }
+.fx-result { margin: 4px 0 12px; padding: 16px; border-radius: var(--r-md); background: var(--soft); border: 1px solid var(--line); }
+.fx-big { font-family: var(--font-display); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fx-result .muted { margin-top: 4px; font-size: 14px; white-space: pre-wrap; }
+.fx-actions .btn { width: 100%; }
+.fx-table { display: grid; gap: 0; }
+.fx-cell { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.fx-cell:first-child { border-top: 0; }
+.fx-cell small { font-size: 12px; }
+@media (min-width: 641px) {
+  .fx-row { grid-template-columns: 1fr 1.4fr auto 1.4fr; }
+  .fx-actions .btn { width: auto; }
+}
+
+/* Вкладки на узком телефоне: если не влезают — листаются пальцем вбок */
+.tabs { overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; white-space: nowrap; }

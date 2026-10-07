@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261007h">
+  <link rel="stylesheet" href="style.css?v=20261007i">
 </head>
 <body>
 
@@ -165,6 +165,7 @@
         <nav class="tabs" aria-label="Sections">
           <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
           <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
+          <button type="button" class="tab" data-tab="calc" data-i18n="nav_calc"></button>
           <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
         </nav>
       </div>
@@ -225,6 +226,35 @@
       <h2 class="section-title" data-i18n="b_workspaces"></h2>
       <div id="buyers-loading" class="state-box hidden" data-i18n="loading"></div>
       <div id="buyers" class="clients"></div>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: КАЛЬКУЛЯТОР ВАЛЮТ ============ -->
+    <main id="tab-calc" class="container container-narrow hidden">
+      <section class="client-block fx">
+        <h2 data-i18n="fx_title"></h2>
+        <div class="fx-row">
+          <label class="field fx-amount"><span data-i18n="fx_amount"></span>
+            <input id="fx-amount" type="text" inputmode="decimal" value="1000"></label>
+          <label class="field"><span data-i18n="fx_from"></span>
+            <select id="fx-from" class="currency-select"></select></label>
+          <button id="fx-swap" class="btn fx-swap" type="button" data-i18n-title="fx_swap">⇄</button>
+          <label class="field"><span data-i18n="fx_to"></span>
+            <select id="fx-to" class="currency-select"></select></label>
+        </div>
+        <div class="fx-result" aria-live="polite">
+          <div id="fx-result" class="fx-big">—</div>
+          <div id="fx-rate" class="muted"></div>
+        </div>
+        <div class="fx-actions">
+          <button id="fx-use" class="btn" type="button" data-i18n="fx_use"></button>
+        </div>
+        <p id="fx-updated" class="fine-print"></p>
+      </section>
+
+      <section class="client-block">
+        <h2 id="fx-table-title"></h2>
+        <div id="fx-table" class="fx-table"></div>
+      </section>
     </main>
 
     <!-- ============ РАЗДЕЛ: КЛИЕНТЫ ============ -->
@@ -651,9 +681,9 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261007h"></script>
-  <script src="i18n.js?v=20261007h"></script>
+  <script src="config.js?v=20261007i"></script>
+  <script src="i18n.js?v=20261007i"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261007h"></script>
+  <script src="app.js?v=20261007i"></script>
 </body>
 </html>
