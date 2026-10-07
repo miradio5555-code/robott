@@ -382,6 +382,7 @@ revoke all on function public.admin_create_invite(text) from public, anon, authe
 grant execute on function public.admin_create_invite(text) to authenticated;
 
 -- Список всех кабинетов со статистикой (только админ)
+drop function if exists public.admin_list_workspaces();
 create or replace function public.admin_list_workspaces()
 returns table (
   id uuid, name text, owner_id uuid, owner_email text, owner_name text,

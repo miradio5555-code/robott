@@ -373,7 +373,8 @@
     var meta = user.user_metadata || {};
     if (!prof.error && !p && meta.invite_code) {
       var cl = await db.rpc("claim_invite", {
-        p_code: meta.invite_code, p_full_name: meta.full_name || null, p_ws_name: meta.workspace_name || null
+        p_code: meta.invite_code, p_full_name: meta.full_name || null,
+        p_ws_name: meta.workspace_name || null, p_phone: meta.phone || null
       });
       if (!cl.error) {
         prof = await db.from("profiles").select("role, full_name, is_active").eq("user_id", user.id).maybeSingle();
@@ -1082,8 +1083,9 @@
       return '<article class="client-row buyer-row">' +
         "<div>" +
           '<div class="client-row-name">' + esc(w.name) + "</div>" +
-          '<div class="client-row-date">' + esc(w.owner_name || "") + (w.owner_email ? " · " + esc(w.owner_email) : "") + "</div>" +
+          '<div class="client-row-date">' + [w.owner_name, w.owner_email].filter(Boolean).map(esc).join(" · ") + "</div>" +
         "</div>" +
+        '<div class="client-row-contacts">' + (w.owner_phone ? phoneLink(w.owner_phone) : '<span class="muted">—</span>') + "</div>" +
         '<div class="client-row-place">' + esc(t("b_counts", { o: w.orders_count, c: w.clients_count })) +
           '<span class="muted"> · ' + esc(t("l_added")) + ": " + fmtDate(w.created_at) + "</span></div>" +
         "<div>" + (mine
@@ -1163,10 +1165,13 @@
     $("#join-form").addEventListener("submit", async function (e) {
       e.preventDefault();
       var name = $("#join-name").value.trim();
+      var phone = cleanPhone($("#join-phone").value);
       var wsName = $("#join-ws").value.trim();
       var email = $("#join-email").value.trim();
       var pass = $("#join-password").value;
       if (name.length < 2) return setJoinError(t("e_name"), "#join-name");
+      // телефон обязателен: от 9 до 15 цифр, можно с + в начале
+      if (!/^\+?\d{9,15}$/.test(phone)) return setJoinError(t("e_phone"), "#join-phone");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setJoinError(t("e_email"), "#join-email");
       if (pass.length < 8) return setJoinError(t("e_password"), "#join-password");
       setJoinError("");
@@ -1180,7 +1185,7 @@
           email: email,
           password: pass,
           options: {
-            data: { invite_code: code, full_name: name, workspace_name: wsName || name },
+            data: { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone },
             emailRedirectTo: location.origin + location.pathname
           }
         });
