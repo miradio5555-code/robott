@@ -1314,3 +1314,12 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex: none; white-space: nowrap; }
+
+/* ---------- Мои курсы ---------- */
+.fx-my { display: grid; grid-template-columns: 1fr; gap: 0 10px; align-items: end; }
+.fx-my .btn { margin-bottom: 14px; }
+@media (min-width: 640px) { .fx-my { grid-template-columns: 1fr auto; } }
+#my-rates .fx-cell { align-items: center; }
+.link-btn { border: 0; background: none; padding: 4px 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; font-variant-numeric: tabular-nums; }
+.link-btn:hover { color: var(--primary); }
+.fx-del { width: 36px; height: 36px; font-size: 16px; }

@@ -22,8 +22,9 @@
 | `migration_05_delivery.sql` | Международная доставка: вес × тариф в своей валюте → в валюту клиента; закупка только USD/CNY (после 04) |
 | `migration_06_open_signup.sql` | Свободная регистрация байеров (почта или Google), без приглашения (после 05) |
 | `migration_07_client_price.sql` | Цена для клиента, себестоимость и прибыль байера; клиент видит только к оплате / оплачено / осталось (после 06) |
+| `migration_08_custom_rates.sql` | Свои курсы валют байера («Мои курсы» во вкладке «Курс»), подставляются в новые заказы (после 07) |
 
-**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql`.
+**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql`.
 
 ## Как это работает
 

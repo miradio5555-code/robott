@@ -540,7 +540,7 @@
   }
 
   var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
-    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff";
+    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
   async function openWorkspace(ws) {
@@ -651,7 +651,8 @@
       saveFxPair();
       renderFx();
     });
-    $("#fx-use").addEventListener("click", useFxRate);
+    $("#fx-my-form").addEventListener("submit", function (e) { e.preventDefault(); saveMyRate(); });
+    $("#my-rates").addEventListener("click", onMyRatesClick);
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1532,9 +1533,14 @@
     }
     var a = $("#fx-from").value, b = $("#fx-to").value;
     var amount = parseNum($("#fx-amount").value);
-    var rate = fxRate(a, b);
+    var market = fxRate(a, b);
+    var mine = myRate(a, b);
+    var rate = mine != null ? mine : market; // свой курс главнее рыночного
 
-    if (fx.loading && !fx.rates) {
+    if (mine != null) {
+      $("#fx-result").textContent = money(amount * rate) + " " + b;
+      $("#fx-rate").textContent = t("fx_by_my") + ": 1 " + a + " = " + fxNum(rate) + " " + b;
+    } else if (fx.loading && !fx.rates) {
       $("#fx-result").textContent = t("fx_loading");
       $("#fx-rate").textContent = "";
     } else if (fx.error || rate == null) {
@@ -1542,12 +1548,19 @@
       $("#fx-rate").textContent = fx.error ? t("fx_error") : "";
     } else {
       $("#fx-result").textContent = money(amount * rate) + " " + b;
-      $("#fx-rate").textContent = "1 " + a + " = " + fxNum(rate) + " " + b + "   ·   1 " + b + " = " + fxNum(1 / rate) + " " + a;
+      $("#fx-rate").textContent = t("fx_by_market") + ": 1 " + a + " = " + fxNum(rate) + " " + b;
     }
-    $("#fx-use").disabled = rate == null || a === b;
+    // поле «Мой курс»
+    $("#fx-my-label").textContent = t("fx_my_label", { a: a, b: b });
+    var inp = $("#fx-my-rate");
+    if (document.activeElement !== inp || full) inp.value = mine != null ? numStr(mine) : "";
+    inp.placeholder = market != null ? numStr(Math.round(market * 10000) / 10000) : "";
+    $("#fx-my-save").disabled = a === b;
+    $("#fx-market").textContent = market != null ? t("fx_market", { r: "1 " + a + " = " + fxNum(market) + " " + b }) : "";
     $("#fx-updated").textContent = fx.date ? t("fx_updated", { d: new Date(fx.date).toLocaleDateString(locale()) }) : "";
 
     if (!full) return;
+    renderMyRates();
     // таблица: популярные валюты в валюте «В»
     $("#fx-table-title").textContent = t("fx_table", { c: b });
     $("#fx-table").innerHTML = fx.rates ? ["CNY", "USD", "EUR", "RUB", "KZT", "KGS", "UZS"]
@@ -1558,13 +1571,78 @@
       }).join("") : "";
   }
 
-  // Сохранить курс, чтобы он сам подставлялся в новые заказы (для этой пары валют)
-  function useFxRate() {
-    var a = $("#fx-from").value, b = $("#fx-to").value, rate = fxRate(a, b);
-    if (rate == null || a === b) return;
-    var r = Math.round(rate * 10000) / 10000;
-    try { localStorage.setItem("cc_rate_" + a + "_" + b, String(r)); } catch (e) { /* ignore */ }
-    toast(t("fx_used", { r: "1 " + a + " = " + fxNum(r) + " " + b }), "ok");
+  // =====================================================
+  //  МОИ КУРСЫ — байер сам выставляет курс.
+  //  Хранятся в кабинете (workspaces.custom_rates) как {"CNY_KGS": 13.2}.
+  //  Видны на любом устройстве, подставляются в новые заказы и в калькулятор.
+  // =====================================================
+  function myRates() {
+    return (state.ws && state.ws.custom_rates) || {};
+  }
+
+  // Свой курс для пары a→b. Если записан только обратный (b→a) — переворачиваем.
+  function myRate(a, b) {
+    if (a === b) return 1;
+    var r = myRates();
+    if (r[a + "_" + b] > 0) return Number(r[a + "_" + b]);
+    if (r[b + "_" + a] > 0) return 1 / Number(r[b + "_" + a]);
+    return null;
+  }
+
+  async function writeMyRates(rates) {
+    if (state.readOnly || !state.ws) return false;
+    var res = await db.from("workspaces").update({ custom_rates: rates }).eq("id", state.ws.id).select(WS_FIELDS).single();
+    if (res.error) { handleError(res.error); return false; }
+    state.ws = res.data;
+    if (state.myWs && state.myWs.id === res.data.id) state.myWs = res.data;
+    return true;
+  }
+
+  // Кнопка «Сохранить мой курс». Пустое поле — взять рыночный курс.
+  async function saveMyRate() {
+    var a = $("#fx-from").value, b = $("#fx-to").value;
+    if (a === b) return;
+    var v = $("#fx-my-rate").value.trim();
+    var r = v ? parseNum(v) : fxRate(a, b);
+    if (!(r > 0)) { toast(t("fx_my_bad"), "err"); return; }
+    r = Math.round(r * 10000) / 10000;
+    var rates = Object.assign({}, myRates());
+    delete rates[b + "_" + a]; // одна пара — один курс, без путаницы с обратным
+    rates[a + "_" + b] = r;
+    var btn = $("#fx-my-save");
+    btn.disabled = true;
+    if (await writeMyRates(rates)) toast(t("fx_used", { r: "1 " + a + " = " + fxNum(r) + " " + b }), "ok");
+    btn.disabled = false;
+    renderFx(true);
+  }
+
+  // Список «Мои курсы»: нажать на курс — открыть его в калькуляторе, ✕ — удалить
+  function renderMyRates() {
+    var r = myRates(), keys = Object.keys(r).sort();
+    $("#my-rates").innerHTML = keys.length ? keys.map(function (k) {
+      var p = k.split("_");
+      return '<div class="fx-cell"><button type="button" class="link-btn" data-pick="' + esc(k) + '">1 ' + esc(p[0]) + " = <b>" +
+        esc(fxNum(Number(r[k]))) + " " + esc(p[1]) + "</b></button>" +
+        (state.readOnly ? "" : '<button type="button" class="icon-btn fx-del" data-del="' + esc(k) + '" aria-label="' + esc(t("remove")) + '">✕</button>') +
+        "</div>";
+    }).join("") : '<p class="muted">' + esc(t("fx_my_empty")) + "</p>";
+  }
+
+  async function onMyRatesClick(e) {
+    var pick = e.target.closest("[data-pick]"), del = e.target.closest("[data-del]");
+    if (pick) {
+      var p = pick.dataset.pick.split("_");
+      fillCurrencySelect($("#fx-from"), p[0]);
+      fillCurrencySelect($("#fx-to"), p[1]);
+      saveFxPair();
+      renderFx(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (del) {
+      var rates = Object.assign({}, myRates());
+      delete rates[del.dataset.del];
+      if (await writeMyRates(rates)) toast(t("fx_my_deleted"), "ok");
+      renderFx(true);
+    }
   }
 
   // ---------- ↻ Обновить данные ----------
@@ -2058,9 +2136,11 @@
       parseNum($("#f-delivery_cost").value) * parseNum($("#f-delivery_rate").value);
   }
 
-  // Последний курс для пары валют (например CNY→KGS) — подставляется в новый заказ
+  // Курс для нового заказа: сначала «Мой курс» байера, иначе последний введённый в заказе
   function lastRateFor(a, b) {
     if (a === b) return "1";
+    var mine = myRate(a, b);
+    if (mine != null) return numStr(Math.round(mine * 10000) / 10000);
     try { return localStorage.getItem("cc_rate_" + a + "_" + b) || ""; } catch (e) { return ""; }
   }
 
