@@ -629,6 +629,16 @@
     $("#as-list").addEventListener("click", onHintClick);
     $("#hint-filter-clear").addEventListener("click", function () { setHintFilter(null); });
 
+    // 🤖 ИИ-помощник (только админ)
+    $("#ai-form").addEventListener("submit", function (e) { e.preventDefault(); askAi($("#ai-input").value); });
+    $("#ai-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAi($("#ai-input").value); }
+    });
+    $("#ai-examples").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-ai-ex]");
+      if (b) askAi(t(b.getAttribute("data-ai-ex")));
+    });
+
     // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
     $("#settings-btn").addEventListener("click", function () { openSettings(); });
     $("#wh-edit").addEventListener("click", function () { openSettings("s-warehouse"); });
@@ -1434,6 +1444,56 @@
   }
 
   // =====================================================
+  //  🤖 ИИ-ПОМОЩНИК АДМИНИСТРАТОРА
+  //  Вопрос уходит в функцию Supabase «ai-assistant», она проверяет,
+  //  что спрашивает админ, и обращается к Google Gemini.
+  // =====================================================
+  var ai = { history: [], busy: false };
+
+  function renderAiExamples() {
+    $("#ai-examples").innerHTML = ai.history.length ? "" : ["ai_ex1", "ai_ex2", "ai_ex3", "ai_ex4"].map(function (k) {
+      return '<button type="button" class="chip" data-ai-ex="' + k + '">' + esc(t(k)) + "</button>";
+    }).join("");
+  }
+
+  function renderAiLog() {
+    $("#ai-log").innerHTML = ai.history.map(function (m) {
+      return '<div class="ai-msg ' + (m.role === "user" ? "ai-me" : "ai-bot") + (m.error ? " ai-error" : "") + '">' + esc(m.text) + "</div>";
+    }).join("") + (ai.busy ? '<div class="ai-msg ai-bot ai-wait">' + esc(t("ai_thinking")) + "</div>" : "");
+    var log = $("#ai-log");
+    log.scrollTop = log.scrollHeight;
+    renderAiExamples();
+  }
+
+  async function askAi(question) {
+    question = String(question || "").trim();
+    if (!question || ai.busy) return;
+    var history = ai.history.filter(function (m) { return !m.error; }).map(function (m) { return { role: m.role, text: m.text }; });
+    ai.history.push({ role: "user", text: question });
+    ai.busy = true;
+    $("#ai-input").value = "";
+    $("#ai-send").disabled = true;
+    renderAiLog();
+    try {
+      var res = await db.functions.invoke("ai-assistant", { body: { question: question, history: history, lang: getLang() } });
+      var data = res.data || {};
+      if (res.error || data.error) {
+        var code = data.error || "";
+        try { if (res.error && res.error.context) code = (await res.error.context.json()).error || code; } catch (e) { /* ignore */ }
+        throw new Error(code || "ai_failed");
+      }
+      ai.history.push({ role: "model", text: data.answer });
+    } catch (err) {
+      console.error(err);
+      var msg = /no_api_key|not found|404|Failed to send/i.test(err.message) ? "ai_err_key" : /rate_limited/.test(err.message) ? "ai_err_limit" : "ai_err";
+      ai.history.push({ role: "model", text: t(msg), error: true });
+    }
+    ai.busy = false;
+    $("#ai-send").disabled = false;
+    renderAiLog();
+  }
+
+  // =====================================================
   //  ВКЛАДКА «БАЙЕРЫ» (только админ)
   // =====================================================
   async function loadBuyers() {
@@ -1464,6 +1524,7 @@
   function renderBuyers() {
     if (!state.me || state.me.role !== "admin") return;
     renderAdminAssistant();
+    renderAiLog();
 
     $("#invites").innerHTML = state.invites.length
       ? state.invites.map(function (i) {

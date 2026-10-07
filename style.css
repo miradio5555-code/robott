@@ -1240,3 +1240,34 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
   font-weight: 700;
 }
 .hint-filter .btn { min-height: 34px; width: 34px; padding: 0; color: var(--red); font-size: 20px; }
+
+/* =====================================================
+   🤖 ИИ-ПОМОЩНИК (только админ)
+   ===================================================== */
+.ai-box {
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+.ai-log { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; padding: 0 16px; }
+.ai-log:not(:empty) { padding: 12px 16px; border-top: 1px solid var(--line); }
+.ai-msg {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-me { justify-self: end; background: var(--primary); color: var(--on-primary); border-bottom-right-radius: 4px; }
+.ai-bot { justify-self: start; background: var(--soft); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.ai-error { color: var(--red); }
+.ai-wait { color: var(--muted); }
+.ai-examples { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+.ai-examples .chip { min-height: 36px; padding: 0 12px; font-size: 13px; white-space: normal; text-align: left; }
+.ai-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.ai-form textarea { min-height: 48px; resize: none; }
+.ai-form .btn { align-self: end; }
+.ai-note { margin: 0; padding: 0 16px 12px; font-size: 12px; color: var(--muted); }
