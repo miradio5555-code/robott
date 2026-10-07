@@ -1323,3 +1323,8 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
 .link-btn { border: 0; background: none; padding: 4px 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; font-variant-numeric: tabular-nums; }
 .link-btn:hover { color: var(--primary); }
 .fx-del { width: 36px; height: 36px; font-size: 16px; }
+
+/* ---------- Загрузка / подсказка вместо белого экрана ---------- */
+.boot { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
+        font: 16px/1.5 system-ui, -apple-system, sans-serif; color: var(--muted, #8a8790); background: var(--paper, #151417); }
+.boot b { color: var(--ink, #fff); }

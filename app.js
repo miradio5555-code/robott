@@ -188,6 +188,8 @@
   }
 
   function showView(name) {
+    var boot = document.getElementById("boot");
+    if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
     ["config", "login", "join", "admin", "client"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
@@ -266,6 +268,17 @@
       showView("config");
       return;
     }
+
+    // Страница клиента работает без библиотеки supabase.js —
+    // так она открывается и на старых телефонах, и во встроенных браузерах WhatsApp / Telegram.
+    var clientToken = new URLSearchParams(location.search).get("order");
+    if (clientToken) {
+      db = miniClient(url, key);
+      mode = "client";
+      initClient(clientToken);
+      return;
+    }
+
     if (!window.supabase || !window.supabase.createClient) {
       $("#config-text").textContent = t("lib_missing");
       showView("config");
@@ -299,6 +312,36 @@
   }
 
   function setCurrency() { /* валюта теперь своя у каждого заказа */ }
+
+  // Маленький «клиент» базы для страницы клиента: только вызов функций (rpc) и ссылки на фото.
+  // Обычные запросы через интернет (fetch), без новых возможностей браузера.
+  function miniClient(url, key) {
+    var base = url.replace(/\/$/, "");
+    return {
+      rpc: function (name, args) {
+        return fetch(base + "/rest/v1/rpc/" + name, {
+          method: "POST",
+          headers: { apikey: key, "Content-Type": "application/json" },
+          body: JSON.stringify(args || {})
+        }).then(function (r) {
+          return r.text().then(function (txt) {
+            var d = null;
+            try { d = txt ? JSON.parse(txt) : null; } catch (e) { d = { message: txt }; }
+            return r.ok ? { data: d, error: null } : { data: null, error: d || { message: "HTTP " + r.status } };
+          });
+        });
+      },
+      storage: {
+        from: function (bucket) {
+          return {
+            getPublicUrl: function (path) {
+              return { data: { publicUrl: base + "/storage/v1/object/public/" + bucket + "/" + path } };
+            }
+          };
+        }
+      }
+    };
+  }
 
   // ---------- Общие обработчики ----------
   function bindCommon() {
