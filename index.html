@@ -201,15 +201,15 @@
         </div>
         <div class="summary-item">
           <span class="summary-label" data-i18n="sum_total"></span>
-          <span class="summary-value"><span id="sum-total">0</span> <small class="cur"></small></span>
+          <span id="sum-total" class="summary-value">0</span>
         </div>
         <div class="summary-item">
           <span class="summary-label" data-i18n="sum_paid"></span>
-          <span class="summary-value paid"><span id="sum-paid">0</span> <small class="cur"></small></span>
+          <span id="sum-paid" class="summary-value paid">0</span>
         </div>
         <div class="summary-item">
           <span class="summary-label" data-i18n="sum_debt"></span>
-          <span class="summary-value debt"><span id="sum-debt">0</span> <small class="cur"></small></span>
+          <span id="sum-debt" class="summary-value debt">0</span>
         </div>
       </section>
       <p class="fine-print" data-i18n="sum_note"></p>
@@ -298,6 +298,8 @@
               <input id="f-product_zh" type="text" lang="zh-CN"></label>
             <label class="field"><span data-i18n="f_supplier"></span>
               <input id="f-supplier" type="text"></label>
+            <label class="field"><span data-i18n="f_supplier_wechat"></span>
+              <input id="f-supplier_wechat" type="text" maxlength="100" autocapitalize="off" spellcheck="false"></label>
             <label class="field"><span data-i18n="f_link"></span>
               <input id="f-supplier_link" type="url" inputmode="url" placeholder="https://"></label>
           </div>
@@ -305,23 +307,30 @@
 
         <fieldset>
           <legend data-i18n="sec_money"></legend>
+          <!-- Валюты выбирает сам байер: у поставщика и для клиента -->
+          <div class="grid-2">
+            <label class="field"><span data-i18n="f_purchase_currency"></span>
+              <select id="f-purchase_currency" class="currency-select"></select></label>
+            <label class="field"><span data-i18n="f_client_currency"></span>
+              <select id="f-client_currency" class="currency-select"></select></label>
+          </div>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_qty"></span>
               <input id="f-quantity" type="text" inputmode="decimal"></label>
-            <label class="field"><span data-i18n="f_price"></span>
+            <label class="field"><span id="lbl-price"></span>
               <input id="f-unit_price_cny" type="text" inputmode="decimal"></label>
-            <label class="field"><span data-i18n="f_rate"></span>
+            <label class="field"><span id="lbl-rate"></span>
               <input id="f-exchange_rate" type="text" inputmode="decimal"></label>
             <label class="field"><span data-i18n="f_weight"></span>
               <input id="f-weight_kg" type="text" inputmode="decimal"></label>
-            <label class="field"><span data-i18n="f_delivery"></span>
+            <label class="field"><span id="lbl-delivery"></span>
               <input id="f-delivery_cost" type="text" inputmode="decimal"></label>
-            <label class="field"><span data-i18n="f_paid"></span>
+            <label class="field"><span id="lbl-paid"></span>
               <input id="f-paid_amount" type="text" inputmode="decimal"></label>
           </div>
 
           <div class="calc" aria-live="polite">
-            <div class="calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">¥ 0</b></div>
+            <div class="calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">0</b></div>
             <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="calc-goods-som">0</b></div>
             <div class="calc-row"><span data-i18n="c_delivery"></span><b id="calc-delivery">0</b></div>
             <div class="calc-row calc-total"><span data-i18n="c_total"></span><b id="calc-total">0</b></div>
@@ -377,6 +386,13 @@
         <label class="field"><span data-i18n="s_contacts"></span>
           <textarea id="s-contacts" rows="3" maxlength="500"></textarea>
           <p class="field-hint" data-i18n="s_contacts_hint"></p></label>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="s_def_purchase"></span>
+            <select id="s-def-purchase" class="currency-select"></select></label>
+          <label class="field"><span data-i18n="s_def_client"></span>
+            <select id="s-def-client" class="currency-select"></select></label>
+        </div>
+        <p class="field-hint" data-i18n="s_currency_hint"></p>
         <p id="settings-error" class="form-error hidden" role="alert"></p>
       </div>
       <div class="modal-foot">

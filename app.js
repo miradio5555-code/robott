@@ -92,6 +92,26 @@
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
 
+  // ---------- Валюты ----------
+  // Байер сам выбирает валюту закупки и валюту для клиента.
+  // Названия валют браузер переводит сам (Intl), поэтому список легко дополнить кодом.
+  var CURRENCIES = ["CNY", "USD", "EUR", "KGS", "KZT", "UZS", "RUB", "TJS", "TRY", "AED", "AZN", "GEL", "AMD", "BYN", "MNT"];
+
+  function curName(code) {
+    try { return new Intl.DisplayNames([locale()], { type: "currency" }).of(code); } catch (e) { return code; }
+  }
+
+  function fillCurrencySelect(sel, value) {
+    var list = CURRENCIES.indexOf(value) === -1 && /^[A-Z]{3}$/.test(value || "") ? CURRENCIES.concat([value]) : CURRENCIES;
+    sel.innerHTML = list.map(function (c) {
+      return '<option value="' + c + '">' + c + " — " + esc(curName(c)) + "</option>";
+    }).join("");
+    sel.value = value || list[0];
+  }
+
+  // Сумма с кодом валюты: «12 500 KGS»
+  function cur(n, code) { return money(n) + " " + esc(code || ""); }
+
   function todayISO() {
     var d = new Date();
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
@@ -222,9 +242,7 @@
     }
   }
 
-  function setCurrency() {
-    $$(".cur").forEach(function (el) { el.textContent = t("som"); });
-  }
+  function setCurrency() { /* валюта теперь своя у каждого заказа */ }
 
   // ---------- Общие обработчики ----------
   function bindCommon() {
@@ -288,6 +306,8 @@
       if ($("#modal-status").classList.contains("open")) renderStatusList();
       if ($("#modal-order").classList.contains("open")) {
         fillStatusSelect($("#f-status").value);
+        fillCurrencySelect($("#f-purchase_currency"), $("#f-purchase_currency").value);
+        fillCurrencySelect($("#f-client_currency"), $("#f-client_currency").value);
         $("#order-form-title").textContent = t(form.editing ? "edit_order" : "new_order");
         updateCalc();
       }
@@ -414,7 +434,7 @@
     else switchTab("buyers");
   }
 
-  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts";
+  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, default_purchase_currency, default_client_currency";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
   async function openWorkspace(ws) {
@@ -562,6 +582,8 @@
 
     // форма
     $("#order-form").addEventListener("submit", saveOrder);
+    $("#f-purchase_currency").addEventListener("change", onCurrencyChange);
+    $("#f-client_currency").addEventListener("change", onCurrencyChange);
     ["quantity", "unit_price_cny", "exchange_rate", "delivery_cost", "paid_amount"].forEach(function (id) {
       $("#f-" + id).addEventListener("input", updateCalc);
     });
@@ -672,6 +694,8 @@
     $("#s-prefix").value = w.order_prefix || "CN";
     $("#s-address").value = w.warehouse_address || "";
     $("#s-contacts").value = w.warehouse_contacts || "";
+    fillCurrencySelect($("#s-def-purchase"), w.default_purchase_currency || "CNY");
+    fillCurrencySelect($("#s-def-client"), w.default_client_currency || "KGS");
     setSettingsError("");
     openModal("modal-settings");
   }
@@ -688,7 +712,9 @@
       name: $("#s-name").value.trim(),
       order_prefix: $("#s-prefix").value.trim().toUpperCase(),
       warehouse_address: $("#s-address").value.trim() || null,
-      warehouse_contacts: $("#s-contacts").value.trim() || null
+      warehouse_contacts: $("#s-contacts").value.trim() || null,
+      default_purchase_currency: $("#s-def-purchase").value,
+      default_client_currency: $("#s-def-client").value
     };
     if (!v.name) { setSettingsError(t("e_ws_name")); $("#s-name").focus(); return; }
     if (!/^[A-Z]{1,5}$/.test(v.order_prefix)) { setSettingsError(t("e_prefix")); $("#s-prefix").focus(); return; }
@@ -712,16 +738,23 @@
 
   function renderSummary() {
     var active = state.orders.filter(function (o) { return o.status !== "cancelled"; });
-    var total = 0, paid = 0, debt = 0;
+    // Разные валюты не складываем: считаем каждую отдельно
+    var total = {}, paid = {}, debt = {};
     active.forEach(function (o) {
-      total += num(o.total_som);
-      paid += num(o.paid_amount);
-      debt += Math.max(0, num(o.balance_som));
+      var c = o.client_currency || "KGS";
+      total[c] = (total[c] || 0) + num(o.total_som);
+      paid[c] = (paid[c] || 0) + num(o.paid_amount);
+      debt[c] = (debt[c] || 0) + Math.max(0, num(o.balance_som));
     });
+    function lines(map) {
+      var codes = Object.keys(map);
+      if (!codes.length) return "0";
+      return codes.map(function (c) { return money(map[c]) + " <small>" + esc(c) + "</small>"; }).join("<br>");
+    }
     $("#sum-orders").textContent = money(state.orders.length);
-    $("#sum-total").textContent = money(total);
-    $("#sum-paid").textContent = money(paid);
-    $("#sum-debt").textContent = money(debt);
+    $("#sum-total").innerHTML = lines(total);
+    $("#sum-paid").innerHTML = lines(paid);
+    $("#sum-debt").innerHTML = lines(debt);
   }
 
   function renderChips() {
@@ -746,7 +779,7 @@
       if (state.to && o.order_date > state.to) return false;
       if (!q) return true;
       var c = o.client || {};
-      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier,
+      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat,
         c.name, c.phone, c.telegram, c.city]
         .filter(Boolean).join(" ").toLowerCase();
       if (hay.indexOf(q) !== -1) return true;
@@ -785,8 +818,9 @@
   function specsHtml(o) {
     return '<dl class="specs">' +
       "<div><dt>" + t("l_qty") + "</dt><dd>" + money(o.quantity) + " " + t("pcs") + "</dd></div>" +
-      "<div><dt>" + t("l_price") + "</dt><dd>¥ " + money(o.unit_price_cny) + "</dd></div>" +
-      "<div><dt>" + t("l_rate") + "</dt><dd>" + money(o.exchange_rate) + "</dd></div>" +
+      "<div><dt>" + t("l_price") + "</dt><dd>" + cur(o.unit_price_cny, o.purchase_currency) + "</dd></div>" +
+      "<div><dt>" + t("l_rate") + "</dt><dd>" + (o.purchase_currency === o.client_currency ? "—"
+        : "1 " + esc(o.purchase_currency) + " = " + cur(o.exchange_rate, o.client_currency)) + "</dd></div>" +
       "<div><dt>" + t("l_weight") + "</dt><dd>" + money(o.weight_kg) + " " + t("kg") + "</dd></div>" +
       "</dl>";
   }
@@ -796,9 +830,9 @@
     return '<dl class="money">' +
       "<div><dt>" + t("l_goods_som") + "</dt><dd>" + money(o.goods_som) + "</dd></div>" +
       "<div><dt>" + t("l_delivery") + "</dt><dd>" + money(o.delivery_cost) + "</dd></div>" +
-      '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + money(o.total_som) + " " + t("som") + "</dd></div>" +
+      '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, o.client_currency) + "</dd></div>" +
       "<div><dt>" + t("l_paid") + "</dt><dd>" + money(o.paid_amount) + "</dd></div>" +
-      '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + money(bal) + " " + t("som") + "</dd></div>" +
+      '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, o.client_currency) + "</dd></div>" +
       "</dl>";
   }
 
@@ -832,6 +866,7 @@
         specsHtml(o) +
         moneyHtml(o) +
         '<p class="meta"><span>' + t("l_supplier") + "</span> " + esc(o.supplier || "—") +
+          (o.supplier_wechat ? ' <span class="muted">· WeChat</span> ' + esc(o.supplier_wechat) : "") +
           (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">1688</a>' : "") + "</p>" +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
         '<div class="card-actions">' +
@@ -1280,6 +1315,7 @@
           "<div><dt>" + t("l_phone") + "</dt><dd>" + phone + "</dd></div>" +
           "<div><dt>" + t("l_wechat") + "</dt><dd>" + esc(o.client_wechat || "—") + "</dd></div>" +
           "<div><dt>" + t("l_supplier") + "</dt><dd>" + esc(o.supplier || "—") + "</dd></div>" +
+          (o.supplier_wechat ? "<div><dt>" + t("l_supplier_wechat") + "</dt><dd>" + esc(o.supplier_wechat) + "</dd></div>" : "") +
           (link ? "<div><dt>" + t("l_link") + '</dt><dd><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(link) + "</a></dd></div>" : "") +
           (o.delivery_info ? "<div><dt>" + t("l_delivery_info") + "</dt><dd>" + esc(o.delivery_info) + "</dd></div>" : "") +
           (o.client_comment ? "<div><dt>" + t("l_comment_client") + "</dt><dd>" + esc(o.client_comment) + "</dd></div>" : "") +
@@ -1381,6 +1417,9 @@
       set("product_zh", o.product_zh);
       set("supplier", o.supplier);
       set("supplier_link", o.supplier_link);
+      set("supplier_wechat", o.supplier_wechat);
+      fillCurrencySelect($("#f-purchase_currency"), o.purchase_currency || "CNY");
+      fillCurrencySelect($("#f-client_currency"), o.client_currency || "KGS");
       set("quantity", numStr(o.quantity));
       set("unit_price_cny", numStr(o.unit_price_cny));
       set("exchange_rate", numStr(o.exchange_rate));
@@ -1391,15 +1430,17 @@
       set("client_comment", o.client_comment);
       set("admin_comment", o.admin_comment);
     } else {
-      var lastRate = "";
-      try { lastRate = localStorage.getItem("cc_rate") || ""; } catch (e) { /* ignore */ }
+      // валюты по умолчанию — из настроек кабинета
+      var ws = state.ws || {};
+      fillCurrencySelect($("#f-purchase_currency"), ws.default_purchase_currency || "CNY");
+      fillCurrencySelect($("#f-client_currency"), ws.default_client_currency || "KGS");
       set("order_number", ""); // номер выдаст база после сохранения
       set("order_date", todayISO());
       ["client_name", "client_phone", "client_wechat", "product_ru", "product_zh", "supplier",
-        "supplier_link", "unit_price_cny", "weight_kg", "delivery_info", "client_comment", "admin_comment"
+        "supplier_link", "supplier_wechat", "unit_price_cny", "weight_kg", "delivery_info", "client_comment", "admin_comment"
       ].forEach(function (id) { set(id, ""); });
       set("quantity", "1");
-      set("exchange_rate", lastRate);
+      set("exchange_rate", lastRateFor($("#f-purchase_currency").value, $("#f-client_currency").value));
       set("delivery_cost", "");
       set("paid_amount", "");
     }
@@ -1410,7 +1451,35 @@
     if (body) body.scrollTop = 0;
   }
 
+  // Последний курс для пары валют (например CNY→KGS) — подставляется в новый заказ
+  function lastRateFor(a, b) {
+    if (a === b) return "1";
+    try { return localStorage.getItem("cc_rate_" + a + "_" + b) || ""; } catch (e) { return ""; }
+  }
+
+  // Подписи полей с кодом валюты: «Цена за единицу, CNY», «Курс: 1 CNY = ? KGS»
+  function updateCurrencyLabels() {
+    var a = $("#f-purchase_currency").value, b = $("#f-client_currency").value;
+    var same = a === b;
+    $("#lbl-price").textContent = t("f_price_cur", { c: a });
+    $("#lbl-rate").textContent = same ? t("f_rate_same") : t("f_rate_cur", { a: a, b: b });
+    $("#lbl-delivery").textContent = t("f_delivery_cur", { c: b });
+    $("#lbl-paid").textContent = t("f_paid_cur", { c: b });
+    var rate = $("#f-exchange_rate");
+    rate.readOnly = same;
+    if (same) rate.value = "1";
+  }
+
+  // Сменили валюту в заказе — обновить подписи и подставить знакомый курс
+  function onCurrencyChange() {
+    var a = $("#f-purchase_currency").value, b = $("#f-client_currency").value;
+    $("#f-exchange_rate").value = lastRateFor(a, b);
+    updateCalc();
+  }
+
   function updateCalc() {
+    updateCurrencyLabels();
+    var a = $("#f-purchase_currency").value, b = $("#f-client_currency").value;
     var q = parseNum($("#f-quantity").value);
     var p = parseNum($("#f-unit_price_cny").value);
     var r = parseNum($("#f-exchange_rate").value);
@@ -1420,12 +1489,14 @@
     var goodsSom = goodsCny * r;
     var total = goodsSom + d;
     var bal = total - paid;
-    $("#calc-goods-cny").textContent = money(q) + " × ¥ " + money(p) + " = ¥ " + money(goodsCny);
-    $("#calc-goods-som").textContent = money(goodsCny) + " × " + money(r) + " = " + money(goodsSom) + " " + t("som");
-    $("#calc-delivery").textContent = money(d) + " " + t("som");
-    $("#calc-total").textContent = money(total) + " " + t("som");
-    $("#calc-paid").textContent = money(paid) + " " + t("som");
-    $("#calc-balance").textContent = money(bal) + " " + t("som");
+    $("#calc-goods-cny").textContent = money(q) + " × " + money(p) + " " + a + " = " + money(goodsCny) + " " + a;
+    $("#calc-goods-som").textContent = a === b
+      ? money(goodsSom) + " " + b
+      : money(goodsCny) + " " + a + " × " + money(r) + " = " + money(goodsSom) + " " + b;
+    $("#calc-delivery").textContent = money(d) + " " + b;
+    $("#calc-total").textContent = money(total) + " " + b;
+    $("#calc-paid").textContent = money(paid) + " " + b;
+    $("#calc-balance").textContent = money(bal) + " " + b;
     $(".calc-balance").classList.toggle("owe", bal > 0);
     $(".calc-balance").classList.toggle("clear", bal <= 0);
   }
@@ -1458,6 +1529,9 @@
       product_zh: val("product_zh") || null,
       supplier: val("supplier") || null,
       supplier_link: link || null,
+      supplier_wechat: val("supplier_wechat") || null,
+      purchase_currency: $("#f-purchase_currency").value,
+      client_currency: $("#f-client_currency").value,
       quantity: parseNum(val("quantity")),
       unit_price_cny: parseNum(val("unit_price_cny")),
       exchange_rate: parseNum(val("exchange_rate")),
@@ -1529,7 +1603,7 @@
         orderId = ins.data.id;
       }
       if (v.exchange_rate > 0) {
-        try { localStorage.setItem("cc_rate", String(v.exchange_rate)); } catch (err) { /* ignore */ }
+        try { localStorage.setItem("cc_rate_" + v.purchase_currency + "_" + v.client_currency, String(v.exchange_rate)); } catch (err) { /* ignore */ }
       }
 
       if (form.removed.length) {
@@ -1859,6 +1933,7 @@
     var o = state.client;
     var urls = clientPhotoUrls();
     var bal = num(o.balance_som);
+    var cc = o.client_currency || "KGS"; // валюта клиента
     var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
     var idx = flow.indexOf(o.status);
 
@@ -1906,11 +1981,11 @@
       '<section class="client-block">' +
         "<h2>" + esc(t("cl_payment")) + "</h2>" +
         '<dl class="money">' +
-          (num(o.delivery_cost) > 0 ? "<div><dt>" + t("l_delivery") + "</dt><dd>" + money(o.delivery_cost) + " " + t("som") + "</dd></div>" : "") +
-          '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + money(o.total_som) + " " + t("som") + "</dd></div>" +
-          "<div><dt>" + t("l_paid") + "</dt><dd>" + money(o.paid_amount) + " " + t("som") + "</dd></div>" +
+          (num(o.delivery_cost) > 0 ? "<div><dt>" + t("l_delivery") + "</dt><dd>" + cur(o.delivery_cost, cc) + "</dd></div>" : "") +
+          '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
+          "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
           '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" +
-            (bal > 0 ? money(bal) + " " + t("som") : esc(t("cl_paid_full"))) + "</dd></div>" +
+            (bal > 0 ? cur(bal, cc) : esc(t("cl_paid_full"))) + "</dd></div>" +
         "</dl>" +
       "</section>" +
 
