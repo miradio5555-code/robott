@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261007k">
+  <link rel="stylesheet" href="style.css?v=20261007l">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -164,6 +164,12 @@
             <button type="button" data-lang="en" title="English">EN</button>
             <button type="button" data-lang="zh" title="中文">中文</button>
           </div>
+          <!-- 💬 техподдержка (для байеров; у админа — вкладка «Поддержка») -->
+          <button id="support-btn" class="icon-btn gear-btn badge-wrap buyer-only" type="button" data-i18n-title="support" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>
+            <span id="support-badge" class="badge hidden"></span>
+            <span class="sr-only" data-i18n="support"></span>
+          </button>
           <!-- ↻ обновить данные без перезагрузки страницы -->
           <button id="refresh-btn" class="icon-btn gear-btn" type="button" data-i18n-title="refresh">
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -185,6 +191,7 @@
           <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
           <button type="button" class="tab" data-tab="calc" data-i18n="nav_calc"></button>
           <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
+          <button type="button" class="tab admin-only" data-tab="support"><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
         </nav>
       </div>
     </header>
@@ -196,6 +203,15 @@
         <button id="ws-back" class="btn btn-light" type="button" data-i18n="back_to_mine"></button>
       </div>
     </div>
+
+    <!-- ============ РАЗДЕЛ: ПОДДЕРЖКА (только админ) ============ -->
+    <main id="tab-support" class="container container-narrow hidden">
+      <section class="client-block">
+        <h2 data-i18n="support_admin_title"></h2>
+        <p class="fine-print" data-i18n="support_admin_hint"></p>
+        <div id="support-threads" class="support-threads"></div>
+      </section>
+    </main>
 
     <!-- ============ РАЗДЕЛ: БАЙЕРЫ (только админ) ============ -->
     <main id="tab-buyers" class="container hidden">
@@ -698,6 +714,28 @@
     </div>
   </div>
 
+  <!-- ============ ТЕХПОДДЕРЖКА: переписка ============ -->
+  <div id="modal-support" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <div>
+          <h2 id="support-title"></h2>
+          <p id="support-sub" class="fine-print"></p>
+        </div>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="support-log" class="support-log" aria-live="polite"></div>
+        <form id="support-form" class="support-form" autocomplete="off">
+          <textarea id="support-text" rows="3" maxlength="4000" data-i18n-placeholder="support_placeholder"></textarea>
+          <button id="support-send" class="btn btn-primary" type="submit" data-i18n="support_send"></button>
+        </form>
+        <p id="support-note" class="fine-print"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ ПРОСМОТР ФОТО ============ -->
   <div id="lightbox" class="lightbox" aria-hidden="true">
     <button class="lb-close" type="button" data-lb-close aria-label="Close">×</button>
@@ -709,9 +747,9 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261007k"></script>
-  <script src="i18n.js?v=20261007k"></script>
+  <script src="config.js?v=20261007l"></script>
+  <script src="i18n.js?v=20261007l"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261007k"></script>
+  <script src="app.js?v=20261007l"></script>
 </body>
 </html>
