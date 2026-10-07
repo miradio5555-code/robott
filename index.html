@@ -307,13 +307,17 @@
 
         <fieldset>
           <legend data-i18n="sec_money"></legend>
-          <!-- Валюты выбирает сам байер: у поставщика и для клиента -->
+
+          <!-- Валюты выбирает сам байер: у поставщика (USD/CNY) и для клиента -->
           <div class="grid-2">
             <label class="field"><span data-i18n="f_purchase_currency"></span>
               <select id="f-purchase_currency" class="currency-select"></select></label>
             <label class="field"><span data-i18n="f_client_currency"></span>
               <select id="f-client_currency" class="currency-select"></select></label>
           </div>
+
+          <!-- Товар -->
+          <h4 class="money-sub" data-i18n="k_goods"></h4>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_qty"></span>
               <input id="f-quantity" type="text" inputmode="decimal"></label>
@@ -321,10 +325,27 @@
               <input id="f-unit_price_cny" type="text" inputmode="decimal"></label>
             <label class="field"><span id="lbl-rate"></span>
               <input id="f-exchange_rate" type="text" inputmode="decimal"></label>
+          </div>
+
+          <!-- Доставка (карго): вес × тариф = сумма, затем перевод в валюту клиента -->
+          <h4 class="money-sub" data-i18n="k_delivery"></h4>
+          <div class="grid-3">
             <label class="field"><span data-i18n="f_weight"></span>
               <input id="f-weight_kg" type="text" inputmode="decimal"></label>
+            <label class="field"><span data-i18n="f_delivery_currency"></span>
+              <select id="f-delivery_currency" class="currency-select"></select></label>
+            <label class="field"><span id="lbl-tariff"></span>
+              <input id="f-delivery_tariff" type="text" inputmode="decimal"></label>
             <label class="field"><span id="lbl-delivery"></span>
-              <input id="f-delivery_cost" type="text" inputmode="decimal"></label>
+              <input id="f-delivery_cost" type="text" inputmode="decimal">
+              <p class="field-hint" data-i18n="f_delivery_hint"></p></label>
+            <label class="field"><span id="lbl-delivery-rate"></span>
+              <input id="f-delivery_rate" type="text" inputmode="decimal"></label>
+          </div>
+
+          <!-- Оплата клиента -->
+          <h4 class="money-sub" data-i18n="k_payment"></h4>
+          <div class="grid-3">
             <label class="field"><span id="lbl-paid"></span>
               <input id="f-paid_amount" type="text" inputmode="decimal"></label>
           </div>
@@ -391,6 +412,12 @@
             <select id="s-def-purchase" class="currency-select"></select></label>
           <label class="field"><span data-i18n="s_def_client"></span>
             <select id="s-def-client" class="currency-select"></select></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="s_def_delivery"></span>
+            <select id="s-def-delivery" class="currency-select"></select></label>
+          <label class="field"><span data-i18n="s_def_tariff"></span>
+            <input id="s-def-tariff" type="text" inputmode="decimal"></label>
         </div>
         <p class="field-hint" data-i18n="s_currency_hint"></p>
         <p id="settings-error" class="form-error hidden" role="alert"></p>

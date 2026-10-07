@@ -1022,3 +1022,12 @@ body.readonly [data-write] { display: none !important; }
 @media (min-width: 860px) {
   .buyer-row { grid-template-columns: minmax(180px, 1.3fr) minmax(140px, 1fr) minmax(180px, 1.4fr) auto auto; align-items: center; }
 }
+
+/* Подзаголовки внутри «Цена и оплата»: Товар / Доставка / Оплата клиента */
+.money-sub {
+  margin: 8px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 800;
+}

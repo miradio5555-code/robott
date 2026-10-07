@@ -101,8 +101,17 @@
     try { return new Intl.DisplayNames([locale()], { type: "currency" }).of(code); } catch (e) { return code; }
   }
 
-  function fillCurrencySelect(sel, value) {
-    var list = CURRENCIES.indexOf(value) === -1 && /^[A-Z]{3}$/.test(value || "") ? CURRENCIES.concat([value]) : CURRENCIES;
+  // Валюта закупки у поставщика — только юань или доллар
+  var PURCHASE_CURRENCIES = ["CNY", "USD"];
+
+  // Валюта доставки: доллар, юань или валюта клиента
+  function deliveryCurrencies(clientCur) {
+    return PURCHASE_CURRENCIES.indexOf(clientCur) === -1 ? ["USD", "CNY", clientCur] : ["USD", "CNY"];
+  }
+
+  function fillCurrencySelect(sel, value, base) {
+    base = base || CURRENCIES;
+    var list = base.indexOf(value) === -1 && /^[A-Z]{3}$/.test(value || "") ? base.concat([value]) : base;
     sel.innerHTML = list.map(function (c) {
       return '<option value="' + c + '">' + c + " — " + esc(curName(c)) + "</option>";
     }).join("");
@@ -111,6 +120,13 @@
 
   // Сумма с кодом валюты: «12 500 KGS»
   function cur(n, code) { return money(n) + " " + esc(code || ""); }
+
+  // Доставка: «120 USD ≈ 10 440 KGS» (или просто «3 500 KGS», если валюта одна)
+  function deliveryText(o) {
+    var dc = o.delivery_currency || o.client_currency;
+    if (dc === o.client_currency) return cur(o.delivery_som != null ? o.delivery_som : o.delivery_cost, o.client_currency);
+    return cur(o.delivery_cost, dc) + " ≈ " + cur(o.delivery_som, o.client_currency);
+  }
 
   function todayISO() {
     var d = new Date();
@@ -306,8 +322,9 @@
       if ($("#modal-status").classList.contains("open")) renderStatusList();
       if ($("#modal-order").classList.contains("open")) {
         fillStatusSelect($("#f-status").value);
-        fillCurrencySelect($("#f-purchase_currency"), $("#f-purchase_currency").value);
+        fillCurrencySelect($("#f-purchase_currency"), $("#f-purchase_currency").value, PURCHASE_CURRENCIES);
         fillCurrencySelect($("#f-client_currency"), $("#f-client_currency").value);
+        fillCurrencySelect($("#f-delivery_currency"), $("#f-delivery_currency").value, deliveryCurrencies($("#f-client_currency").value));
         $("#order-form-title").textContent = t(form.editing ? "edit_order" : "new_order");
         updateCalc();
       }
@@ -434,7 +451,8 @@
     else switchTab("buyers");
   }
 
-  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, default_purchase_currency, default_client_currency";
+  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
+    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
   async function openWorkspace(ws) {
@@ -515,6 +533,12 @@
       if (e.target.closest("[data-act='wh-add']")) openSettings();
     });
     $("#settings-form").addEventListener("submit", saveSettings);
+    // в настройках: валюта клиента изменилась — обновить список валют доставки
+    $("#s-def-client").addEventListener("change", function () {
+      var dSel = $("#s-def-delivery");
+      var list = deliveryCurrencies($("#s-def-client").value);
+      fillCurrencySelect(dSel, list.indexOf(dSel.value) !== -1 ? dSel.value : "USD", list);
+    });
     $("#s-prefix").addEventListener("input", function (e) {
       var v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
       if (v !== e.target.value) e.target.value = v;
@@ -584,7 +608,16 @@
     $("#order-form").addEventListener("submit", saveOrder);
     $("#f-purchase_currency").addEventListener("change", onCurrencyChange);
     $("#f-client_currency").addEventListener("change", onCurrencyChange);
-    ["quantity", "unit_price_cny", "exchange_rate", "delivery_cost", "paid_amount"].forEach(function (id) {
+    $("#f-delivery_currency").addEventListener("change", onDeliveryCurrencyChange);
+    // вес или тариф поменялись — сумма доставки = вес × тариф
+    ["weight_kg", "delivery_tariff"].forEach(function (id) {
+      $("#f-" + id).addEventListener("input", function () {
+        var w = parseNum($("#f-weight_kg").value), tr = parseNum($("#f-delivery_tariff").value);
+        if (tr > 0) $("#f-delivery_cost").value = String(Math.round(w * tr * 100) / 100);
+        updateCalc();
+      });
+    });
+    ["quantity", "unit_price_cny", "exchange_rate", "delivery_cost", "delivery_rate", "paid_amount"].forEach(function (id) {
       $("#f-" + id).addEventListener("input", updateCalc);
     });
     $("#f-photos").addEventListener("change", function (e) {
@@ -694,8 +727,10 @@
     $("#s-prefix").value = w.order_prefix || "CN";
     $("#s-address").value = w.warehouse_address || "";
     $("#s-contacts").value = w.warehouse_contacts || "";
-    fillCurrencySelect($("#s-def-purchase"), w.default_purchase_currency || "CNY");
+    fillCurrencySelect($("#s-def-purchase"), w.default_purchase_currency || "CNY", PURCHASE_CURRENCIES);
     fillCurrencySelect($("#s-def-client"), w.default_client_currency || "KGS");
+    fillCurrencySelect($("#s-def-delivery"), w.default_delivery_currency || "USD", deliveryCurrencies(w.default_client_currency || "KGS"));
+    $("#s-def-tariff").value = numStr(w.default_delivery_tariff);
     setSettingsError("");
     openModal("modal-settings");
   }
@@ -714,7 +749,9 @@
       warehouse_address: $("#s-address").value.trim() || null,
       warehouse_contacts: $("#s-contacts").value.trim() || null,
       default_purchase_currency: $("#s-def-purchase").value,
-      default_client_currency: $("#s-def-client").value
+      default_client_currency: $("#s-def-client").value,
+      default_delivery_currency: $("#s-def-delivery").value,
+      default_delivery_tariff: parseNum($("#s-def-tariff").value)
     };
     if (!v.name) { setSettingsError(t("e_ws_name")); $("#s-name").focus(); return; }
     if (!/^[A-Z]{1,5}$/.test(v.order_prefix)) { setSettingsError(t("e_prefix")); $("#s-prefix").focus(); return; }
@@ -828,8 +865,8 @@
   function moneyHtml(o) {
     var bal = num(o.balance_som);
     return '<dl class="money">' +
-      "<div><dt>" + t("l_goods_som") + "</dt><dd>" + money(o.goods_som) + "</dd></div>" +
-      "<div><dt>" + t("l_delivery") + "</dt><dd>" + money(o.delivery_cost) + "</dd></div>" +
+      "<div><dt>" + t("l_goods_som") + "</dt><dd>" + cur(o.goods_som, o.client_currency) + "</dd></div>" +
+      "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" +
       '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, o.client_currency) + "</dd></div>" +
       "<div><dt>" + t("l_paid") + "</dt><dd>" + money(o.paid_amount) + "</dd></div>" +
       '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, o.client_currency) + "</dd></div>" +
@@ -1418,8 +1455,11 @@
       set("supplier", o.supplier);
       set("supplier_link", o.supplier_link);
       set("supplier_wechat", o.supplier_wechat);
-      fillCurrencySelect($("#f-purchase_currency"), o.purchase_currency || "CNY");
+      fillCurrencySelect($("#f-purchase_currency"), o.purchase_currency || "CNY", PURCHASE_CURRENCIES);
       fillCurrencySelect($("#f-client_currency"), o.client_currency || "KGS");
+      fillCurrencySelect($("#f-delivery_currency"), o.delivery_currency || o.client_currency || "USD", deliveryCurrencies(o.client_currency || "KGS"));
+      set("delivery_tariff", numStr(o.delivery_tariff));
+      set("delivery_rate", numStr(o.delivery_rate));
       set("quantity", numStr(o.quantity));
       set("unit_price_cny", numStr(o.unit_price_cny));
       set("exchange_rate", numStr(o.exchange_rate));
@@ -1432,8 +1472,10 @@
     } else {
       // валюты по умолчанию — из настроек кабинета
       var ws = state.ws || {};
-      fillCurrencySelect($("#f-purchase_currency"), ws.default_purchase_currency || "CNY");
+      fillCurrencySelect($("#f-purchase_currency"), ws.default_purchase_currency || "CNY", PURCHASE_CURRENCIES);
       fillCurrencySelect($("#f-client_currency"), ws.default_client_currency || "KGS");
+      fillCurrencySelect($("#f-delivery_currency"), ws.default_delivery_currency || "USD", deliveryCurrencies($("#f-client_currency").value));
+      set("delivery_tariff", numStr(ws.default_delivery_tariff));
       set("order_number", ""); // номер выдаст база после сохранения
       set("order_date", todayISO());
       ["client_name", "client_phone", "client_wechat", "product_ru", "product_zh", "supplier",
@@ -1442,6 +1484,7 @@
       set("quantity", "1");
       set("exchange_rate", lastRateFor($("#f-purchase_currency").value, $("#f-client_currency").value));
       set("delivery_cost", "");
+      set("delivery_rate", lastRateFor($("#f-delivery_currency").value, $("#f-client_currency").value));
       set("paid_amount", "");
     }
     updateCalc();
@@ -1463,17 +1506,36 @@
     var same = a === b;
     $("#lbl-price").textContent = t("f_price_cur", { c: a });
     $("#lbl-rate").textContent = same ? t("f_rate_same") : t("f_rate_cur", { a: a, b: b });
-    $("#lbl-delivery").textContent = t("f_delivery_cur", { c: b });
     $("#lbl-paid").textContent = t("f_paid_cur", { c: b });
     var rate = $("#f-exchange_rate");
     rate.readOnly = same;
     if (same) rate.value = "1";
+
+    // доставка
+    var dc = $("#f-delivery_currency").value;
+    var dSame = dc === b;
+    $("#lbl-tariff").textContent = t("f_tariff_cur", { c: dc });
+    $("#lbl-delivery").textContent = t("f_delivery_cur", { c: dc });
+    $("#lbl-delivery-rate").textContent = dSame ? t("f_rate_same") : t("f_delivery_rate_cur", { a: dc, b: b });
+    var dRate = $("#f-delivery_rate");
+    dRate.readOnly = dSame;
+    if (dSame) dRate.value = "1";
   }
 
   // Сменили валюту в заказе — обновить подписи и подставить знакомый курс
   function onCurrencyChange() {
     var a = $("#f-purchase_currency").value, b = $("#f-client_currency").value;
     $("#f-exchange_rate").value = lastRateFor(a, b);
+    // список валют доставки зависит от валюты клиента
+    var dSel = $("#f-delivery_currency");
+    var dc = deliveryCurrencies(b).indexOf(dSel.value) !== -1 ? dSel.value : "USD";
+    fillCurrencySelect(dSel, dc, deliveryCurrencies(b));
+    $("#f-delivery_rate").value = lastRateFor(dc, b);
+    updateCalc();
+  }
+
+  function onDeliveryCurrencyChange() {
+    $("#f-delivery_rate").value = lastRateFor($("#f-delivery_currency").value, $("#f-client_currency").value);
     updateCalc();
   }
 
@@ -1483,7 +1545,10 @@
     var q = parseNum($("#f-quantity").value);
     var p = parseNum($("#f-unit_price_cny").value);
     var r = parseNum($("#f-exchange_rate").value);
-    var d = parseNum($("#f-delivery_cost").value);
+    var dc = $("#f-delivery_currency").value;
+    var dAmount = parseNum($("#f-delivery_cost").value);   // в валюте доставки
+    var dRate = parseNum($("#f-delivery_rate").value);
+    var d = dAmount * dRate;                               // в валюте клиента
     var paid = parseNum($("#f-paid_amount").value);
     var goodsCny = q * p;
     var goodsSom = goodsCny * r;
@@ -1493,7 +1558,9 @@
     $("#calc-goods-som").textContent = a === b
       ? money(goodsSom) + " " + b
       : money(goodsCny) + " " + a + " × " + money(r) + " = " + money(goodsSom) + " " + b;
-    $("#calc-delivery").textContent = money(d) + " " + b;
+    $("#calc-delivery").textContent = dc === b
+      ? money(d) + " " + b
+      : money(dAmount) + " " + dc + " × " + money(dRate) + " = " + money(d) + " " + b;
     $("#calc-total").textContent = money(total) + " " + b;
     $("#calc-paid").textContent = money(paid) + " " + b;
     $("#calc-balance").textContent = money(bal) + " " + b;
@@ -1537,6 +1604,9 @@
       exchange_rate: parseNum(val("exchange_rate")),
       weight_kg: parseNum(val("weight_kg")),
       delivery_cost: parseNum(val("delivery_cost")),
+      delivery_currency: $("#f-delivery_currency").value,
+      delivery_tariff: parseNum(val("delivery_tariff")),
+      delivery_rate: parseNum(val("delivery_rate")),
       paid_amount: parseNum(val("paid_amount")),
       delivery_info: val("delivery_info") || null,
       client_comment: val("client_comment") || null,
@@ -1604,6 +1674,9 @@
       }
       if (v.exchange_rate > 0) {
         try { localStorage.setItem("cc_rate_" + v.purchase_currency + "_" + v.client_currency, String(v.exchange_rate)); } catch (err) { /* ignore */ }
+      }
+      if (v.delivery_rate > 0 && v.delivery_currency !== v.client_currency) {
+        try { localStorage.setItem("cc_rate_" + v.delivery_currency + "_" + v.client_currency, String(v.delivery_rate)); } catch (err) { /* ignore */ }
       }
 
       if (form.removed.length) {
@@ -1981,7 +2054,7 @@
       '<section class="client-block">' +
         "<h2>" + esc(t("cl_payment")) + "</h2>" +
         '<dl class="money">' +
-          (num(o.delivery_cost) > 0 ? "<div><dt>" + t("l_delivery") + "</dt><dd>" + cur(o.delivery_cost, cc) + "</dd></div>" : "") +
+          (num(o.delivery_cost) > 0 ? "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" : "") +
           '<div class="money-total"><dt>' + t("l_total") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
           "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
           '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" +
