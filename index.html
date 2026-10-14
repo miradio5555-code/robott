@@ -484,12 +484,13 @@
             <label class="field"><span data-i18n="f_product_zh"></span>
               <input id="f-product_zh" type="text" lang="zh-CN"></label>
             <label class="field"><span data-i18n="f_supplier"></span>
-              <input id="f-supplier" type="text"></label>
+              <input id="f-supplier" type="text" list="supplier-options" autocomplete="off"></label>
             <label class="field"><span data-i18n="f_supplier_wechat"></span>
               <input id="f-supplier_wechat" type="text" maxlength="100" autocapitalize="off" spellcheck="false"></label>
             <label class="field"><span data-i18n="f_link"></span>
               <input id="f-supplier_link" type="url" inputmode="url" placeholder="https://"></label>
           </div>
+          <datalist id="supplier-options"></datalist>
         </fieldset>
 
         <fieldset>
@@ -757,6 +758,7 @@
           <label class="field"><span data-i18n="supplier_city"></span><input id="sp-city" maxlength="100"></label>
           <label class="field"><span data-i18n="supplier_category"></span><input id="sp-category" maxlength="100"></label>
         </div>
+        <label class="field"><span data-i18n="f_link"></span><input id="sp-link" type="url" inputmode="url" maxlength="2048" placeholder="https://"></label>
         <label class="field"><span data-i18n="supplier_address"></span><textarea id="sp-address" rows="2" maxlength="500"></textarea></label>
         <label class="field"><span data-i18n="supplier_notes"></span><textarea id="sp-notes" rows="3" maxlength="1000"></textarea></label>
       </div>

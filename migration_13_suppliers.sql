@@ -1,5 +1,5 @@
 -- ULA Factory — личный справочник поставщиков.
--- Запустить один раз в Supabase SQL Editor после migration_12_order_activity.sql.
+-- Запустить в Supabase SQL Editor после migration_12_order_activity.sql.
 -- Каждый поставщик принадлежит кабинету; RLS закрывает его от других байеров.
 
 create table if not exists public.suppliers (
@@ -9,12 +9,17 @@ create table if not exists public.suppliers (
   contact_person text check (contact_person is null or char_length(contact_person) <= 120),
   phone text check (phone is null or char_length(phone) <= 40),
   wechat text check (wechat is null or char_length(wechat) <= 100),
+  supplier_link text check (supplier_link is null or char_length(supplier_link) <= 2048),
   city text check (city is null or char_length(city) <= 100),
   category text check (category is null or char_length(category) <= 100),
   address text check (address is null or char_length(address) <= 500),
   notes text check (notes is null or char_length(notes) <= 1000),
   created_at timestamptz not null default now()
 );
+
+alter table public.suppliers
+  add column if not exists supplier_link text
+  check (supplier_link is null or char_length(supplier_link) <= 2048);
 
 create index if not exists suppliers_workspace_name_idx
   on public.suppliers(workspace_id, name);

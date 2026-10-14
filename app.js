@@ -610,7 +610,7 @@
     renderWsBanner();
     renderWarehouse();
     switchTab("orders");
-    await loadOrders();
+    await Promise.all([loadOrders(), loadSuppliers()]);
   }
 
   function renderWsBanner() {
@@ -810,6 +810,13 @@
     $("#suppliers-search").addEventListener("input", function (e) { state.suppliersQ = e.target.value; renderSuppliers(); });
     $("#supplier-add").addEventListener("click", function () { openSupplierForm(null); });
     $("#supplier-form").addEventListener("submit", saveSupplier);
+    $("#f-supplier").addEventListener("change", function () {
+      var name = $("#f-supplier").value.trim().toLowerCase();
+      var supplier = state.suppliers.filter(function (item) { return item.name.toLowerCase() === name; })[0];
+      if (!supplier) return;
+      if (supplier.wechat) $("#f-supplier_wechat").value = supplier.wechat;
+      if (supplier.supplier_link) $("#f-supplier_link").value = supplier.supplier_link;
+    });
     $("#suppliers").addEventListener("click", function (e) {
       var edit = e.target.closest("[data-supplier-edit]");
       var del = e.target.closest("[data-supplier-delete]");
@@ -1359,7 +1366,7 @@
     $("#suppliers-loading").classList.remove("hidden");
     try {
       var res = await db.from("suppliers")
-        .select("id, name, contact_person, phone, wechat, city, category, address, notes, created_at")
+        .select("id, name, contact_person, phone, wechat, supplier_link, city, category, address, notes, created_at")
         .eq("workspace_id", state.ws.id)
         .order("name", { ascending: true });
       if (res.error) throw res.error;
@@ -1369,6 +1376,9 @@
     }
     state.suppliersLoading = false;
     $("#suppliers-loading").classList.add("hidden");
+    $("#supplier-options").innerHTML = state.suppliers.map(function (s) {
+      return '<option value="' + esc(s.name) + '"></option>';
+    }).join("");
     renderSuppliers();
   }
 
@@ -1396,11 +1406,13 @@
     }
     empty.classList.add("hidden");
     box.innerHTML = list.map(function (s) {
+      var link = safeUrl(s.supplier_link);
       return '<article class="client-row supplier-row"><div><div class="client-row-name">' + esc(s.name) +
         '</div><div class="client-row-date">' + esc([s.category, s.city].filter(Boolean).join(" · ") || "—") + '</div></div>' +
         '<div class="client-row-contacts">' + (s.contact_person ? '<span>' + esc(s.contact_person) + '</span>' : '') +
         (s.phone ? phoneLink(s.phone) : '') + (s.wechat ? '<span>WeChat: ' + esc(s.wechat) + '</span>' : '') + '</div>' +
         '<div class="client-row-place">' + (s.address ? '<span>' + esc(s.address) + '</span>' : '') +
+        (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(t("l_link")) + '</a>' : '') +
         (s.notes ? '<p class="fine-print">' + esc(s.notes) + '</p>' : '') + '</div>' +
         '<div class="client-row-orders"><button type="button" class="btn" data-write data-supplier-edit="' + esc(s.id) + '">' + esc(t("edit")) + '</button>' +
         '<button type="button" class="btn btn-danger" data-write data-supplier-delete="' + esc(s.id) + '">' + esc(t("remove")) + '</button></div></article>';
@@ -1417,6 +1429,7 @@
     $("#sp-wechat").value = s ? s.wechat || "" : "";
     $("#sp-city").value = s ? s.city || "" : "";
     $("#sp-category").value = s ? s.category || "" : "";
+    $("#sp-link").value = s ? s.supplier_link || "" : "";
     $("#sp-address").value = s ? s.address || "" : "";
     $("#sp-notes").value = s ? s.notes || "" : "";
     openModal("modal-supplier");
@@ -1433,6 +1446,7 @@
       contact_person: $("#sp-contact").value.trim() || null,
       phone: $("#sp-phone").value.trim() || null,
       wechat: $("#sp-wechat").value.trim() || null,
+      supplier_link: $("#sp-link").value.trim() || null,
       city: $("#sp-city").value.trim() || null,
       category: $("#sp-category").value.trim() || null,
       address: $("#sp-address").value.trim() || null,
