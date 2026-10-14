@@ -2277,7 +2277,13 @@
 
   function cardHistoryHtml(order) {
     var items = order.status_history || [];
-    if (!items.length) return "";
+    // У старых заказов истории ещё нет, поэтому показываем их статус и дату обновления.
+    if (!items.length) {
+      if (!order.status || !order.updated_at) return "";
+      return '<p class="card-history"><span class="card-history-label">' + esc(t("history_last")) +
+        '</span><strong>' + esc(t("status_" + order.status)) + '</strong><time>' + esc(fmtTime(order.updated_at)) +
+        '</time></p>';
+    }
     var last = items.slice().sort(function (a, b) {
       return String(b.created_at).localeCompare(String(a.created_at));
     })[0];
