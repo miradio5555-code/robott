@@ -2272,7 +2272,7 @@
     });
     return '<section class="status-history"><h3>' + esc(t("history_title")) + '</h3>' +
       (items.length ? '<ol>' + items.map(function (item) {
-        return '<li><span class="status-history-name">' + esc(t("status_" + item.new_status)) +
+        return '<li><span class="status-history-name">' + esc(t("status_" + (item.new_status || item.status))) +
           '</span><time>' + esc(new Date(item.created_at).toLocaleString(locale())) + '</time></li>';
       }).join("") + '</ol>' : '<p class="muted">' + esc(t("history_empty")) + '</p>') + '</section>';
   }
