@@ -598,6 +598,8 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 .client-row-place b { display: block; font-weight: 800; }
 .client-row-place span { color: var(--muted); }
 .client-row-orders { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.supplier-row .client-row-place p { margin: 6px 0 0; }
+.supplier-row .client-row-orders { align-content: center; }
 .order-tag {
   display: inline-flex;
   align-items: center;

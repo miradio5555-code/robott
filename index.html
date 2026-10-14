@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261014d">
+  <link rel="stylesheet" href="style.css?v=20261014e">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -189,6 +189,7 @@
         <nav class="tabs" aria-label="Sections">
           <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
           <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
+          <button type="button" class="tab" data-tab="suppliers" data-i18n="nav_suppliers"></button>
           <button type="button" class="tab" data-tab="calc" data-i18n="nav_calc"></button>
           <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
           <button type="button" class="tab admin-only" data-tab="support"><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
@@ -324,6 +325,18 @@
       <div id="clients-loading" class="state-box hidden" data-i18n="loading"></div>
       <div id="clients" class="clients"></div>
       <div id="clients-empty" class="state-box hidden"></div>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: ПОСТАВЩИКИ ============ -->
+    <main id="tab-suppliers" class="container hidden">
+      <section class="toolbar toolbar-clients">
+        <input id="suppliers-search" class="search" type="search" data-i18n-placeholder="suppliers_search" autocomplete="off">
+        <button id="supplier-add" class="btn btn-primary" type="button" data-write data-i18n="supplier_add"></button>
+      </section>
+      <p id="suppliers-count" class="fine-print"></p>
+      <div id="suppliers-loading" class="state-box hidden" data-i18n="loading"></div>
+      <div id="suppliers" class="clients"></div>
+      <div id="suppliers-empty" class="state-box hidden"></div>
     </main>
 
     <!-- ============ РАЗДЕЛ: ЗАКАЗЫ ============ -->
@@ -727,6 +740,33 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ПОСТАВЩИК ============ -->
+  <div id="modal-supplier" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="supplier-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 id="supplier-form-title" data-i18n="supplier_add"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span data-i18n="supplier_name"></span><input id="sp-name" maxlength="120" required></label>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="supplier_contact"></span><input id="sp-contact" maxlength="120"></label>
+          <label class="field"><span data-i18n="supplier_phone"></span><input id="sp-phone" type="tel" inputmode="tel" maxlength="40"></label>
+          <label class="field"><span data-i18n="supplier_wechat"></span><input id="sp-wechat" maxlength="100" autocapitalize="off" spellcheck="false"></label>
+          <label class="field"><span data-i18n="supplier_city"></span><input id="sp-city" maxlength="100"></label>
+          <label class="field"><span data-i18n="supplier_category"></span><input id="sp-category" maxlength="100"></label>
+        </div>
+        <label class="field"><span data-i18n="supplier_address"></span><textarea id="sp-address" rows="2" maxlength="500"></textarea></label>
+        <label class="field"><span data-i18n="supplier_notes"></span><textarea id="sp-notes" rows="3" maxlength="1000"></textarea></label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="supplier-save" class="btn btn-primary" type="submit" data-i18n="save"></button>
+      </div>
+    </form>
+  </div>
+
   <!-- ============ ТЕХПОДДЕРЖКА: переписка ============ -->
   <div id="modal-support" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -761,8 +801,8 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261014d"></script>
+  <script src="i18n.js?v=20261014e"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261014d"></script>
+  <script src="app.js?v=20261014e"></script>
 </body>
 </html>

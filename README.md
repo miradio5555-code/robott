@@ -27,8 +27,9 @@
 | `migration_10_telegram.sql` | Уведомления о техподдержке в Telegram + функция `supabase/functions/telegram-notify` (после 09) |
 | `migration_11_status_history.sql` | История статусов заказа для байера и клиента (после 10) |
 | `migration_12_order_activity.sql` | История оплат и изменения адреса (после 11) |
+| `migration_13_suppliers.sql` | Личный справочник поставщиков с изоляцией по кабинету (после 12) |
 
-**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql` → `migration_10_telegram.sql` → `migration_11_status_history.sql` → `migration_12_order_activity.sql`.
+**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql` → `migration_10_telegram.sql` → `migration_11_status_history.sql` → `migration_12_order_activity.sql` → `migration_13_suppliers.sql`.
 
 ## Как это работает
 

@@ -27,8 +27,8 @@
     client: null,
     clientState: "loading", // loading | ok | notfound | error
 
-    // кабинет: какая вкладка открыта и список клиентов
-    tab: "orders",          // "orders", "clients" или "buyers"
+    // кабинет: открытая вкладка
+    tab: "orders",
 
     // кто вошёл и какой кабинет открыт
     me: null,               // { id, email, role: "admin"|"buyer", name }
@@ -39,7 +39,11 @@
     invites: [],            // для админа: действующие приглашения
     clients: [],
     clientsQ: "",
-    clientsLoading: false
+    clientsLoading: false,
+    suppliers: [],
+    suppliersQ: "",
+    suppliersLoading: false,
+    supplierEditing: null
   };
 
   // форма «Данные для доставки» на странице клиента
@@ -400,6 +404,7 @@
     if (!$("#view-admin").classList.contains("hidden")) {
       renderAll();
       renderClients();
+      renderSuppliers();
       renderBuyers();
       renderWarehouse();
       if (state.tab === "calc") renderFx(true);
@@ -799,6 +804,17 @@
     $("#clients").addEventListener("click", function (e) {
       var b = e.target.closest("[data-order-id]");
       if (b) openDetail(b.getAttribute("data-order-id"));
+    });
+
+    // Поставщики: поиск, добавление, изменение и удаление.
+    $("#suppliers-search").addEventListener("input", function (e) { state.suppliersQ = e.target.value; renderSuppliers(); });
+    $("#supplier-add").addEventListener("click", function () { openSupplierForm(null); });
+    $("#supplier-form").addEventListener("submit", saveSupplier);
+    $("#suppliers").addEventListener("click", function (e) {
+      var edit = e.target.closest("[data-supplier-edit]");
+      var del = e.target.closest("[data-supplier-delete]");
+      if (edit) openSupplierForm(edit.getAttribute("data-supplier-edit"));
+      if (del) deleteSupplier(del.getAttribute("data-supplier-delete"));
     });
 
     // список заказов и карточка
@@ -1254,10 +1270,11 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "calc" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "suppliers" || name === "calc" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "calc" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
+    $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
     $("#tab-calc").classList.toggle("hidden", state.tab !== "calc");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
@@ -1269,6 +1286,7 @@
     });
     window.scrollTo(0, 0);
     if (state.tab === "clients" && db && state.ws) loadClients();
+    if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "calc") openFx();
     if (state.tab === "support" && db) loadSupportThreads();
@@ -1333,6 +1351,122 @@
     }
     empty.classList.add("hidden");
     box.innerHTML = list.map(clientRowHtml).join("");
+  }
+
+  // Загружаем только поставщиков текущего кабинета.
+  async function loadSuppliers() {
+    state.suppliersLoading = true;
+    $("#suppliers-loading").classList.remove("hidden");
+    try {
+      var res = await db.from("suppliers")
+        .select("id, name, contact_person, phone, wechat, city, category, address, notes, created_at")
+        .eq("workspace_id", state.ws.id)
+        .order("name", { ascending: true });
+      if (res.error) throw res.error;
+      state.suppliers = res.data || [];
+    } catch (err) {
+      handleError(err);
+    }
+    state.suppliersLoading = false;
+    $("#suppliers-loading").classList.add("hidden");
+    renderSuppliers();
+  }
+
+  function renderSuppliers() {
+    var box = $("#suppliers");
+    var empty = $("#suppliers-empty");
+    if (state.suppliersLoading) return;
+    var q = state.suppliersQ.trim().toLowerCase();
+    var list = state.suppliers.filter(function (s) {
+      return !q || [s.name, s.contact_person, s.phone, s.wechat, s.city, s.category]
+        .filter(Boolean).join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+    $("#suppliers-count").textContent = state.suppliers.length ? t("suppliers_count", { n: list.length }) : "";
+    if (!state.suppliers.length) {
+      box.innerHTML = "";
+      empty.innerHTML = "<strong>" + esc(t("suppliers_empty_title")) + "</strong><br>" + esc(t("suppliers_empty_text"));
+      empty.classList.remove("hidden");
+      return;
+    }
+    if (!list.length) {
+      box.innerHTML = "";
+      empty.textContent = t("nothing_found");
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    box.innerHTML = list.map(function (s) {
+      return '<article class="client-row supplier-row"><div><div class="client-row-name">' + esc(s.name) +
+        '</div><div class="client-row-date">' + esc([s.category, s.city].filter(Boolean).join(" · ") || "—") + '</div></div>' +
+        '<div class="client-row-contacts">' + (s.contact_person ? '<span>' + esc(s.contact_person) + '</span>' : '') +
+        (s.phone ? phoneLink(s.phone) : '') + (s.wechat ? '<span>WeChat: ' + esc(s.wechat) + '</span>' : '') + '</div>' +
+        '<div class="client-row-place">' + (s.address ? '<span>' + esc(s.address) + '</span>' : '') +
+        (s.notes ? '<p class="fine-print">' + esc(s.notes) + '</p>' : '') + '</div>' +
+        '<div class="client-row-orders"><button type="button" class="btn" data-write data-supplier-edit="' + esc(s.id) + '">' + esc(t("edit")) + '</button>' +
+        '<button type="button" class="btn btn-danger" data-write data-supplier-delete="' + esc(s.id) + '">' + esc(t("remove")) + '</button></div></article>';
+    }).join("");
+  }
+
+  function openSupplierForm(id) {
+    var s = id ? state.suppliers.filter(function (item) { return item.id === id; })[0] : null;
+    state.supplierEditing = s || null;
+    $("#supplier-form-title").textContent = t(s ? "edit" : "supplier_add");
+    $("#sp-name").value = s ? s.name || "" : "";
+    $("#sp-contact").value = s ? s.contact_person || "" : "";
+    $("#sp-phone").value = s ? s.phone || "" : "";
+    $("#sp-wechat").value = s ? s.wechat || "" : "";
+    $("#sp-city").value = s ? s.city || "" : "";
+    $("#sp-category").value = s ? s.category || "" : "";
+    $("#sp-address").value = s ? s.address || "" : "";
+    $("#sp-notes").value = s ? s.notes || "" : "";
+    openModal("modal-supplier");
+  }
+
+  async function saveSupplier(e) {
+    e.preventDefault();
+    if (state.readOnly || !state.ws) return;
+    var name = $("#sp-name").value.trim();
+    if (!name) return $("#sp-name").focus();
+    var record = {
+      workspace_id: state.ws.id,
+      name: name,
+      contact_person: $("#sp-contact").value.trim() || null,
+      phone: $("#sp-phone").value.trim() || null,
+      wechat: $("#sp-wechat").value.trim() || null,
+      city: $("#sp-city").value.trim() || null,
+      category: $("#sp-category").value.trim() || null,
+      address: $("#sp-address").value.trim() || null,
+      notes: $("#sp-notes").value.trim() || null
+    };
+    var button = $("#supplier-save");
+    button.disabled = true;
+    try {
+      var res = state.supplierEditing
+        ? await db.from("suppliers").update(record).eq("id", state.supplierEditing.id)
+        : await db.from("suppliers").insert(record);
+      if (res.error) throw res.error;
+      closeModal("modal-supplier");
+      toast(t("supplier_saved"), "ok");
+      await loadSuppliers();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function deleteSupplier(id) {
+    if (state.readOnly) return;
+    var s = state.suppliers.filter(function (item) { return item.id === id; })[0];
+    if (!s || !window.confirm(t("supplier_confirm_delete", { name: s.name }))) return;
+    try {
+      var res = await db.from("suppliers").delete().eq("id", id);
+      if (res.error) throw res.error;
+      toast(t("supplier_deleted"), "ok");
+      await loadSuppliers();
+    } catch (err) {
+      handleError(err);
+    }
   }
 
   function clientRowHtml(c) {
