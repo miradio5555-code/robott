@@ -889,7 +889,7 @@
     try {
       for (var from = 0; ; from += 1000) {
         var res = await db.from("orders")
-          .select("*, order_photos(id, storage_path, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point)")
+          .select("*, order_photos(id, storage_path, created_at), status_history:order_status_history(old_status, new_status, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point)")
           .eq("workspace_id", state.ws.id)
           .order("order_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -2255,6 +2255,7 @@
           (o.client_comment ? "<div><dt>" + t("l_comment_client") + "</dt><dd>" + esc(o.client_comment) + "</dd></div>" : "") +
           (o.admin_comment ? "<div><dt>" + t("l_comment_admin") + "</dt><dd>" + esc(o.admin_comment) + "</dd></div>" : "") +
         "</dl>" +
+        statusHistoryHtml(o.status_history) +
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="edit" data-write>' + t("edit") + "</button>" +
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
@@ -2262,6 +2263,18 @@
           '<button type="button" class="btn btn-danger" data-act="delete" data-write>' + t("remove") + "</button>" +
         "</div>" +
       "</div>";
+  }
+
+  // Здесь только история статусов, без внутренних заметок и расчётов.
+  function statusHistoryHtml(history) {
+    var items = (history || []).slice().sort(function (a, b) {
+      return String(a.created_at).localeCompare(String(b.created_at));
+    });
+    return '<section class="status-history"><h3>' + esc(t("history_title")) + '</h3>' +
+      (items.length ? '<ol>' + items.map(function (item) {
+        return '<li><span class="status-history-name">' + esc(t("status_" + item.new_status)) +
+          '</span><time>' + esc(new Date(item.created_at).toLocaleString(locale())) + '</time></li>';
+      }).join("") + '</ol>' : '<p class="muted">' + esc(t("history_empty")) + '</p>') + '</section>';
   }
 
   // ---------- Статус ----------
@@ -2284,7 +2297,12 @@
     var res = await db.from("orders").update({ status: status }).eq("id", id);
     if (res.error) { handleError(res.error); return; }
     var o = state.orders.filter(function (x) { return x.id === id; })[0];
-    if (o) o.status = status;
+    if (o) {
+      o.status = status;
+      var historyRes = await db.from("order_status_history")
+        .select("old_status, new_status, created_at").eq("order_id", id).order("created_at", { ascending: true });
+      if (!historyRes.error) o.status_history = historyRes.data;
+    }
     closeModal("modal-status");
     renderAll();
     if ($("#modal-detail").classList.contains("open")) renderDetail();
@@ -2955,6 +2973,7 @@
             (i === idx ? ' aria-current="step"' : "") + '><span class="dot"></span><span>' +
             esc(t("status_" + s)) + "</span></li>";
         }).join("") + "</ol>";
+    var clientHistory = statusHistoryHtml(o.status_history);
 
     // Пока данных нет — форма стоит сразу после статуса (это главное действие).
     // Когда данные есть — уходит вниз, под оплату.
@@ -2971,7 +2990,7 @@
         "<h1>" + esc(t("cl_order", { n: "\u0000" })).replace("\u0000", '<span class="num">' + esc(o.order_number) + "</span>") + "</h1>" +
         '<p class="client-hero-date">' + fmtDate(o.order_date) + "</p>" +
         (o.status === "cancelled" ? "" : '<p class="client-hero-status">' + esc(t("status_" + o.status)) + "</p>") +
-        steps +
+        steps + clientHistory +
       "</section>" +
 
       (deliveryFirst ? delivery : "") +

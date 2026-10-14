@@ -698,6 +698,15 @@ legend { padding: 0; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
 .info { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 .info dd { overflow-wrap: anywhere; white-space: pre-line; }
 
+/* История статусов заказа */
+.status-history { padding-top: 14px; border-top: 1px solid var(--line); }
+.status-history h3 { margin-bottom: 10px; font-size: 15px; }
+.status-history ol { display: grid; gap: 9px; list-style: none; }
+.status-history li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.status-history time { color: var(--muted); font-size: 12px; text-align: right; }
+.client-hero .status-history { margin-top: 18px; border-color: rgba(255,255,255,.2); }
+.client-hero .status-history time { color: rgba(255,255,255,.68); }
+
 .status-list { display: grid; gap: 8px; }
 .status-option {
   display: flex;
