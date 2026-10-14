@@ -524,6 +524,20 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 .money-balance.owe { background: var(--red-tint); color: var(--red); }
 .money-balance.clear { background: var(--green-tint); color: var(--green); }
 
+.card-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--soft);
+  font-size: 12px;
+}
+.card-history-label { color: var(--muted); }
+.card-history strong { color: var(--ink); font-weight: 700; }
+.card-history time { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+
 .meta { font-size: 14px; color: var(--ink); }
 .meta span { color: var(--muted); margin-right: 4px; }
 .note {
@@ -704,6 +718,7 @@ legend { padding: 0; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
 .status-history ol { display: grid; gap: 9px; list-style: none; }
 .status-history li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
 .status-history time { color: var(--muted); font-size: 12px; text-align: right; }
+.status-history-name { overflow-wrap: anywhere; }
 .client-hero .status-history { margin-top: 18px; border-color: rgba(255,255,255,.2); }
 .client-hero .status-history time { color: rgba(255,255,255,.68); }
 

@@ -889,7 +889,7 @@
     try {
       for (var from = 0; ; from += 1000) {
         var res = await db.from("orders")
-          .select("*, order_photos(id, storage_path, created_at), status_history:order_status_history(old_status, new_status, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point)")
+          .select("*, order_photos(id, storage_path, created_at), status_history:order_status_history(event_type, new_status, paid_total, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point)")
           .eq("workspace_id", state.ws.id)
           .order("order_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -1185,6 +1185,7 @@
           "</div>" +
           '<span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
+        cardHistoryHtml(o) +
         '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
         (urls.length ? '<div class="thumbs">' + thumbsHtml(urls, 4) + "</div>" : "") +
@@ -2255,7 +2256,7 @@
           (o.client_comment ? "<div><dt>" + t("l_comment_client") + "</dt><dd>" + esc(o.client_comment) + "</dd></div>" : "") +
           (o.admin_comment ? "<div><dt>" + t("l_comment_admin") + "</dt><dd>" + esc(o.admin_comment) + "</dd></div>" : "") +
         "</dl>" +
-        statusHistoryHtml(o.status_history) +
+        statusHistoryHtml(o.status_history, o) +
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="edit" data-write>' + t("edit") + "</button>" +
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
@@ -2266,13 +2267,32 @@
   }
 
   // Здесь только история статусов, без внутренних заметок и расчётов.
-  function statusHistoryHtml(history) {
+  function historyEventText(item, order) {
+    if (item.event_type === "payment") {
+      return t("history_payment", { amount: cur(item.paid_total, order && order.client_currency) });
+    }
+    if (item.event_type === "address") return t("history_address");
+    return t("status_" + (item.new_status || item.status));
+  }
+
+  function cardHistoryHtml(order) {
+    var items = order.status_history || [];
+    if (!items.length) return "";
+    var last = items.slice().sort(function (a, b) {
+      return String(b.created_at).localeCompare(String(a.created_at));
+    })[0];
+    return '<p class="card-history"><span class="card-history-label">' + esc(t("history_last")) +
+      '</span><strong>' + esc(historyEventText(last, order)) + '</strong><time>' + esc(fmtTime(last.created_at)) +
+      '</time></p>';
+  }
+
+  function statusHistoryHtml(history, order) {
     var items = (history || []).slice().sort(function (a, b) {
       return String(a.created_at).localeCompare(String(b.created_at));
     });
     return '<section class="status-history"><h3>' + esc(t("history_title")) + '</h3>' +
       (items.length ? '<ol>' + items.map(function (item) {
-        return '<li><span class="status-history-name">' + esc(t("status_" + (item.new_status || item.status))) +
+        return '<li><span class="status-history-name">' + esc(historyEventText(item, order)) +
           '</span><time>' + esc(new Date(item.created_at).toLocaleString(locale())) + '</time></li>';
       }).join("") + '</ol>' : '<p class="muted">' + esc(t("history_empty")) + '</p>') + '</section>';
   }
@@ -2300,7 +2320,7 @@
     if (o) {
       o.status = status;
       var historyRes = await db.from("order_status_history")
-        .select("old_status, new_status, created_at").eq("order_id", id).order("created_at", { ascending: true });
+        .select("event_type, new_status, paid_total, created_at").eq("order_id", id).order("created_at", { ascending: true });
       if (!historyRes.error) o.status_history = historyRes.data;
     }
     closeModal("modal-status");
@@ -2973,7 +2993,7 @@
             (i === idx ? ' aria-current="step"' : "") + '><span class="dot"></span><span>' +
             esc(t("status_" + s)) + "</span></li>";
         }).join("") + "</ol>";
-    var clientHistory = statusHistoryHtml(o.status_history);
+    var clientHistory = statusHistoryHtml(o.status_history, o);
 
     // Пока данных нет — форма стоит сразу после статуса (это главное действие).
     // Когда данные есть — уходит вниз, под оплату.
