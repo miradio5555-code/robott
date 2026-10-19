@@ -220,18 +220,23 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
   padding: 10px 16px 0;
 }
 #view-client .topbar-inner { padding-bottom: 10px; }
-.topbar-actions { display: flex; align-items: center; gap: 4px; }
+.topbar-actions { order: 3; display: flex; align-items: center; gap: 4px; }
 
 /* Все разделы кабинета собраны в одном выпадающем меню. */
 .section-menu-wrap { order: 2; position: relative; }
-.section-menu-btn { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 0 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.section-menu-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); cursor: pointer; }
 .section-menu-btn:hover, .section-menu-btn[aria-expanded="true"] { border-color: var(--primary); }
-.section-current { color: var(--muted); font-size: 13px; font-weight: 500; }
-.section-menu { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: grid; gap: 3px; width: min(270px, calc(100vw - 32px)); margin: 0; padding: 7px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.section-menu-btn:focus-visible, .menu-action:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.section-menu { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: grid; gap: 4px; width: min(270px, calc(100vw - 32px)); margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.section-menu-list { order: initial; display: grid; gap: 2px; width: auto; margin: 0; overflow: visible; }
 .section-menu .tab { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 9px; text-align: left; }
 .section-menu .tab:hover, .section-menu .tab.active { background: var(--soft); }
 .section-menu .tab.active::after { left: 0; right: auto; top: 9px; bottom: 9px; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
 .section-menu .badge-inline { margin-left: 8px; }
+.menu-divider { margin: 4px 6px; border-top: 1px solid var(--line); }
+.menu-action { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font: inherit; font-weight: 650; text-align: left; cursor: pointer; }
+.menu-action:hover { background: var(--soft); }
+.menu-logout { color: var(--red); }
 .tab {
   position: relative;
   min-height: 44px;
@@ -990,19 +995,14 @@ legend { padding: 0; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
   .grid-2 { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Телефон: «Выйти» превращается в значок, чтобы шапка помещалась в одну строку */
+/* На телефоне шапка компактная, а выход находится в меню разделов. */
 @media (max-width: 480px) {
   .brand-name { font-size: 14px; }
   .lang-switch button { min-width: 34px; padding: 0 7px; }
-  .btn-logout { width: 40px; padding: 0; }
   .topbar-actions { gap: 0; }
   .topbar-actions .icon-btn { width: 40px; height: 40px; }
-  /* на телефоне язык меняется в ⚙️ Настройках — в шапке место только для значков */
+  /* На телефоне переключатель языка скрыт в шапке, чтобы осталось место для кнопок. */
   #view-admin .topbar .lang-switch { display: none; }
-  .logout-text {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1344,8 +1344,6 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
 }
 
 @media (max-width: 520px) {
-  .section-menu-btn { min-height: 40px; padding: 0 10px; gap: 7px; }
-  .section-current { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .topbar-inner { gap: 8px; }
 }
 

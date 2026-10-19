@@ -399,8 +399,6 @@
 
   function onLangChange() {
     setCurrency();
-    var currentSection = $("#section-current");
-    if (currentSection) currentSection.textContent = t("nav_" + state.tab);
     if (mode === "client") {
       renderClient();
       return;
@@ -658,6 +656,7 @@
     });
 
     $("#logout-btn").addEventListener("click", async function () {
+      closeSectionMenu();
       await db.auth.signOut();
       state.orders = [];
       state.clients = [];
@@ -733,7 +732,7 @@
     });
 
     // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
-    $("#settings-btn").addEventListener("click", function () { openSettings(); });
+    $("#settings-btn").addEventListener("click", function () { closeSectionMenu(); openSettings(); });
     $("#wh-edit").addEventListener("click", function () { openSettings("s-warehouse"); });
     $(".warehouse").addEventListener("click", function (e) {
       if (e.target.closest("[data-act='wh-add']")) openSettings("s-warehouse");
@@ -1312,7 +1311,6 @@
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
-    $("#section-current").textContent = t("nav_" + state.tab);
     closeSectionMenu();
     window.scrollTo(0, 0);
     if (state.tab === "clients" && db && state.ws) loadClients();
