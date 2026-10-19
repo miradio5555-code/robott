@@ -24,6 +24,7 @@
     loading: false,
     detailId: null,
     statusId: null,
+    linkOrderId: null,
     client: null,
     clientState: "loading", // loading | ok | notfound | error
 
@@ -215,6 +216,7 @@
   }
 
   function clientUrl(o) {
+    if (!o || !o.public_token) return "";
     var base = location.origin + location.pathname.replace(/index\.html$/, "");
     return base + "?order=" + o.public_token;
   }
@@ -918,6 +920,8 @@
       var ok = await copyText($("#link-input").value);
       toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
     });
+    $("#link-rotate").addEventListener("click", rotateClientLink);
+    $("#link-revoke").addEventListener("click", revokeClientLink);
     $("#link-input").addEventListener("focus", function (e) { e.target.select(); });
   }
 
@@ -2511,12 +2515,66 @@
 
   // ---------- Ссылка клиенту ----------
   function openLink(o) {
-    var url = clientUrl(o);
-    $("#link-input").value = url;
-    $("#link-wa").href = "https://wa.me/?text=" + encodeURIComponent(t("wa_text", { n: o.order_number }) + " " + url);
-    $("#link-open").href = url;
+    state.linkOrderId = o.id;
+    renderLinkModal(o);
     openModal("modal-link");
-    copyText(url).then(function (ok) { if (ok) toast(t("copied"), "ok"); });
+    var url = clientUrl(o);
+    if (url) copyText(url).then(function (ok) { if (ok) toast(t("copied"), "ok"); });
+  }
+
+  // Показываем только те кнопки ссылки, которые сейчас доступны.
+  function renderLinkModal(o) {
+    var url = clientUrl(o), active = !!url;
+    $("#link-state").textContent = t(active ? "link_active" : "link_disabled");
+    $("#link-input").value = url;
+    $("#link-input").classList.toggle("hidden", !active);
+    $("#link-active-controls").classList.toggle("hidden", !active);
+    $("#link-rotate").textContent = t(active ? "link_rotate" : "link_create");
+    $("#link-rotate").classList.toggle("hidden", state.readOnly);
+    $("#link-revoke").classList.toggle("hidden", !active || state.readOnly);
+    $("#link-wa").href = active
+      ? "https://wa.me/?text=" + encodeURIComponent(t("wa_text", { n: o.order_number }) + " " + url)
+      : "#";
+    $("#link-open").href = active ? url : "#";
+  }
+
+  async function rotateClientLink() {
+    var o = state.orders.find(function (x) { return x.id === state.linkOrderId; });
+    if (!o || state.readOnly) return;
+    if (o.public_token && !window.confirm(t("link_confirm_rotate", { n: o.order_number }))) return;
+    var button = $("#link-rotate");
+    button.disabled = true;
+    try {
+      var res = await db.rpc("rotate_client_link", { p_order_id: o.id });
+      if (res.error) throw res.error;
+      o.public_token = res.data;
+      renderLinkModal(o);
+      await copyText(clientUrl(o));
+      toast(t("link_created"), "ok");
+    } catch (err) {
+      handleError(err);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function revokeClientLink() {
+    var o = state.orders.find(function (x) { return x.id === state.linkOrderId; });
+    if (!o || !o.public_token || state.readOnly) return;
+    if (!window.confirm(t("link_confirm_revoke", { n: o.order_number }))) return;
+    var button = $("#link-revoke");
+    button.disabled = true;
+    try {
+      var res = await db.rpc("revoke_client_link", { p_order_id: o.id });
+      if (res.error) throw res.error;
+      o.public_token = null;
+      renderLinkModal(o);
+      toast(t("link_revoked"), "ok");
+    } catch (err) {
+      handleError(err);
+    } finally {
+      button.disabled = false;
+    }
   }
 
   // ---------- Удаление ----------

@@ -28,8 +28,9 @@
 | `migration_11_status_history.sql` | История статусов заказа для байера и клиента (после 10) |
 | `migration_12_order_activity.sql` | История оплат и изменения адреса (после 11) |
 | `migration_13_suppliers.sql` | Личный справочник поставщиков с изоляцией по кабинету (после 12) |
+| `migration_14_client_links.sql` | Создание новой ссылки клиента и отключение старой (после 13) |
 
-**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql` → `migration_10_telegram.sql` → `migration_11_status_history.sql` → `migration_12_order_activity.sql` → `migration_13_suppliers.sql`.
+**Порядок запуска SQL в Supabase:** `supabase_schema.sql` → `migration_01_clients.sql` → `migration_02_workspaces.sql` → `migration_03_buyer_phone.sql` → `migration_04_currency.sql` → `migration_05_delivery.sql` → `migration_06_open_signup.sql` → `migration_07_client_price.sql` → `migration_08_custom_rates.sql` → `migration_09_support.sql` → `migration_10_telegram.sql` → `migration_11_status_history.sql` → `migration_12_order_activity.sql` → `migration_13_suppliers.sql` → `migration_14_client_links.sql`.
 
 ## Как это работает
 
@@ -43,6 +44,7 @@
 - Адрес склада в Китае вписывается в кабинете (блок «Склад в Китае» → «Изменить»)
   и копируется одной кнопкой вместе с контактами — для отправки клиенту.
 - Для каждого заказа есть ссылка вида `https://miradio5555-code.github.io/robott/?order=токен`.
+- Во вкладке ссылки байер может отключить ссылку или заменить её новой. Старая ссылка сразу перестаёт открывать заказ.
 - По ссылке клиент видит только свой заказ и заполняет **данные для доставки**:
   ФИО, телефон, Telegram (необязательно), город, адрес или пункт выдачи.
 - Если данные уже есть, клиент видит их и может нажать «Изменить».
