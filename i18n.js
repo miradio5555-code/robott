@@ -25,6 +25,7 @@ var I18N = {
 
     // Разделы кабинета
     nav_orders: "Заказы",
+    nav_menu: "Разделы",
     nav_clients: "Клиенты",
     nav_suppliers: "Поставщики",
     suppliers_search: "Поиск по названию, контакту, телефону, WeChat",
@@ -472,6 +473,7 @@ var I18N = {
     lib_missing: "supabase.js didn't load. Make sure it is in the same folder as index.html.",
 
     nav_orders: "Orders",
+    nav_menu: "Sections",
     nav_clients: "Clients",
     nav_suppliers: "Suppliers",
     suppliers_search: "Search name, contact, phone or WeChat",
@@ -904,6 +906,7 @@ var I18N = {
     lib_missing: "supabase.js 文件未加载。请确认它与 index.html 放在同一文件夹。",
 
     nav_orders: "订单",
+    nav_menu: "菜单",
     nav_clients: "客户",
     nav_suppliers: "供应商",
     suppliers_search: "按名称、联系人、电话或微信搜索",

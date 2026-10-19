@@ -397,6 +397,8 @@
 
   function onLangChange() {
     setCurrency();
+    var currentSection = $("#section-current");
+    if (currentSection) currentSection.textContent = t("nav_" + state.tab);
     if (mode === "client") {
       renderClient();
       return;
@@ -793,7 +795,22 @@
       renderOrders();
     });
 
-    // вкладки «Заказы / Клиенты»
+    // Открываем одно меню со всеми разделами кабинета.
+    var sectionMenu = $("#section-menu");
+    var sectionMenuBtn = $("#section-menu-btn");
+    sectionMenuBtn.addEventListener("click", function () {
+      var open = sectionMenuBtn.getAttribute("aria-expanded") !== "true";
+      sectionMenu.classList.toggle("hidden", !open);
+      sectionMenuBtn.setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".section-menu-wrap")) closeSectionMenu();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeSectionMenu();
+    });
+
+    // Разделы кабинета
     $$(".tab").forEach(function (b) {
       b.addEventListener("click", function () { switchTab(b.getAttribute("data-tab")); });
     });
@@ -1291,12 +1308,21 @@
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    $("#section-current").textContent = t("nav_" + state.tab);
+    closeSectionMenu();
     window.scrollTo(0, 0);
     if (state.tab === "clients" && db && state.ws) loadClients();
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "calc") openFx();
     if (state.tab === "support" && db) loadSupportThreads();
+  }
+
+  function closeSectionMenu() {
+    var menu = $("#section-menu"), button = $("#section-menu-btn");
+    if (!menu || !button) return;
+    menu.classList.add("hidden");
+    button.setAttribute("aria-expanded", "false");
   }
 
   // Загружаем всех клиентов вместе с номерами их заказов

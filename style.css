@@ -222,8 +222,16 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 #view-client .topbar-inner { padding-bottom: 10px; }
 .topbar-actions { display: flex; align-items: center; gap: 4px; }
 
-/* Вкладки «Заказы / Клиенты» */
-.tabs { order: 3; display: flex; gap: 4px; width: 100%; margin: 0 -4px; }
+/* Все разделы кабинета собраны в одном выпадающем меню. */
+.section-menu-wrap { order: 2; position: relative; }
+.section-menu-btn { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 0 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.section-menu-btn:hover, .section-menu-btn[aria-expanded="true"] { border-color: var(--primary); }
+.section-current { color: var(--muted); font-size: 13px; font-weight: 500; }
+.section-menu { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: grid; gap: 3px; width: min(270px, calc(100vw - 32px)); margin: 0; padding: 7px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.section-menu .tab { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 9px; text-align: left; }
+.section-menu .tab:hover, .section-menu .tab.active { background: var(--soft); }
+.section-menu .tab.active::after { left: 0; right: auto; top: 9px; bottom: 9px; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+.section-menu .badge-inline { margin-left: 8px; }
 .tab {
   position: relative;
   min-height: 44px;
@@ -959,9 +967,8 @@ legend { padding: 0; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
 @media (min-width: 860px) {
   .topbar-inner { flex-wrap: nowrap; padding: 0 16px; min-height: 64px; }
   #view-client .topbar-inner { padding: 10px 16px; }
-  .tabs { order: 1; width: auto; flex: 1; margin: 0 0 0 28px; align-self: stretch; }
-  .topbar-actions { order: 2; }
-  .tab { min-height: 64px; }
+  .section-menu-wrap { margin-left: 20px; margin-right: auto; }
+  .topbar-actions { order: 3; }
 
   /* клиенты — строкой-таблицей */
   .client-row { grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(200px, 1.6fr) minmax(160px, 1fr); align-items: start; gap: 16px; }
@@ -1336,10 +1343,11 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
   .fx-actions .btn { width: auto; }
 }
 
-/* Вкладки на узком телефоне: если не влезают — листаются пальцем вбок */
-.tabs { overflow-x: auto; scrollbar-width: none; }
-.tabs::-webkit-scrollbar { display: none; }
-.tab { flex: none; white-space: nowrap; }
+@media (max-width: 520px) {
+  .section-menu-btn { min-height: 40px; padding: 0 10px; gap: 7px; }
+  .section-current { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-inner { gap: 8px; }
+}
 
 /* ---------- Мои курсы ---------- */
 .fx-my { display: grid; grid-template-columns: 1fr; gap: 0 10px; align-items: end; }
