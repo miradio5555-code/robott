@@ -3,9 +3,20 @@
 -- Можно запускать повторно, ошибок не будет.
 -- =====================================================
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 0) then
+      raise exception 'СТОП: файл 0 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
 
 -- 1. АДМИНИСТРАТОРЫ ----------------------------------
 -- Только пользователи из этой таблицы имеют доступ к админке.
+
 create table if not exists public.admins (
   user_id uuid primary key references auth.users(id) on delete cascade,
   created_at timestamptz not null default now()
@@ -223,5 +234,17 @@ create policy "order-photos: admin delete"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'order-photos' and public.is_admin());
+
+-- ✅ ОТМЕТКА: файл 0 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (0, 'supabase_schema.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+
 
 -- ГОТОВО ✅

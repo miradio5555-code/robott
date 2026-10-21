@@ -14,6 +14,17 @@
 -- Порядок: после migration_08_custom_rates.sql. Можно запускать повторно.
 -- =====================================================
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 9) then
+      raise exception 'СТОП: файл 9 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
+
 create table if not exists public.support_messages (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,  -- чья переписка (байер)
@@ -180,5 +191,17 @@ grant execute on function public.admin_support_reply(uuid, text)   to authentica
 grant execute on function public.support_mark_read(uuid)           to authenticated;
 grant execute on function public.admin_support_threads()           to authenticated;
 grant execute on function public.support_unread()                  to authenticated;
+
+-- ✅ ОТМЕТКА: файл 9 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (9, 'migration_09_support.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+
 
 -- ГОТОВО ✅

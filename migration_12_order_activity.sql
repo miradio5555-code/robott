@@ -2,6 +2,17 @@
 -- После migration_11_status_history.sql. Можно запускать повторно.
 -- Сохраняем статусы, сумму оплат и только факт изменения адреса.
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 12) then
+      raise exception 'СТОП: файл 12 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
+
 alter table public.order_status_history
   add column if not exists event_type text not null default 'status';
 alter table public.order_status_history
@@ -153,3 +164,15 @@ $$;
 
 revoke all on function public.get_client_order(text) from public, anon, authenticated;
 grant execute on function public.get_client_order(text) to anon, authenticated;
+
+-- ✅ ОТМЕТКА: файл 12 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (12, 'migration_12_order_activity.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+

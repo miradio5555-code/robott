@@ -17,8 +17,19 @@
 -- ВАЖНО: если когда-нибудь повторно запускаете 01 или 04 — после них снова запустите 05.
 -- =====================================================
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 5) then
+      raise exception 'СТОП: файл 5 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
 
 -- 1. ВАЛЮТА ЗАКУПКИ: только доллар или юань
+
 update public.workspaces set default_purchase_currency = 'CNY'
  where default_purchase_currency not in ('CNY', 'USD');
 
@@ -140,5 +151,17 @@ $$;
 
 revoke all on function public.get_client_order(text) from public, anon, authenticated;
 grant execute on function public.get_client_order(text) to anon, authenticated;
+
+-- ✅ ОТМЕТКА: файл 5 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (5, 'migration_05_delivery.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+
 
 -- ГОТОВО ✅

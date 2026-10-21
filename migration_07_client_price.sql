@@ -18,8 +18,19 @@
 -- ВАЖНО: если когда-нибудь повторно запускаете 01, 04 или 05 — после них снова запустите 07.
 -- =====================================================
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 7) then
+      raise exception 'СТОП: файл 7 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
 
 -- 1. Цена для клиента (в валюте клиента). Пусто = ещё не указана.
+
 alter table public.orders add column if not exists client_price numeric(14,2);
 
 alter table public.orders drop constraint if exists orders_client_price_pos;
@@ -96,5 +107,17 @@ $$;
 
 revoke all on function public.get_client_order(text) from public, anon, authenticated;
 grant execute on function public.get_client_order(text) to anon, authenticated;
+
+-- ✅ ОТМЕТКА: файл 7 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (7, 'migration_07_client_price.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+
 
 -- ГОТОВО ✅

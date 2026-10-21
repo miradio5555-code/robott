@@ -2,6 +2,17 @@
 -- Запустить в Supabase SQL Editor после migration_12_order_activity.sql.
 -- Каждый поставщик принадлежит кабинету; RLS закрывает его от других байеров.
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 13) then
+      raise exception 'СТОП: файл 13 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
+
 create table if not exists public.suppliers (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -50,3 +61,15 @@ create policy "suppliers: delete own workspace"
 
 revoke all on public.suppliers from anon;
 grant select, insert, update, delete on public.suppliers to authenticated;
+
+-- ✅ ОТМЕТКА: файл 13 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (13, 'migration_13_suppliers.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+

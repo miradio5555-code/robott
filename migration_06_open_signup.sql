@@ -14,9 +14,20 @@
 -- ВАЖНО: если когда-нибудь повторно запускаете 02 или 03 — после них снова запустите 06.
 -- =====================================================
 
+-- ⛔ ЗАЩИТА: если уже запущен более новый файл, этот старый файл не выполнится
+--    (иначе он перезапишет новые функции). Ничего не будет изменено.
+do $$
+begin
+  if to_regclass('public.schema_migrations') is not null then
+    if exists (select 1 from public.schema_migrations where version > 6) then
+      raise exception 'СТОП: файл 6 старше уже запущенных в базе. Ничего не изменено. Смотрите DATABASE.md';
+    end if;
+  end if;
+end $$;
 
 -- 1. Создать байеру профиль и кабинет (без приглашения).
 --    Телефон сохраняется, только если он правильный; иначе — пусто, сайт попросит позже.
+
 create or replace function public._register_buyer(
   p_user uuid, p_full_name text, p_ws_name text, p_phone text
 )
@@ -114,5 +125,17 @@ end;
 $$;
 revoke all on function public.register_me(text, text, text) from public, anon, authenticated;
 grant execute on function public.register_me(text, text, text) to authenticated;
+
+-- ✅ ОТМЕТКА: файл 6 запущен (список: select * from public.schema_migrations order by version;)
+create table if not exists public.schema_migrations (
+  version    int primary key,
+  name       text not null,
+  applied_at timestamptz not null default now()
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;
+insert into public.schema_migrations (version, name) values (6, 'migration_06_open_signup.sql')
+on conflict (version) do update set name = excluded.name, applied_at = now();
+
 
 -- ГОТОВО ✅
