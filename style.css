@@ -224,10 +224,20 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 
 /* Все разделы кабинета собраны в одном выпадающем меню. */
 .section-menu-wrap { order: 2; position: relative; }
-.section-menu-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); cursor: pointer; }
-.section-menu-btn:hover, .section-menu-btn[aria-expanded="true"] { border-color: var(--primary); }
+.section-menu-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 42px; padding: 0 12px 0 13px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--soft); color: var(--ink);
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.section-menu-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-menu-chev { color: var(--muted); transition: transform .15s; }
+.section-menu-btn[aria-expanded="true"] .section-menu-chev { transform: rotate(180deg); }
+.section-menu-btn:hover, .section-menu-btn[aria-expanded="true"] { border-color: var(--muted); background: var(--surface); }
 .section-menu-btn:focus-visible, .menu-action:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-.section-menu { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: grid; gap: 4px; width: min(270px, calc(100vw - 32px)); margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.section-menu { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; left: auto; display: grid; gap: 4px; width: min(270px, calc(100vw - 32px)); margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 14px 36px rgba(0,0,0,.18); }
 .section-menu-list { order: initial; display: grid; gap: 2px; width: auto; margin: 0; overflow: visible; }
 .section-menu .tab { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 9px; text-align: left; }
 .section-menu .tab:hover, .section-menu .tab.active { background: var(--soft); }
@@ -1397,3 +1407,21 @@ body.is-admin .buyer-only { display: none !important; }
 .tg-status { margin: 0 0 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--soft); border: 1px solid var(--line); font-size: 14px; }
 .tg-status.on { border-color: #2e9d5b; }
 .tg-steps { margin: 0 0 14px; padding-left: 20px; font-size: 14px; color: var(--muted); display: grid; gap: 6px; }
+
+
+/* ---------- Шапка кабинета: логотип слева, справа — ↻ и меню «☰ Раздел ▾» ---------- */
+#view-admin .topbar-inner { flex-wrap: nowrap; min-height: 64px; padding: 10px 16px; }
+#view-admin .brand { margin-right: auto; min-width: 0; }
+#view-admin .topbar-actions { order: 2; }
+#view-admin .section-menu-wrap { order: 3; margin: 0 0 0 4px; }
+@media (max-width: 480px) {
+  #view-admin .topbar-inner { min-height: 58px; padding: 8px 12px; gap: 6px; }
+  #view-admin .brand { gap: 8px; }
+  #view-admin .brand-mark { width: 32px; height: 32px; }
+  .section-menu-btn { height: 40px; padding: 0 10px 0 11px; gap: 6px; font-size: 14px; }
+  .section-menu-label { max-width: 96px; }
+}
+/* очень узкий телефон: только значок логотипа, чтобы название раздела поместилось */
+@media (max-width: 360px) {
+  #view-admin .brand-name { display: none; }
+}

@@ -404,6 +404,7 @@
       return;
     }
     if (!$("#view-admin").classList.contains("hidden")) {
+      updateSectionMenuLabel();
       renderAll();
       renderClients();
       renderSuppliers();
@@ -1318,6 +1319,13 @@
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "calc") openFx();
     if (state.tab === "support" && db) loadSupportThreads();
+    updateSectionMenuLabel();
+  }
+
+  // Подпись на кнопке меню = название открытого раздела
+  function updateSectionMenuLabel() {
+    var label = $("#section-menu-label"), active = $(".section-menu .tab.active");
+    if (label) label.textContent = active ? active.textContent.trim() : t("nav_menu");
   }
 
   function closeSectionMenu() {
