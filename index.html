@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261021a">
+  <link rel="stylesheet" href="style.css?v=20261021b">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -344,25 +344,17 @@
     <!-- ============ РАЗДЕЛ: ЗАКАЗЫ ============ -->
     <main id="tab-orders" class="container">
 
-      <!-- Склад -->
-      <section class="warehouse" aria-labelledby="wh-title">
-        <div class="warehouse-text">
-          <h2 id="wh-title">📍 <span data-i18n="warehouse_title"></span></h2>
-          <p id="wh-address" class="warehouse-address" lang="zh-CN"></p>
-          <div id="wh-contacts" class="warehouse-contacts"></div>
+      <!-- 1. Заголовок страницы и главная кнопка -->
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="nav_orders"></h1>
+          <p class="page-sub"><span data-i18n="sum_orders"></span>: <b id="sum-orders">0</b></p>
         </div>
-        <div class="warehouse-actions">
-          <button id="wh-copy" class="btn btn-light" type="button" data-i18n="copy_address"></button>
-          <button id="wh-edit" class="btn btn-on-dark" type="button" data-write data-owner data-i18n="wh_edit"></button>
-        </div>
-      </section>
+        <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
+      </div>
 
-      <!-- Сводка -->
+      <!-- 2. Главные цифры -->
       <section class="summary" aria-label="summary">
-        <div class="summary-item">
-          <span class="summary-label" data-i18n="sum_orders"></span>
-          <span id="sum-orders" class="summary-value">0</span>
-        </div>
         <div class="summary-item">
           <span class="summary-label" data-i18n="sum_total"></span>
           <span id="sum-total" class="summary-value">0</span>
@@ -382,7 +374,20 @@
       </section>
       <p class="fine-print" data-i18n="sum_note"></p>
 
-      <!-- Умный помощник: сам находит проблемы в заказах -->
+      <!-- 3. Склад в Китае — компактная полоска -->
+      <section class="warehouse" aria-labelledby="wh-title">
+        <div class="warehouse-text">
+          <h2 id="wh-title">📍 <span data-i18n="warehouse_title"></span></h2>
+          <p id="wh-address" class="warehouse-address" lang="zh-CN"></p>
+          <div id="wh-contacts" class="warehouse-contacts"></div>
+        </div>
+        <div class="warehouse-actions">
+          <button id="wh-copy" class="btn btn-light" type="button" data-i18n="copy_address"></button>
+          <button id="wh-edit" class="btn btn-on-dark" type="button" data-write data-owner data-i18n="wh_edit"></button>
+        </div>
+      </section>
+
+      <!-- 4. Умный помощник: сам находит проблемы в заказах -->
       <section id="assistant" class="assistant" aria-labelledby="as-title">
         <button id="as-toggle" class="assistant-head" type="button" aria-expanded="true">
           <span class="as-icon" aria-hidden="true">💡</span>
@@ -392,30 +397,38 @@
         </button>
         <div id="as-list" class="assistant-list"></div>
       </section>
+
+      <!-- 5. Поиск, даты и статусы -->
+      <section class="list-controls">
+        <div class="search-row">
+          <input id="search" class="search" type="search" data-i18n-placeholder="search_placeholder" autocomplete="off">
+          <button id="dates-toggle" class="btn dates-toggle" type="button" aria-expanded="false" aria-controls="date-filters">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+            <span data-i18n="f_dates"></span><span id="dates-dot" class="dates-dot hidden"></span>
+          </button>
+        </div>
+        <div id="date-filters" class="date-filters hidden">
+          <label class="date-field">
+            <span data-i18n="date_from"></span>
+            <input id="date-from" type="date">
+          </label>
+          <label class="date-field">
+            <span data-i18n="date_to"></span>
+            <input id="date-to" type="date">
+          </label>
+          <button id="reset-filters" class="btn" type="button" data-i18n="reset"></button>
+        </div>
+        <!-- Статусы: счётчики и фильтр в одном -->
+        <div id="chips" class="chips" role="tablist"></div>
+      </section>
+
       <!-- активный фильтр от помощника -->
       <div id="hint-filter" class="hint-filter hidden">
         <span id="hint-filter-text"></span>
         <button id="hint-filter-clear" class="btn btn-ghost" type="button" aria-label="×">×</button>
       </div>
 
-      <!-- Статусы: счётчики и фильтр в одном -->
-      <div id="chips" class="chips" role="tablist"></div>
-
-      <!-- Поиск и фильтр по дате -->
-      <section class="toolbar">
-        <input id="search" class="search" type="search" data-i18n-placeholder="search_placeholder" autocomplete="off">
-        <label class="date-field">
-          <span data-i18n="date_from"></span>
-          <input id="date-from" type="date">
-        </label>
-        <label class="date-field">
-          <span data-i18n="date_to"></span>
-          <input id="date-to" type="date">
-        </label>
-        <button id="reset-filters" class="btn" type="button" data-i18n="reset"></button>
-        <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
-      </section>
-
+      <!-- 6. Список заказов -->
       <div id="loading" class="state-box hidden" data-i18n="loading"></div>
       <div id="orders" class="orders"></div>
       <div id="empty" class="state-box hidden"></div>
@@ -810,8 +823,8 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261019c"></script>
+  <script src="i18n.js?v=20261021b"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261021a"></script>
+  <script src="app.js?v=20261021b"></script>
 </body>
 </html>

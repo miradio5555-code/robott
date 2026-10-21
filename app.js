@@ -845,6 +845,18 @@
 
     // список заказов и карточка
     $("#orders").addEventListener("click", onOrdersClick);
+    document.addEventListener("click", function (e) {
+      $$(".card-more[open]").forEach(function (d) {
+        if (!d.contains(e.target) || e.target.closest(".card-more-menu")) d.removeAttribute("open");
+      });
+    });
+
+    // «Даты»: показать / спрятать фильтр по датам
+    $("#dates-toggle").addEventListener("click", function () {
+      var box = $("#date-filters"), open = box.classList.contains("hidden");
+      box.classList.toggle("hidden", !open);
+      this.setAttribute("aria-expanded", String(open));
+    });
     $("#detail-body").addEventListener("click", onOrdersClick);
 
     // новый заказ
@@ -1151,6 +1163,8 @@
   }
 
   function renderOrders() {
+    // точка на кнопке «Даты», если выбран период
+    $("#dates-dot").classList.toggle("hidden", !(state.from || state.to));
     var box = $("#orders");
     var empty = $("#empty");
     if (state.loading) return;
@@ -1216,35 +1230,52 @@
     return html;
   }
 
+  // Короткая карточка заказа: фото, товар, клиент, деньги и 2 кнопки.
+  // Всё остальное (характеристики, поставщик, история) — в «Открыть».
   function cardHtml(o) {
     var urls = photoUrls(o);
-    var link = safeUrl(o.supplier_link);
+    var c = o.client_currency;
+    var bal = num(o.balance_som);
+    var hasPrice = o.profit_som != null;
+    var pr = num(o.profit_som);
+    var photo = urls.length
+      ? '<button type="button" class="card-photo" data-act="photo" data-i="0"><img src="' + esc(urls[0]) + '" loading="lazy" alt="">' +
+        (urls.length > 1 ? "<span>+" + (urls.length - 1) + "</span>" : "") + "</button>"
+      : '<div class="card-photo card-photo-empty" aria-hidden="true">📦</div>';
     return '' +
       '<article class="card st-' + o.status + '" data-id="' + esc(o.id) + '">' +
-        '<div class="card-head">' +
-          "<div>" +
-            '<div class="order-no">№ ' + esc(o.order_number) + "</div>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + '</span><span class="card-date">' + fmtDate(o.order_date) + "</span>" +
-              placeHtml(o) + "</div>" +
-          "</div>" +
+        '<div class="card-top">' +
+          '<span class="order-no">№ ' + esc(o.order_number) + "</span>" +
           '<span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
+        '<div class="card-main" data-act="open">' + photo +
+          '<div class="card-info">' +
+            "<h3>" + esc(o.product_ru) + "</h3>" +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) +
+              '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
+          "</div>" +
+        "</div>" +
         cardHistoryHtml(o) +
-        '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
-          (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
-        (urls.length ? '<div class="thumbs">' + thumbsHtml(urls, 4) + "</div>" : "") +
-        specsHtml(o) +
-        moneyHtml(o) +
-        '<p class="meta"><span>' + t("l_supplier") + "</span> " + esc(o.supplier || "—") +
-          (o.supplier_wechat ? ' <span class="muted">· WeChat</span> ' + esc(o.supplier_wechat) : "") +
-          (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">1688</a>' : "") + "</p>" +
+        '<dl class="card-money">' +
+          "<div><dt>" + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
+          "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
+          '<div class="' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
+          '<div class="profit' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
+            (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
+        "</dl>" +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="open">' + t("open") + "</button>" +
-          '<button type="button" class="btn" data-act="edit" data-write>' + t("edit") + "</button>" +
-          '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
           '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
-          '<button type="button" class="btn btn-danger" data-act="delete" data-write>' + t("remove") + "</button>" +
+          // «⋯» — редкие действия, чтобы не загромождать карточку
+          '<details class="card-more" data-write>' +
+            '<summary class="btn card-more-btn" aria-label="' + esc(t("more_actions")) + '">⋯</summary>' +
+            '<div class="card-more-menu">' +
+              '<button type="button" class="menu-action" data-act="edit">' + t("edit") + "</button>" +
+              '<button type="button" class="menu-action" data-act="status">' + t("change_status") + "</button>" +
+              '<button type="button" class="menu-action menu-logout" data-act="delete">' + t("remove") + "</button>" +
+            "</div>" +
+          "</details>" +
         "</div>" +
       "</article>";
   }
