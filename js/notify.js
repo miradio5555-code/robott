@@ -76,7 +76,7 @@
     }
   };
 
-  var cd = { order: null, lang: "ru", afterStatus: false, hasPrice: true, hasLink: true, tgUser: "" };
+  var cd = { order: null, custom: null, lang: "ru", afterStatus: false, hasPrice: true, hasLink: true, tgUser: "" };
 
   // ---------- Настройки (помним в браузере) ----------
   function getLang() {
@@ -134,6 +134,7 @@
     if (!o) return;
     opts = opts || {};
     cd.order = o;
+    cd.custom = null;
     cd.afterStatus = !!opts.afterStatus;
     cd.lang = getLang();
     cd.hasLink = !!c.clientUrl(o);
@@ -145,12 +146,45 @@
       : t("notify_title");
     $("#notify-sub").textContent = "№ " + o.order_number + " · " + (o.client_name || "");
     $("#notify-auto").checked = autoEnabled();
+    $("#notify-auto-row").classList.remove("hidden");
     $("#notify-later").textContent = t(cd.afterStatus ? "notify_later" : "close");
     fillText();
     openModal("modal-notify");
   }
 
+  // Окно с любым готовым текстом (например, напоминание о долге).
+  // cfg: { title, sub, build(lang) → текст, phone, tg, warn, onSent() — вызывается при отправке/копировании }
+  function openText(cfg) {
+    cd.order = null;
+    cd.custom = cfg;
+    cd.afterStatus = false;
+    cd.lang = getLang();
+    cd.tgUser = cfg.tg || "";
+    $("#notify-title").textContent = cfg.title;
+    $("#notify-sub").textContent = cfg.sub || "";
+    $("#notify-auto-row").classList.add("hidden");   // «предлагать после смены статуса» тут не нужно
+    $("#notify-later").textContent = t("close");
+    fillText();
+    openModal("modal-notify");
+  }
+
+  function sent() { if (cd.custom && cd.custom.onSent) cd.custom.onSent(); }
+
   function fillText() {
+    if (cd.custom) {
+      $$("#modal-notify [data-nl]").forEach(function (b) {
+        var on = b.getAttribute("data-nl") === cd.lang;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+      $("#notify-text").value = cd.custom.build(cd.lang);
+      $("#notify-warn").textContent = cd.custom.warn || "";
+      $("#notify-warn").classList.toggle("hidden", !cd.custom.warn);
+      $("#notify-to").textContent = cd.custom.phone ? t("notify_to", { p: fmtPhone(cd.custom.phone) }) : t("notify_to_none");
+      $("#notify-tg").textContent = cd.tgUser ? t("notify_tg_user", { u: cd.tgUser }) : t("notify_tg");
+      refreshLinks();
+      return;
+    }
     var o = cd.order;
     $$("#modal-notify [data-nl]").forEach(function (b) {
       var on = b.getAttribute("data-nl") === cd.lang;
@@ -173,10 +207,10 @@
   // Кнопки «WhatsApp» / «Telegram» всегда отправляют то, что сейчас в поле (байер мог поправить текст)
   function refreshLinks() {
     var o = cd.order, text = $("#notify-text").value;
-    var phone = clientPhone(o);
+    var phone = cd.custom ? (cd.custom.phone || "") : clientPhone(o);
     $("#notify-wa").href = "https://wa.me/" + phone.replace(/\D/g, "") + "?text=" + encodeURIComponent(text);
 
-    var link = c.clientUrl(o);
+    var link = cd.custom ? "" : c.clientUrl(o);
     if (cd.tgUser) {
       $("#notify-tg").href = "https://t.me/" + cd.tgUser;   // откроется чат; текст копируем при нажатии
     } else if (link && text.indexOf(link) !== -1) {
@@ -196,12 +230,15 @@
       });
     });
     $("#notify-text").addEventListener("input", refreshLinks);
+    $("#notify-wa").addEventListener("click", sent);
     $("#notify-copy").addEventListener("click", async function () {
       var ok = await c.copyText($("#notify-text").value);
+      if (ok) sent();
       toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
     });
     $("#notify-tg").addEventListener("click", function () {
       // в чат с @логином текст не передать — копируем, клиенту останется вставить
+      sent();
       if (cd.tgUser) c.copyText($("#notify-text").value).then(function (ok) { if (ok) toast(t("notify_tg_copied"), "ok"); });
     });
     $("#notify-auto").addEventListener("change", function () {
@@ -210,5 +247,5 @@
     $("#notify-later").addEventListener("click", function () { c.closeModal("modal-notify"); });
   }
 
-  U.notify = { open: open, bind: bind, autoEnabled: autoEnabled, _build: buildText };
+  U.notify = { open: open, openText: openText, bind: bind, autoEnabled: autoEnabled, _build: buildText };
 })(window.ULA);
