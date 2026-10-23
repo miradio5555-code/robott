@@ -251,7 +251,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261022a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261023a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -704,6 +704,7 @@
 
     // 💬 техподдержка — js/support.js
     ULA.support.bind();
+    ULA.notify.bind();
 
     // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
     $("#settings-btn").addEventListener("click", function () { closeSectionMenu(); openSettings(); });
@@ -1239,14 +1240,15 @@
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="open">' + t("open") + "</button>" +
-          '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
+          '<button type="button" class="btn btn-notify" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           // «⋯» — редкие действия, чтобы не загромождать карточку
-          '<details class="card-more" data-write>' +
+          '<details class="card-more">' +
             '<summary class="btn card-more-btn" aria-label="' + esc(t("more_actions")) + '">⋯</summary>' +
             '<div class="card-more-menu">' +
-              '<button type="button" class="menu-action" data-act="edit">' + t("edit") + "</button>" +
-              '<button type="button" class="menu-action" data-act="status">' + t("change_status") + "</button>" +
-              '<button type="button" class="menu-action menu-logout" data-act="delete">' + t("remove") + "</button>" +
+              '<button type="button" class="menu-action" data-act="link">' + t("client_link") + "</button>" +
+              '<button type="button" class="menu-action" data-act="edit" data-write>' + t("edit") + "</button>" +
+              '<button type="button" class="menu-action" data-act="status" data-write>' + t("change_status") + "</button>" +
+              '<button type="button" class="menu-action menu-logout" data-act="delete" data-write>' + t("remove") + "</button>" +
             "</div>" +
           "</details>" +
         "</div>" +
@@ -2031,6 +2033,7 @@
     else if (act === "edit") { closeModal("modal-detail"); openOrderForm(o); }
     else if (act === "status") openStatus(o);
     else if (act === "link") openLink(o);
+    else if (act === "notify") ULA.notify.open(o);
     else if (act === "delete") deleteOrder(o);
   }
 
@@ -2074,6 +2077,7 @@
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="edit" data-write>' + t("edit") + "</button>" +
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
+          '<button type="button" class="btn" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
           '<button type="button" class="btn btn-danger" data-act="delete" data-write>' + t("remove") + "</button>" +
         "</div>" +
@@ -2134,6 +2138,7 @@
   }
 
   async function setStatus(id, status) {
+    var prev = (state.orders.filter(function (x) { return x.id === id; })[0] || {}).status;
     var res = await db.from("orders").update({ status: status }).eq("id", id);
     if (res.error) { handleError(res.error); return; }
     var o = state.orders.filter(function (x) { return x.id === id; })[0];
@@ -2147,6 +2152,8 @@
     renderAll();
     if ($("#modal-detail").classList.contains("open")) renderDetail();
     toast(t("status_changed"), "ok");
+    // предлагаем сразу сообщить клиенту (можно отключить галочкой в самом окне)
+    if (o && prev !== status && ULA.notify.autoEnabled()) ULA.notify.open(o, { afterStatus: true });
   }
 
   // ---------- Ссылка клиенту ----------
@@ -2548,6 +2555,7 @@
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, openLightbox: openLightbox, showView: showView,
+    clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };

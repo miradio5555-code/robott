@@ -1520,3 +1520,22 @@ body.is-admin .buyer-only { display: none !important; }
 #tab-orders .card-actions .btn-primary { grid-column: auto; }
 #tab-orders .card-actions { grid-template-columns: 1fr 1.4fr auto; }
 #tab-orders .card-actions .btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* =====================================================
+   ✉️ СООБЩИТЬ КЛИЕНТУ
+   ===================================================== */
+.notify-langs { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.notify-langs-label { margin-right: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.notify-lang { min-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.notify-lang.active { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.notify-text { width: 100%; min-height: 190px; resize: vertical; line-height: 1.5; }
+.notify-auto { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.notify-auto input { width: 18px; height: 18px; }
+#notify-to { margin: 8px 0 4px; }
+#notify-warn { margin: 4px 0 8px; }
+
+/* Карточка: [Открыть] [Сообщить клиенту] [⋯] */
+#tab-orders .card-actions { grid-template-columns: .9fr 1.8fr auto; }
+body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
+.btn-notify { font-weight: 800; }
