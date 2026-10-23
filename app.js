@@ -251,7 +251,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261023c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261024a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -700,6 +700,7 @@
     ULA.fx.bind();
     ULA.quote.bind();
     ULA.debts.bind();
+    ULA.report.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -946,6 +947,7 @@
     renderChips();
     renderOrders();
     if (ULA.debts) ULA.debts.refresh();   // список должников и красная цифра у «Долги»
+    if (ULA.report) ULA.report.refresh(); // отчёт по прибыли (если открыт)
   }
 
   // Блок «Склад в Китае». Адрес хранится в настройках кабинета.
@@ -1307,11 +1309,12 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "debts" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "debts" || name === "report" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
+    $("#tab-report").classList.toggle("hidden", state.tab !== "report");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
@@ -1329,6 +1332,7 @@
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
     if (state.tab === "debts") ULA.debts.open();
+    if (state.tab === "report") ULA.report.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
   }
@@ -2587,6 +2591,7 @@
     switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openDetail: openDetail,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
+    csvCell: csvCell, todayISO: todayISO,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };

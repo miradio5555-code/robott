@@ -1601,3 +1601,34 @@ body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
 .debt-order-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .debt-order b { font-variant-numeric: tabular-nums; }
 .debt-order small { grid-column: 1 / -1; }
+
+/* =====================================================
+   📊 ОТЧЁТ (прибыль)
+   ===================================================== */
+.r-export { align-self: flex-end; }
+.r-summary { display: grid; gap: 10px; margin: 4px 0 14px; }
+.r-main { display: grid; gap: 2px; padding: 16px; border-radius: var(--r-md); background: var(--hero); color: #fff; }
+.r-main-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7); }
+.r-main b { font-family: var(--font-display); font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; color: #7BE0A6; }
+.r-main.neg b { color: #FF8A96; }
+.r-main-sub { font-size: 14px; color: rgba(255,255,255,.75); }
+.r-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.r-cell { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.r-cell span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.r-cell b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.r-cell.neg b { color: var(--red); }
+.r-list { display: grid; gap: 8px; }
+.r-row { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.r-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.r-name { font-size: 16px; font-weight: 800; overflow-wrap: anywhere; }
+.r-profit { font-family: var(--font-display); font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.r-profit.pos { color: var(--green); }
+.r-profit.neg { color: var(--red); }
+.r-bar { height: 6px; border-radius: 3px; background: var(--paper); overflow: hidden; }
+.r-bar i { display: block; height: 100%; border-radius: 3px; background: var(--green); }
+.r-bar.neg i { background: var(--red); }
+.r-meta { font-size: 13px; color: var(--muted); }
+.r-delta { font-weight: 800; white-space: nowrap; }
+.r-delta.up { color: var(--green); }
+.r-delta.down { color: var(--red); }
+@media (min-width: 720px) { .r-grid { grid-template-columns: repeat(4, 1fr); } }
