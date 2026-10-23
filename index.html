@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261023a">
+  <link rel="stylesheet" href="style.css?v=20261023c">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -176,8 +176,9 @@
             <nav class="tabs section-menu-list" aria-label="Sections">
             <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
             <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
+            <button type="button" class="tab" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
             <button type="button" class="tab" data-tab="suppliers" data-i18n="nav_suppliers"></button>
-            <button type="button" class="tab" data-tab="calc" data-i18n="nav_calc"></button>
+            <button type="button" class="tab" data-tab="quote" data-i18n="nav_quote"></button>
             <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
             <button type="button" class="tab admin-only" data-tab="support"><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
             </nav>
@@ -285,43 +286,121 @@
       <div id="buyers" class="clients"></div>
     </main>
 
-    <!-- ============ РАЗДЕЛ: КАЛЬКУЛЯТОР ВАЛЮТ ============ -->
-    <main id="tab-calc" class="container container-narrow hidden">
-      <section class="client-block fx">
-        <h2 data-i18n="fx_title"></h2>
-        <div class="fx-row">
-          <label class="field fx-amount"><span data-i18n="fx_amount"></span>
-            <input id="fx-amount" type="text" inputmode="decimal" value="1000"></label>
-          <label class="field"><span data-i18n="fx_from"></span>
-            <select id="fx-from" class="currency-select"></select></label>
-          <button id="fx-swap" class="btn fx-swap" type="button" data-i18n-title="fx_swap">⇄</button>
-          <label class="field"><span data-i18n="fx_to"></span>
-            <select id="fx-to" class="currency-select"></select></label>
+    <!-- ============ РАЗДЕЛ: ДОЛГИ ============ -->
+    <main id="tab-debts" class="container container-narrow hidden">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="nav_debts"></h1>
+          <p class="page-sub" data-i18n="d_hint"></p>
         </div>
-        <div class="fx-result" aria-live="polite">
-          <div id="fx-result" class="fx-big">—</div>
-          <div id="fx-rate" class="muted"></div>
+      </div>
+      <div id="debts-total" class="debts-total"></div>
+      <div id="debts-chips" class="chips hidden" role="tablist"></div>
+      <div id="debts" class="debts"></div>
+      <div id="debts-empty" class="state-box hidden"></div>
+      <p id="debts-note" class="fine-print"></p>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: РАСЧЁТ ЦЕНЫ ДЛЯ КЛИЕНТА ============ -->
+    <main id="tab-quote" class="container container-narrow hidden">
+      <section class="client-block">
+        <h2 data-i18n="q_title"></h2>
+        <p class="fine-print" data-i18n="q_hint"></p>
+
+        <label class="field"><span data-i18n="q_name"></span>
+          <input id="q-name" type="text" maxlength="200" autocomplete="off"></label>
+        <label class="field"><span data-i18n="q_link"></span>
+          <input id="q-link" type="url" inputmode="url" placeholder="https://detail.1688.com/…" autocomplete="off"></label>
+
+        <div class="grid-2">
+          <label class="field"><span data-i18n="f_purchase_currency"></span>
+            <select id="q-pcur" class="currency-select"></select></label>
+          <label class="field"><span data-i18n="f_client_currency"></span>
+            <select id="q-ccur" class="currency-select"></select></label>
         </div>
-        <!-- свой курс байера: сохраняется в кабинете и подставляется в новые заказы -->
-        <form id="fx-my-form" class="fx-my" data-write autocomplete="off">
-          <label class="field"><span id="fx-my-label"></span>
-            <input id="fx-my-rate" type="text" inputmode="decimal"></label>
-          <button id="fx-my-save" class="btn btn-primary" type="submit" data-i18n="fx_my_save"></button>
-        </form>
-        <p id="fx-market" class="fine-print"></p>
-        <p id="fx-updated" class="fine-print"></p>
+
+        <h4 class="money-sub" data-i18n="k_goods"></h4>
+        <div class="grid-3">
+          <label class="field"><span data-i18n="f_qty"></span>
+            <input id="q-qty" type="text" inputmode="decimal" value="1"></label>
+          <label class="field"><span id="q-lbl-price"></span>
+            <input id="q-price" type="text" inputmode="decimal"></label>
+          <div class="field"><label for="q-rate" id="q-lbl-rate"></label>
+            <input id="q-rate" type="text" inputmode="decimal">
+            <button id="q-save-rate" class="link-btn quote-save hidden" type="button" data-write data-i18n="q_save_rate"></button></div>
+        </div>
+
+        <h4 class="money-sub" data-i18n="k_delivery"></h4>
+        <div class="grid-3">
+          <div class="field"><label for="q-weight" id="q-lbl-weight"></label>
+            <input id="q-weight" type="text" inputmode="decimal">
+            <div id="q-wmodes" class="quote-modes" role="group">
+              <button type="button" class="notify-lang" data-wm="total" aria-pressed="false" data-i18n="q_wm_total"></button>
+              <button type="button" class="notify-lang" data-wm="unit" aria-pressed="false" data-i18n="q_wm_unit"></button>
+            </div></div>
+          <label class="field"><span data-i18n="f_delivery_currency"></span>
+            <select id="q-dcur" class="currency-select"></select></label>
+          <label class="field"><span id="q-lbl-tariff"></span>
+            <input id="q-tariff" type="text" inputmode="decimal"></label>
+          <div class="field"><label for="q-drate" id="q-lbl-drate"></label>
+            <input id="q-drate" type="text" inputmode="decimal">
+            <button id="q-save-drate" class="link-btn quote-save hidden" type="button" data-write data-i18n="q_save_rate"></button></div>
+        </div>
+
+        <h4 class="money-sub" data-i18n="q_margin"></h4>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="f_markup"></span>
+            <input id="q-markup" type="text" inputmode="decimal" placeholder="15"></label>
+          <label class="field"><span data-i18n="q_round"></span>
+            <select id="q-round"></select></label>
+        </div>
+        <p id="q-hint" class="fine-print hidden"></p>
+      </section>
+
+      <section class="client-block quote-result" id="q-result" aria-live="polite">
+        <h2 data-i18n="q_result"></h2>
+        <p id="q-need" class="muted" data-i18n="q_need"></p>
+        <div class="quote-price-box">
+          <span class="quote-price-label" data-i18n="q_price_client"></span>
+          <b id="q-r-price" class="quote-price">—</b>
+          <span class="quote-unit"><span data-i18n="q_unit"></span>: <b id="q-r-unit">—</b></span>
+        </div>
+        <div class="calc">
+          <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="q-r-goods">—</b></div>
+          <div class="calc-row"><span data-i18n="c_delivery"></span><b id="q-r-delivery">—</b></div>
+          <div class="calc-row calc-cost"><span data-i18n="c_cost"></span><b id="q-r-cost">—</b></div>
+          <div class="calc-row calc-profit"><span data-i18n="c_profit"></span><b id="q-r-profit">—</b></div>
+        </div>
       </section>
 
       <section class="client-block">
-        <h2 data-i18n="fx_my_title"></h2>
+        <h2 data-i18n="q_msg_title"></h2>
+        <div class="notify-langs" role="group">
+          <span class="notify-langs-label" data-i18n="notify_lang"></span>
+          <button type="button" class="notify-lang" data-ql="ru" aria-pressed="false">RU</button>
+          <button type="button" class="notify-lang" data-ql="en" aria-pressed="false">EN</button>
+          <button type="button" class="notify-lang" data-ql="zh" aria-pressed="false">中文</button>
+        </div>
+        <textarea id="q-msg" class="notify-text" rows="6" maxlength="1000"></textarea>
+        <p class="fine-print" data-i18n="q_msg_note"></p>
+        <div class="stack">
+          <a id="q-wa" class="btn btn-primary" target="_blank" rel="noopener" data-i18n="notify_wa"></a>
+          <button id="q-copy" class="btn" type="button" data-i18n="copy"></button>
+          <button id="q-order" class="btn" type="button" data-write data-i18n="q_order"></button>
+          <button id="q-clear" class="btn btn-ghost" type="button" data-i18n="q_clear"></button>
+        </div>
+      </section>
+
+      <!-- плавающая плашка с ценой: видна, пока блок «Результат» за экраном -->
+      <button id="q-bar" class="quote-bar hidden" type="button">
+        <span data-i18n="q_price_client"></span><b id="q-bar-price"></b>
+      </button>
+
+      <details class="client-block quote-rates">
+        <summary data-i18n="fx_my_title"></summary>
         <p class="fine-print" data-i18n="fx_my_hint"></p>
         <div id="my-rates" class="fx-table"></div>
-      </section>
-
-      <section class="client-block">
-        <h2 id="fx-table-title"></h2>
-        <div id="fx-table" class="fx-table"></div>
-      </section>
+      </details>
     </main>
 
     <!-- ============ РАЗДЕЛ: КЛИЕНТЫ ============ -->
@@ -845,7 +924,7 @@
           <button id="notify-copy" class="btn" type="button" data-i18n="copy"></button>
           <button id="notify-later" class="btn btn-ghost" type="button" data-i18n="notify_later"></button>
         </div>
-        <label class="notify-auto"><input id="notify-auto" type="checkbox"> <span data-i18n="notify_auto"></span></label>
+        <label id="notify-auto-row" class="notify-auto"><input id="notify-auto" type="checkbox"> <span data-i18n="notify_auto"></span></label>
       </div>
     </div>
   </div>
@@ -862,13 +941,15 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261023a"></script>
+  <script src="i18n.js?v=20261023c"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261023a"></script>
+  <script src="app.js?v=20261023c"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261023a"></script>
-  <script src="js/support.js?v=20261023a"></script>
-  <script src="js/notify.js?v=20261023a"></script>
-  <script src="js/client.js?v=20261023a"></script>
+  <script src="js/fx.js?v=20261023c"></script>
+  <script src="js/support.js?v=20261023c"></script>
+  <script src="js/notify.js?v=20261023c"></script>
+  <script src="js/debts.js?v=20261023c"></script>
+  <script src="js/quote.js?v=20261023c"></script>
+  <script src="js/client.js?v=20261023c"></script>
 </body>
 </html>

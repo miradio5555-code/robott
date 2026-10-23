@@ -1539,3 +1539,65 @@ body.is-admin .buyer-only { display: none !important; }
 #tab-orders .card-actions { grid-template-columns: .9fr 1.8fr auto; }
 body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
 .btn-notify { font-weight: 800; }
+
+/* =====================================================
+   🧮 РАСЧЁТ ЦЕНЫ ДЛЯ КЛИЕНТА
+   ===================================================== */
+.quote-modes { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.quote-modes .notify-lang { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.quote-save { padding: 6px 0 0; font-size: 13px; color: var(--primary); text-decoration: underline; }
+#tab-quote .field > label { font-size: 13px; font-weight: 700; color: var(--muted); }
+#tab-quote .grid-2, #tab-quote .grid-3 { margin-bottom: 4px; }
+
+/* Результат: крупная цена для клиента */
+.quote-price-box { display: grid; gap: 2px; margin: 4px 0 14px; padding: 16px; border-radius: var(--r-md);
+  background: var(--hero); color: #fff; }
+.quote-price-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7); }
+.quote-price { font-family: var(--font-display); font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.quote-unit { font-size: 14px; color: rgba(255,255,255,.75); }
+.quote-unit b { color: #fff; }
+.quote-result.q-empty .quote-price-box { opacity: .55; }
+#q-wa.disabled { opacity: .5; pointer-events: none; }
+.quote-rates > summary { cursor: pointer; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+
+/* Плавающая плашка с ценой на странице расчёта */
+.quote-bar { position: fixed; left: 50%; transform: translateX(-50%); z-index: 14;
+  bottom: calc(14px + env(safe-area-inset-bottom)); width: min(420px, calc(100vw - 32px));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px;
+  border: 0; border-radius: 14px; background: var(--hero); color: #fff; font: inherit; font-size: 14px; font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28); cursor: pointer; }
+.quote-bar b { font-family: var(--font-display); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.quote-bar.hidden { display: none; }
+#tab-quote { padding-bottom: 110px; }
+
+/* =====================================================
+   💸 ДОЛГИ
+   ===================================================== */
+.summary-link { cursor: pointer; }
+.summary-link:hover { background: var(--soft); }
+.summary-link:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
+.debts-total { display: grid; gap: 2px; margin: 0 0 14px; padding: 16px; border-radius: var(--r-md); background: var(--hero); color: #fff; }
+.debts-total:empty { display: none; }
+.debts-total-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7); }
+.debts-total b { font-family: var(--font-display); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.debts-total-sub { font-size: 14px; color: rgba(255,255,255,.75); }
+.debts { display: grid; gap: 12px; }
+.debt-card { display: grid; gap: 12px; padding: 16px 16px 16px 20px; border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--surface); box-shadow: inset 4px 0 0 var(--line-strong); }
+.debt-card.overdue { box-shadow: inset 4px 0 0 var(--red); }
+.debt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.debt-head h3 { font-size: 17px; font-weight: 800; overflow-wrap: anywhere; }
+.debt-meta { margin-top: 2px; font-size: 14px; }
+.debt-sum { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: var(--red); text-align: right; font-variant-numeric: tabular-nums; }
+.debt-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.debt-flag { padding: 3px 10px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 12px; font-weight: 700; }
+.debt-flag.late { background: var(--red-tint); border-color: transparent; color: var(--red); }
+.muted-flag { color: var(--muted); }
+.debt-orders { display: grid; gap: 4px; }
+.debt-order { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: baseline; width: 100%; padding: 8px 10px;
+  border: 0; border-radius: var(--r-sm); background: var(--soft); color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.debt-order:hover { background: var(--paper); }
+.debt-order-no { font-weight: 800; font-variant-numeric: tabular-nums; }
+.debt-order-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.debt-order b { font-variant-numeric: tabular-nums; }
+.debt-order small { grid-column: 1 / -1; }

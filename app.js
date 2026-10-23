@@ -251,7 +251,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261023a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261023c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -405,7 +405,7 @@
       renderSuppliers();
       renderBuyers();
       renderWarehouse();
-      if (state.tab === "calc") ULA.fx.render(true);
+      if (state.tab === "quote") ULA.quote.render();
       renderWsBanner();
       if ($("#modal-detail").classList.contains("open")) renderDetail();
       if ($("#modal-status").classList.contains("open")) renderStatusList();
@@ -698,6 +698,8 @@
 
     // 💱 раздел «Курс» — js/fx.js
     ULA.fx.bind();
+    ULA.quote.bind();
+    ULA.debts.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -943,6 +945,7 @@
     renderAssistant();
     renderChips();
     renderOrders();
+    if (ULA.debts) ULA.debts.refresh();   // список должников и красная цифра у «Долги»
   }
 
   // Блок «Склад в Китае». Адрес хранится в настройках кабинета.
@@ -1304,13 +1307,14 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "suppliers" || name === "calc" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
-    if (!state.ws && state.tab !== "buyers" && state.tab !== "calc" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
+    state.tab = name === "clients" || name === "debts" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
+    $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
-    $("#tab-calc").classList.toggle("hidden", state.tab !== "calc");
+    $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     $$(".tab").forEach(function (b) {
@@ -1323,7 +1327,8 @@
     if (state.tab === "clients" && db && state.ws) loadClients();
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
-    if (state.tab === "calc") ULA.fx.open();
+    if (state.tab === "quote") ULA.quote.open();
+    if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
   }
@@ -1331,7 +1336,9 @@
   // Подпись на кнопке меню = название открытого раздела
   function updateSectionMenuLabel() {
     var label = $("#section-menu-label"), active = $(".section-menu .tab.active");
-    if (label) label.textContent = active ? active.textContent.trim() : t("nav_menu");
+    // название раздела без красной цифры (она лежит в отдельном <span>)
+    var name = active && (active.querySelector("[data-i18n]") || active);
+    if (label) label.textContent = name ? name.textContent.trim() : t("nav_menu");
   }
 
   function closeSectionMenu() {
@@ -1746,7 +1753,7 @@
           renderWarehouse();
         }
       }
-      if (state.tab === "calc") await ULA.fx.load(true);
+      if (state.tab === "quote") { await ULA.fx.load(true); ULA.quote.open(); }
       else if (state.tab === "support") { await ULA.support.loadThreads(); await ULA.support.checkUnread(); }
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
@@ -2315,6 +2322,27 @@
     if (body) body.scrollTop = 0;
   }
 
+  // Открыть форму нового заказа, уже заполненную из «Расчёта цены» (js/quote.js)
+  function openOrderPrefill(d) {
+    openOrderForm(null);
+    var set = function (id, v) { $("#f-" + id).value = v == null || v === 0 ? "" : String(v); };
+    fillCurrencySelect($("#f-purchase_currency"), d.purchase_currency, PURCHASE_CURRENCIES);
+    fillCurrencySelect($("#f-client_currency"), d.client_currency);
+    fillCurrencySelect($("#f-delivery_currency"), d.delivery_currency, deliveryCurrencies(d.client_currency));
+    set("quantity", d.quantity);
+    set("unit_price_cny", d.unit_price);
+    set("exchange_rate", d.exchange_rate);
+    set("weight_kg", d.weight);
+    set("delivery_tariff", d.tariff);
+    set("delivery_cost", d.delivery_cost);
+    set("delivery_rate", d.delivery_rate);
+    set("client_price", d.client_price);
+    set("markup", d.markup);
+    set("product_ru", d.product_ru);
+    set("supplier_link", d.supplier_link);
+    updateCalc();
+  }
+
   // Себестоимость по тому, что сейчас вписано в форме (в валюте клиента)
   function currentCost() {
     return parseNum($("#f-quantity").value) * parseNum($("#f-unit_price_cny").value) * parseNum($("#f-exchange_rate").value) +
@@ -2556,6 +2584,9 @@
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, openLightbox: openLightbox, showView: showView,
     clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
+    switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
+    lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openDetail: openDetail,
+    openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };
