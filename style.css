@@ -1632,3 +1632,40 @@ body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
 .r-delta.up { color: var(--green); }
 .r-delta.down { color: var(--red); }
 @media (min-width: 720px) { .r-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* =====================================================
+   📦 ПАРТИИ (несколько заказов одним карго)
+   ===================================================== */
+.batch-tag { padding: 1px 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--ink); }
+.sh-list { display: grid; gap: 12px; }
+.sh-card { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.sh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sh-head h3 { font-size: 17px; font-weight: 800; overflow-wrap: anywhere; }
+.sh-sub { margin-top: 2px; font-size: 14px; }
+.sh-sum { font-family: var(--font-display); font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.sh-mix { display: flex; flex-wrap: wrap; gap: 6px; }
+.sh-meta { font-size: 13px; }
+.sh-summary { margin: 4px 0 8px; padding: 12px 14px; border-radius: var(--r-md); background: var(--soft); border: 1px solid var(--line); font-size: 14px; }
+.sh-summary:empty { display: none; }
+.sh-sum-big { margin-top: 2px; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sh-warn { margin: 6px 0; font-size: 13px; font-weight: 600; color: var(--red); }
+.sh-orders { display: grid; gap: 6px; margin-bottom: 10px; }
+.sh-order { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+.sh-order.off { opacity: .55; }
+.sh-order-main { grid-column: 1; overflow-wrap: anywhere; }
+.sh-order-nums { grid-column: 1; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sh-order-nums b { color: var(--ink); }
+.sh-x { grid-column: 2; grid-row: 1 / span 2; width: 36px; height: 36px; font-size: 16px; }
+.sh-picker { display: grid; gap: 8px; margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--soft); }
+.sh-pick-list { display: grid; gap: 4px; max-height: 280px; overflow-y: auto; }
+.sh-pick { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface); cursor: pointer; font-size: 14px; }
+.sh-pick input { width: 18px; height: 18px; grid-row: 1 / span 2; }
+.sh-pick-main { grid-column: 2; overflow-wrap: anywhere; }
+.sh-pick-w { grid-column: 3; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.sh-pick .pill { grid-column: 2 / span 2; justify-self: start; }
+.sh-status-box, .sh-notify { margin-top: 14px; }
+.sh-status-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.sh-notify-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.sh-notify-row .btn { min-height: 38px; padding: 0 12px; }
+#sh-delete { margin-top: 16px; width: 100%; }
+.sh-warn.info { color: var(--muted); font-weight: 500; }

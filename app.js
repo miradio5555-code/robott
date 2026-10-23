@@ -251,7 +251,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261024a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261025a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -609,6 +609,7 @@
     renderWarehouse();
     switchTab("orders");
     await Promise.all([loadOrders(), loadSuppliers()]);
+    ULA.shipments.load(true);   // названия партий для меток на карточках заказов
   }
 
   function renderWsBanner() {
@@ -699,6 +700,7 @@
     // 💱 раздел «Курс» — js/fx.js
     ULA.fx.bind();
     ULA.quote.bind();
+    ULA.shipments.bind();
     ULA.debts.bind();
     ULA.report.bind();
 
@@ -946,6 +948,7 @@
     renderAssistant();
     renderChips();
     renderOrders();
+    if (ULA.shipments) ULA.shipments.refresh();   // список партий (если открыт)
     if (ULA.debts) ULA.debts.refresh();   // список должников и красная цифра у «Долги»
     if (ULA.report) ULA.report.refresh(); // отчёт по прибыли (если открыт)
   }
@@ -1230,7 +1233,7 @@
         '<div class="card-main" data-act="open">' + photo +
           '<div class="card-info">' +
             "<h3>" + esc(o.product_ru) + "</h3>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + shipTag(o) +
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
@@ -1264,6 +1267,13 @@
   var CLOSED = ["delivered", "cancelled"]; // завершённые заказы
 
   // В строке под номером заказа: город клиента или красная пометка «Нет адреса»
+  // Метка «📦 Партия» на карточке заказа
+  function shipTag(o) {
+    if (!o.shipment_id) return "";
+    var n = ULA.shipments ? ULA.shipments.name(o.shipment_id) : "";
+    return '<span class="batch-tag">📦 ' + esc(n || t("sh_tag_short")) + "</span>";
+  }
+
   function placeHtml(o) {
     if (o.client) return '<span class="card-place">' + esc(o.client.city) + "</span>";
     if (CLOSED.indexOf(o.status) !== -1) return "";
@@ -1309,10 +1319,11 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "debts" || name === "report" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "shipments" || name === "debts" || name === "report" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
+    $("#tab-shipments").classList.toggle("hidden", state.tab !== "shipments");
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-report").classList.toggle("hidden", state.tab !== "report");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
@@ -1331,6 +1342,7 @@
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
+    if (state.tab === "shipments") ULA.shipments.open();
     if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "report") ULA.report.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
@@ -1758,6 +1770,7 @@
         }
       }
       if (state.tab === "quote") { await ULA.fx.load(true); ULA.quote.open(); }
+      else if (state.tab === "shipments") { await loadOrders(); await ULA.shipments.load(false); }
       else if (state.tab === "support") { await ULA.support.loadThreads(); await ULA.support.checkUnread(); }
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
@@ -2075,6 +2088,7 @@
         moneyHtml(o, true) +
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
+          (o.shipment_id ? "<div><dt>" + t("sh_tag") + "</dt><dd>" + esc((ULA.shipments && ULA.shipments.name(o.shipment_id)) || "—") + "</dd></div>" : "") +
           "<div><dt>" + t("l_phone") + "</dt><dd>" + phone + "</dd></div>" +
           "<div><dt>" + t("l_wechat") + "</dt><dd>" + esc(o.client_wechat || "—") + "</dd></div>" +
           "<div><dt>" + t("l_supplier") + "</dt><dd>" + esc(o.supplier || "—") + "</dd></div>" +
@@ -2163,6 +2177,11 @@
     renderAll();
     if ($("#modal-detail").classList.contains("open")) renderDetail();
     toast(t("status_changed"), "ok");
+    // отменённый заказ не участвует в делёже партии: пересчитываем
+    if (o && o.shipment_id && (status === "cancelled" || prev === "cancelled")) {
+      await db.rpc("shipment_recalc", { p_shipment: o.shipment_id });
+      await loadOrders();
+    }
     // предлагаем сразу сообщить клиенту (можно отключить галочкой в самом окне)
     if (o && prev !== status && ULA.notify.autoEnabled()) ULA.notify.open(o, { afterStatus: true });
   }
@@ -2240,8 +2259,14 @@
       var res = await db.from("orders").delete().eq("id", o.id);
       if (res.error) throw res.error;
       closeModal("modal-detail");
-      state.orders = state.orders.filter(function (x) { return x.id !== o.id; });
-      renderAll();
+      if (o.shipment_id) {
+        // остальные заказы партии делят её доставку заново
+        await db.rpc("shipment_recalc", { p_shipment: o.shipment_id });
+        await loadOrders();
+      } else {
+        state.orders = state.orders.filter(function (x) { return x.id !== o.id; });
+        renderAll();
+      }
       toast(t("deleted"), "ok");
     } catch (err) {
       handleError(err);
@@ -2319,6 +2344,11 @@
       set("client_price", "");
       set("markup", "");
     }
+    var sn = $("#f-ship-note");
+    if (o && o.shipment_id) {
+      sn.textContent = t("sh_order_note", { n: (ULA.shipments && ULA.shipments.name(o.shipment_id)) || "" });
+      sn.classList.remove("hidden");
+    } else sn.classList.add("hidden");
     updateCalc();
     renderPhotoPreviews();
     openModal("modal-order");
@@ -2560,6 +2590,10 @@
         catch (err) { console.error(err); failed++; }
       }
 
+      // заказ лежит в партии: вес или статус мог измениться — делим доставку партии заново
+      var shipId = form.editing && form.editing.shipment_id;
+      if (shipId) await db.rpc("shipment_recalc", { p_shipment: shipId });
+
       closeModal("modal-order");
       if (failed) toast(t("photo_failed", { n: failed }), "error");
       else toast(form.editing ? t("saved") : t("saved") + ": № " + ins.data.order_number, "ok");
@@ -2591,7 +2625,7 @@
     switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openDetail: openDetail,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
-    csvCell: csvCell, todayISO: todayISO,
+    csvCell: csvCell, todayISO: todayISO, reloadOrders: loadOrders, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };

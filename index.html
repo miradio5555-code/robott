@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261024a">
+  <link rel="stylesheet" href="style.css?v=20261025a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -176,6 +176,7 @@
             <nav class="tabs section-menu-list" aria-label="Sections">
             <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
             <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
+            <button type="button" class="tab" data-tab="shipments" data-i18n="nav_shipments"></button>
             <button type="button" class="tab" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
             <button type="button" class="tab" data-tab="report" data-i18n="nav_report"></button>
             <button type="button" class="tab" data-tab="suppliers" data-i18n="nav_suppliers"></button>
@@ -303,6 +304,19 @@
       <div id="r-list" class="r-list"></div>
       <div id="r-empty" class="state-box hidden"></div>
       <p id="r-note" class="fine-print"></p>
+    </main>
+
+    <!-- ============ РАЗДЕЛ: ПАРТИИ (несколько заказов одним карго) ============ -->
+    <main id="tab-shipments" class="container container-narrow hidden">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="nav_shipments"></h1>
+          <p class="page-sub" data-i18n="sh_hint"></p>
+        </div>
+        <button id="sh-new" class="btn btn-primary" type="button" data-write>+ <span data-i18n="sh_new"></span></button>
+      </div>
+      <div id="sh-list" class="sh-list"></div>
+      <div id="sh-empty" class="state-box hidden"></div>
     </main>
 
     <!-- ============ РАЗДЕЛ: ДОЛГИ ============ -->
@@ -637,6 +651,7 @@
 
           <!-- Доставка (карго): вес × тариф = сумма, затем перевод в валюту клиента -->
           <h4 class="money-sub" data-i18n="k_delivery"></h4>
+          <p id="f-ship-note" class="fine-print flag-missing hidden"></p>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_weight"></span>
               <input id="f-weight_kg" type="text" inputmode="decimal"></label>
@@ -916,6 +931,72 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ПАРТИЯ ============ -->
+  <div id="modal-shipment" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="sh-title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div id="sh-body" class="modal-body">
+        <div class="grid-2">
+          <label class="field"><span data-i18n="sh_f_name"></span>
+            <input id="sh-name" type="text" maxlength="120" autocomplete="off" data-i18n-placeholder="sh_f_name_ph"></label>
+          <label class="field"><span data-i18n="sh_f_cargo"></span>
+            <input id="sh-cargo" type="text" maxlength="120" autocomplete="off"></label>
+        </div>
+        <div class="grid-3">
+          <label class="field"><span data-i18n="sh_f_date"></span>
+            <input id="sh-date" type="date"></label>
+          <label class="field"><span data-i18n="f_delivery_currency"></span>
+            <select id="sh-cur" class="currency-select"></select></label>
+          <label class="field"><span id="sh-lbl-tariff"></span>
+            <input id="sh-tariff" type="text" inputmode="decimal"></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="sh_f_weight"></span>
+            <input id="sh-weight" type="text" inputmode="decimal">
+            <p class="field-hint" data-i18n="sh_f_weight_hint"></p></label>
+          <label class="field"><span id="sh-lbl-total"></span>
+            <input id="sh-total" type="text" inputmode="decimal">
+            <p class="field-hint" data-i18n="sh_f_total_hint"></p></label>
+        </div>
+        <label class="field"><span data-i18n="sh_f_notes"></span>
+          <textarea id="sh-notes" rows="2" maxlength="1000"></textarea></label>
+
+        <div id="sh-summary" class="sh-summary" aria-live="polite"></div>
+        <div id="sh-warns" aria-live="polite"></div>
+
+        <h4 class="money-sub" data-i18n="sh_orders_title"></h4>
+        <div id="sh-orders" class="sh-orders"></div>
+        <button id="sh-add-toggle" class="btn" type="button" data-write data-i18n="sh_add"></button>
+        <div id="sh-picker" class="sh-picker hidden">
+          <input id="sh-pick-q" class="search" type="search" data-i18n-placeholder="sh_add_search" autocomplete="off">
+          <div id="sh-pick-list" class="sh-pick-list"></div>
+          <button id="sh-pick-apply" class="btn btn-primary" type="button"></button>
+        </div>
+
+        <div id="sh-status-box" class="sh-status-box hidden" data-write>
+          <h4 class="money-sub" data-i18n="sh_status_title"></h4>
+          <div class="sh-status-row">
+            <select id="sh-status" class="currency-select" data-always></select>
+            <button id="sh-status-apply" class="btn" type="button" data-always data-i18n="sh_status_apply"></button>
+          </div>
+        </div>
+        <div id="sh-notify" class="sh-notify hidden">
+          <h4 class="money-sub" data-i18n="sh_notify_title"></h4>
+          <div id="sh-notify-list"></div>
+        </div>
+        <button id="sh-delete" class="btn btn-danger hidden" type="button" data-write data-i18n="sh_delete"></button>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="sh-save" class="btn btn-primary" type="button" data-write data-i18n="sh_save"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ ОКНО: СООБЩИТЬ КЛИЕНТУ ============ -->
   <div id="modal-notify" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -960,16 +1041,17 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261024a"></script>
+  <script src="i18n.js?v=20261025a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261024a"></script>
+  <script src="app.js?v=20261025a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261024a"></script>
-  <script src="js/support.js?v=20261024a"></script>
-  <script src="js/notify.js?v=20261024a"></script>
-  <script src="js/report.js?v=20261024a"></script>
-  <script src="js/debts.js?v=20261024a"></script>
-  <script src="js/quote.js?v=20261024a"></script>
-  <script src="js/client.js?v=20261024a"></script>
+  <script src="js/fx.js?v=20261025a"></script>
+  <script src="js/support.js?v=20261025a"></script>
+  <script src="js/notify.js?v=20261025a"></script>
+  <script src="js/shipments.js?v=20261025a"></script>
+  <script src="js/report.js?v=20261025a"></script>
+  <script src="js/debts.js?v=20261025a"></script>
+  <script src="js/quote.js?v=20261025a"></script>
+  <script src="js/client.js?v=20261025a"></script>
 </body>
 </html>
