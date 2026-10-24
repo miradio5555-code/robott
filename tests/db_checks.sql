@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 21 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 22 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -726,3 +726,40 @@ begin
 end $$;
 reset role;
 \echo '✅ 14. Telegram кабинета: код одноразовый, статус и отключение только у владельца, таблица закрыта'
+
+
+-- ---------- 15. Двухфакторный вход администратора ----------
+-- без включённой 2FA админ работает как раньше (проверка 2 это уже показала)
+insert into auth.mfa_factors (user_id, status) values ('00000000-0000-0000-0000-00000000000a', 'verified');
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare n int; oid uuid := (select v::uuid from t where k = 'b_order');
+begin
+  -- пароль без кода: админом не считается
+  perform set_config('request.jwt.claims', '', true);
+  select count(*) into n from public.orders where id = oid;
+  if n <> 0 then raise exception 'ПРОВАЛ: админ с включённой 2FA видит чужие заказы без кода'; end if;
+  perform set_config('request.jwt.claims', '{"aal":"aal1"}', true);
+  select count(*) into n from public.orders where id = oid;
+  if n <> 0 then raise exception 'ПРОВАЛ: уровень aal1 открыл админские права при включённой 2FA'; end if;
+  if public.is_admin() then raise exception 'ПРОВАЛ: is_admin() истинно без кода'; end if;
+  -- код введён: права вернулись
+  perform set_config('request.jwt.claims', '{"aal":"aal2"}', true);
+  select count(*) into n from public.orders where id = oid;
+  if n <> 1 then raise exception 'ПРОВАЛ: админ с кодом не видит заказы'; end if;
+  if not public.is_admin() then raise exception 'ПРОВАЛ: is_admin() ложно после ввода кода'; end if;
+end $$;
+reset role;
+-- у обычного байера 2FA на админство не влияет, а неподтверждённый «код» ничего не блокирует
+update auth.mfa_factors set status = 'unverified' where user_id = '00000000-0000-0000-0000-00000000000a';
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"aal":"aal1"}', true);
+  if not public.is_admin() then raise exception 'ПРОВАЛ: неподтверждённый код заблокировал админа'; end if;
+end $$;
+reset role;
+delete from auth.mfa_factors;
+\echo '✅ 15. 2FA администратора: без кода админские права не действуют, с кодом и без 2FA — работают'

@@ -31,6 +31,18 @@ create function auth.uid() returns uuid language sql stable as $$
 $$;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 
+-- «уровень входа» (aal1 — пароль, aal2 — пароль и код): в тестах set request.jwt.claims = '{"aal":"aal2"}';
+create function auth.jwt() returns jsonb language sql stable as $$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+$$;
+grant execute on function auth.jwt() to anon, authenticated, service_role;
+-- подтверждённые «коды» (2FA) пользователей
+create table auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  status text not null default 'unverified'
+);
+
 -- storage: корзины и файлы
 create schema storage;
 grant usage on schema storage to anon, authenticated, service_role;
