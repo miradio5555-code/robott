@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 17 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 18 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -346,3 +346,187 @@ begin
 end $$;
 reset role;
 \echo '✅ 10. Партии: доли делятся до копейки, курсы из «Моих курсов», чужие кабинеты закрыты, удаление партии не удаляет заказы'
+
+
+-- ---------- 11. Заявки по ссылке ----------
+reset request.uid;
+insert into t select 'b_ws', id::text from public.workspaces where name = 'Б-карго';
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+insert into t select 'req_token', public.request_link_rotate((select v::uuid from t where k = 'b_ws'));
+reset role;
+
+-- чужой байер и аноним ссылку менять не могут
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$ begin
+  begin perform public.request_link_rotate((select v::uuid from t where k = 'b_ws')); raise exception 'ПРОВАЛ: байер В заменил чужую ссылку для заявок';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.request_link_revoke((select v::uuid from t where k = 'b_ws')); raise exception 'ПРОВАЛ: байер В отключил чужую ссылку для заявок';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$ begin
+  begin perform public.request_link_rotate((select v::uuid from t where k = 'b_ws')); raise exception 'ПРОВАЛ: аноним заменил ссылку для заявок';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+-- аноним: форма и заявка
+do $$
+declare tok text := (select v from t where k = 'req_token'); r json; c jsonb; got text;
+begin
+  if (public.get_request_form(tok)->>'name') <> 'Б-карго' then raise exception 'ПРОВАЛ: форма не показала название кабинета'; end if;
+  if public.get_request_form('00000000000000000000000000000000') is not null then raise exception 'ПРОВАЛ: чужой токен открыл форму'; end if;
+  if public.get_request_form(null) is not null then raise exception 'ПРОВАЛ: пустой токен открыл форму'; end if;
+
+  r := public.submit_request(tok, '  Азамат ', '+996 (555) 11-22-33', '@azamat_kg', 'Кроссовки Nike',
+                             'https://detail.1688.com/offer/1.html', 10, 'Размеры 39-44', null);
+  if not (r->>'ok')::boolean or r->>'order_number' is null or r->>'token' !~ '^[a-f0-9]{32}$' then
+    raise exception 'ПРОВАЛ: хорошая заявка не создала заказ: %', r;
+  end if;
+  insert into t values ('req_order', r->>'token');
+
+  -- клиент по полученной ссылке видит свой заказ
+  if (public.get_client_order(r->>'token')->>'status') <> 'new' then raise exception 'ПРОВАЛ: заказ из заявки не открывается по ссылке клиента'; end if;
+
+  -- мусор отклоняется с понятным кодом ошибки
+  for c in select * from jsonb_array_elements('[
+    {"n":"короткое имя","name":"А","phone":"+996555112233","prod":"Товар","err":"invalid_name"},
+    {"n":"плохой телефон","name":"Иван","phone":"123","prod":"Товар","err":"invalid_phone"},
+    {"n":"плохой telegram","name":"Иван","phone":"+996555112233","tg":"ab","prod":"Товар","err":"invalid_telegram"},
+    {"n":"нет товара и ссылки","name":"Иван","phone":"+996555112233","prod":"","err":"invalid_product"},
+    {"n":"ссылка javascript","name":"Иван","phone":"+996555112233","prod":"Товар","link":"javascript:alert(1)","err":"invalid_link"},
+    {"n":"ссылка с пробелом","name":"Иван","phone":"+996555112233","prod":"Товар","link":"http://a b","err":"invalid_link"},
+    {"n":"количество 0","name":"Иван","phone":"+996555112233","prod":"Товар","qty":0,"err":"invalid_quantity"},
+    {"n":"количество минус","name":"Иван","phone":"+996555112233","prod":"Товар","qty":-5,"err":"invalid_quantity"},
+    {"n":"количество огромное","name":"Иван","phone":"+996555112233","prod":"Товар","qty":100001,"err":"invalid_quantity"}
+  ]'::jsonb) loop
+    begin
+      perform public.submit_request(tok, c->>'name', c->>'phone', c->>'tg', c->>'prod', c->>'link', coalesce((c->>'qty')::numeric, 1), null, null);
+      raise exception 'ПРОВАЛ: заявка «%» прошла, а должна быть отклонена', c->>'n';
+    exception when others then
+      got := sqlerrm;
+      if got like 'ПРОВАЛ%' then raise; end if;
+      if got <> c->>'err' then raise exception 'ПРОВАЛ: заявка «%»: ждали %, получили %', c->>'n', c->>'err', got; end if;
+    end;
+  end loop;
+  begin perform public.submit_request(tok, 'Иван', '+996555112233', null, repeat('x', 301), null, 1, null, null); raise exception 'ПРОВАЛ: товар на 301 символ прошёл';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.submit_request(tok, 'Иван', '+996555112233', null, 'Товар', null, 1, repeat('x', 1001), null); raise exception 'ПРОВАЛ: комментарий на 1001 символ прошёл';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.submit_request('zzz', 'Иван', '+996555112233', null, 'Товар', null, 1, null, null); raise exception 'ПРОВАЛ: неверный токен принят';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; if sqlerrm <> 'link_not_found' then raise exception 'ПРОВАЛ: неверный токен: %', sqlerrm; end if; end;
+end $$;
+reset role;
+
+-- созданный заказ записан правильно
+do $$
+declare o public.orders;
+begin
+  select * into o from public.orders where public_token = (select v from t where k = 'req_order');
+  if o.source <> 'request' or o.status <> 'new' then raise exception 'ПРОВАЛ: заказ из заявки без пометки или не «Новый»'; end if;
+  if o.workspace_id <> (select v::uuid from t where k = 'b_ws') then raise exception 'ПРОВАЛ: заказ попал не в тот кабинет'; end if;
+  if o.client_name <> 'Азамат' or o.client_phone <> '+996555112233' then raise exception 'ПРОВАЛ: имя или телефон записаны неверно (%, %)', o.client_name, o.client_phone; end if;
+  if o.product_ru <> 'Кроссовки Nike' or o.quantity <> 10 or o.supplier_link <> 'https://detail.1688.com/offer/1.html' then raise exception 'ПРОВАЛ: товар, количество или ссылка записаны неверно'; end if;
+  if o.admin_comment not like '%azamat_kg%' or o.admin_comment not like '%Размеры 39-44%' then raise exception 'ПРОВАЛ: Telegram или комментарий клиента не попали в заметку'; end if;
+  if (select source from public.orders where client_name = 'Клиент Б' limit 1) <> 'manual' then raise exception 'ПРОВАЛ: обычный заказ байера получил пометку заявки'; end if;
+end $$;
+
+-- видит заявку только хозяин кабинета (и админ для просмотра)
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$ begin if (select count(*) from public.orders where source = 'request') <> 1 then raise exception 'ПРОВАЛ: байер Б не видит свою заявку'; end if; end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$ begin if (select count(*) from public.orders where source = 'request') <> 0 then raise exception 'ПРОВАЛ: байер В видит чужие заявки'; end if; end $$;
+reset role;
+
+-- ловушка для ботов: ответ «успешно», заказа нет
+reset request.uid;
+set role anon;
+do $$
+declare tok text := (select v from t where k = 'req_token'); r json;
+begin
+  r := public.submit_request(tok, 'Бот Ботов', '+996555000111', null, 'Спам', null, 1, null, 'http://spam.example');
+  if not (r->>'ok')::boolean or r->>'token' is not null then raise exception 'ПРОВАЛ: ловушка для ботов ответила не так: %', r; end if;
+end $$;
+reset role;
+do $$ begin
+  if exists (select 1 from public.orders where client_name = 'Бот Ботов') then raise exception 'ПРОВАЛ: заявка бота создала заказ'; end if;
+end $$;
+
+-- замена ссылки: старая умирает, новая работает; отключение
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+insert into t select 'req_token2', public.request_link_rotate((select v::uuid from t where k = 'b_ws'));
+reset role;
+reset request.uid;
+set role anon;
+do $$
+declare t1 text := (select v from t where k = 'req_token'); t2 text := (select v from t where k = 'req_token2'); r json;
+begin
+  if public.get_request_form(t1) is not null then raise exception 'ПРОВАЛ: старая ссылка для заявок всё ещё работает'; end if;
+  begin perform public.submit_request(t1, 'Иван', '+996555223344', null, 'Товар', null, 1, null, null); raise exception 'ПРОВАЛ: по старой ссылке приняли заявку';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  r := public.submit_request(t2, 'Мария', '+996555223344', null, 'Товар', null, 1, null, null);
+  if not (r->>'ok')::boolean then raise exception 'ПРОВАЛ: новая ссылка не принимает заявки'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$ begin perform public.request_link_revoke((select v::uuid from t where k = 'b_ws')); end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$
+declare t2 text := (select v from t where k = 'req_token2');
+begin
+  if public.get_request_form(t2) is not null then raise exception 'ПРОВАЛ: отключённая ссылка всё ещё открывает форму'; end if;
+  begin perform public.submit_request(t2, 'Иван', '+996555334455', null, 'Товар', null, 1, null, null); raise exception 'ПРОВАЛ: по отключённой ссылке приняли заявку';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+insert into t select 'req_token3', public.request_link_rotate((select v::uuid from t where k = 'b_ws'));
+reset role;
+
+-- лимиты: 5 в час с одного телефона, 20 в час на кабинет
+reset request.uid;
+set role anon;
+do $$
+declare tok text := (select v from t where k = 'req_token3'); i int; n int;
+begin
+  -- с одного телефона: уже была 1 заявка (Азамат) → ещё 4 проходят, 6-я нет
+  for i in 1..4 loop
+    perform public.submit_request(tok, 'Азамат ' || i, '+996555112233', null, 'Товар', null, 1, null, null);
+  end loop;
+  begin perform public.submit_request(tok, 'Азамат 6', '+996555112233', null, 'Товар', null, 1, null, null); raise exception 'ПРОВАЛ: 6-я заявка за час с одного телефона прошла';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; if sqlerrm <> 'too_many_requests' then raise exception 'ПРОВАЛ: лимит телефона: %', sqlerrm; end if; end;
+end $$;
+reset role;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.orders where source = 'request' and created_at > now() - interval '1 hour';
+  if n <> 6 then raise exception 'ПРОВАЛ: к этому моменту заявок за час должно быть 6, а их %', n; end if;
+end $$;
+set role anon;
+do $$
+declare tok text := (select v from t where k = 'req_token3'); i int;
+begin
+  -- на кабинет: до 20 в час (уже 6) → ещё 14 проходят, 21-я нет
+  for i in 1..14 loop
+    perform public.submit_request(tok, 'Тест ' || i, '+99670000' || lpad(i::text, 4, '0'), null, 'Товар', null, 1, null, null);
+  end loop;
+  begin perform public.submit_request(tok, 'Лишний', '+996709999999', null, 'Товар', null, 1, null, null); raise exception 'ПРОВАЛ: 21-я заявка за час на кабинет прошла';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; if sqlerrm <> 'too_many_requests' then raise exception 'ПРОВАЛ: лимит кабинета: %', sqlerrm; end if; end;
+  -- аноним по-прежнему не читает заказы
+  begin perform count(*) from public.orders; raise exception 'ПРОВАЛ: аноним читает заказы';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+\echo '✅ 11. Заявки по ссылке: заказ создаётся верно, мусор и боты отклоняются, лимиты работают, замена и отключение ссылки действуют, чужие кабинеты закрыты'
