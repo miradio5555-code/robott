@@ -1776,3 +1776,14 @@ body.is-staff .owner-only { display: none !important; }
 .an-att span { min-width: 0; overflow-wrap: anywhere; }
 .an-att i { font-style: normal; color: var(--muted); font-size: 18px; }
 .an-tabs { margin: 0 0 14px; }
+
+/* Аналитика: цель на месяц */
+.an-card.goal { grid-column: 1 / -1; }
+.an-goal-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.an-goal-line b { font-family: var(--font-display); font-size: 22px; font-weight: 500; }
+.an-goal-line span { color: var(--muted); font-size: 14px; }
+.an-goal-bar { height: 12px; background: var(--hover); border-radius: 99px; margin: 10px 0; overflow: hidden; }
+.an-goal-bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; transition: width .4s; }
+.an-goal-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+.an-goal-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.an-goal-form input { flex: 1; min-width: 150px; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--field); color: var(--ink); font: inherit; }

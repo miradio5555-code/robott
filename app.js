@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261028b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261029a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -627,7 +627,7 @@
   }
 
   var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
-    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token";
+    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token, profit_goals";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
   async function openWorkspace(ws) {
