@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261107a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261107b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -836,6 +836,20 @@
         if (!e.target.checked && state.tab === k) switchTab("orders");
       });
     });
+    // «Забыли текущий пароль?» в настройках: письмо со ссылкой уходит на вашу почту
+    $("#p-forgot").addEventListener("click", async function (e) {
+      e.preventDefault();
+      if (!state.me || !state.me.email) return;
+      try {
+        var fTok = await ULA.captcha.get("cf-settings");
+        var fr = await db.auth.resetPasswordForEmail(state.me.email, { redirectTo: location.origin + location.pathname, captchaToken: fTok || undefined });
+        if (fr.error && /rate|seconds|limit/i.test(fr.error.message || "")) { toast(t("reset_wait"), "error"); return; }
+        toast(t("reset_sent", { e: state.me.email }), "ok");
+      } catch (err) {
+        console.error(err);
+        toast(t("error_generic"), "error");
+      }
+    });
     $("#r-back").addEventListener("click", function () { switchTab("analytics"); });
     // в настройках: валюта клиента изменилась — обновить список валют доставки
     $("#s-def-client").addEventListener("change", function () {
@@ -1116,6 +1130,7 @@
     $("#p-phone").value = state.me && state.me.phone ? fmtPhone(state.me.phone) : "";
     $("#p-password").value = "";
     $("#p-current").value = "";
+    $("#p-current-error").classList.add("hidden");
     $("#p-password2").value = "";
     $("#p-current-wrap").classList.toggle("hidden", !(state.me && state.me.hasPassword));
     // разделы кабинета — только для своего кабинета
@@ -1145,6 +1160,20 @@
     var el = $("#settings-error");
     el.textContent = msg || "";
     el.classList.toggle("hidden", !msg);
+    // ошибка внизу окна на телефоне не видна — показываем ещё и всплывающим сообщением
+    if (msg) toast(msg, "error");
+    var pe = $("#p-current-error");
+    if (pe) pe.classList.add("hidden");
+  }
+
+  // Ошибка прямо под полем «Текущий пароль» (видно сразу)
+  function setCurrentPasswordError(key) {
+    var el = $("#p-current-error");
+    el.textContent = t(key);
+    el.classList.remove("hidden");
+    toast(t(key), "error");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    $("#p-current").focus();
   }
 
   async function saveSettings(e) {
@@ -1161,14 +1190,14 @@
     if (pPass && pPass !== $("#p-password2").value) { setSettingsError(t("e_password_match")); $("#p-password2").focus(); return; }
     // смена пароля только при вводе текущего пароля (если кто-то получит ваш открытый телефон, пароль он не сменит)
     var pCurrent = $("#p-current").value;
-    if (pPass && state.me.hasPassword && !pCurrent) { setSettingsError(t("e_current_password")); $("#p-current").focus(); return; }
+    if (pPass && state.me.hasPassword && !pCurrent) { setCurrentPasswordError("e_current_password"); return; }
 
     btn.disabled = true;
     try {
       if (pPass && state.me.hasPassword) {
         var sTok = await ULA.captcha.get("cf-settings");
         var chk = await db.auth.signInWithPassword({ email: state.me.email, password: pCurrent, options: sTok ? { captchaToken: sTok } : undefined });
-        if (chk.error) { btn.disabled = false; setSettingsError(t("e_current_wrong")); $("#p-current").focus(); return; }
+        if (chk.error) { btn.disabled = false; setCurrentPasswordError("e_current_wrong"); return; }
       }
       if (pName !== state.me.name || pPhone !== state.me.phone) {
         var pr = await db.from("profiles").update({ full_name: pName || null, phone: pPhone || null }).eq("user_id", state.me.id);

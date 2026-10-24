@@ -2148,3 +2148,4 @@ body.touring .section-menu .tab.mg-hidden { display: flex !important; }
 .forgot-row { margin: -4px 0 12px; text-align: right; font-size: 14px; }
 .forgot-row a { color: var(--muted); font-weight: 700; text-underline-offset: 3px; }
 .reset-msg { padding: 10px 12px; background: var(--green-tint); color: var(--green); border-radius: var(--r-sm); font-weight: 700; font-size: 14px; }
+.toast { width: max-content; max-width: min(380px, calc(100vw - 32px)); text-align: center; }
