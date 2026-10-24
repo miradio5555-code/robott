@@ -2100,3 +2100,4 @@ html[data-theme="dark"] .section-menu-ico.g-more  { background: rgba(181, 156, 2
 .mfa-secret { display: inline-block; padding: 2px 8px; background: var(--hover); border-radius: 6px; font-size: 13px; letter-spacing: .06em; word-break: break-all; cursor: pointer; }
 #mfa-login-code, #mfa-code { letter-spacing: .3em; font-size: 22px; text-align: center; font-variant-numeric: tabular-nums; }
 .mfa-setup .field { width: 100%; }
+#mfa-off-code { letter-spacing: .3em; font-size: 22px; text-align: center; }
