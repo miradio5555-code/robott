@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 18 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 19 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -530,3 +530,127 @@ begin
 end $$;
 reset role;
 \echo '✅ 11. Заявки по ссылке: заказ создаётся верно, мусор и боты отклоняются, лимиты работают, замена и отключение ссылки действуют, чужие кабинеты закрыты'
+
+
+-- ---------- 12. Помощник в кабинете ----------
+-- S = помощник (зарегистрировался сам, получил пустой кабинет), D = байер с данными
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000a5', 's@test.kg', '{"full_name":"Помощник","phone":"+996555000333","workspace_name":"Пустой"}'),
+  ('00000000-0000-0000-0000-0000000000d1', 'd@test.kg', '{"full_name":"Байер Д","phone":"+996555000444","workspace_name":"Д-карго"}');
+
+-- Д создаёт заказ (значит, вступить в чужую команду не сможет)
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+insert into public.orders (client_name, product_ru) values ('Клиент Д', 'Товар Д');
+reset role;
+
+-- Б (владелец) создаёт приглашения; посторонний не может
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+insert into t select 'team_code', public.team_invite_create(public.my_workspace_id());
+insert into t select 'tm_ws', public.my_workspace_id()::text;
+insert into t select 'team_code_old', public.team_invite_create(public.my_workspace_id());
+reset role;
+update public.team_invites set expires_at = now() - interval '1 hour' where code = (select v from t where k = 'team_code_old');
+
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  begin perform public.team_invite_create((select v::uuid from t where k = 'tm_ws')); raise exception 'ПРОВАЛ: чужой байер создал приглашение в чужую команду';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.team_list((select v::uuid from t where k = 'tm_ws')); raise exception 'ПРОВАЛ: чужой байер видит команду';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+
+-- Д: у него есть заказы — вступить нельзя, и его данные остаются
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  begin perform public.team_join((select v from t where k = 'team_code')); raise exception 'ПРОВАЛ: байер с данными вступил в команду';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; if sqlerrm <> 'has_own_data' then raise exception 'ПРОВАЛ: ожидали has_own_data, получили %', sqlerrm; end if; end;
+  select count(*) into n from public.orders; if n <> 1 then raise exception 'ПРОВАЛ: у байера Д пропали данные'; end if;
+end $$;
+reset role;
+
+-- Помощник: плохой и просроченный код — нет; верный — да, один раз
+set request.uid = '00000000-0000-0000-0000-0000000000a5';
+set role authenticated;
+do $$
+begin
+  begin perform public.team_join('xyz'); raise exception 'ПРОВАЛ: мусорный код принят';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.team_join((select v from t where k = 'team_code_old')); raise exception 'ПРОВАЛ: просроченный код принят';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  perform public.team_join((select v from t where k = 'team_code'));
+  begin perform public.team_join((select v from t where k = 'team_code')); raise exception 'ПРОВАЛ: код сработал дважды';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+
+-- помощник работает в кабинете Б: видит, создаёт, правит; не удаляет и не настраивает
+do $$
+declare n int; v_ws uuid := (select v::uuid from t where k = 'tm_ws'); v_o uuid;
+begin
+  if public.my_workspace_id() <> v_ws then raise exception 'ПРОВАЛ: у помощника не тот кабинет'; end if;
+  select count(*) into n from public.workspaces; if n <> 1 then raise exception 'ПРОВАЛ: у помощника лишние кабинеты (%)', n; end if;
+  select count(*) into n from public.orders where client_name = 'Клиент Б'; if n <> 1 then raise exception 'ПРОВАЛ: помощник не видит заказы кабинета'; end if;
+
+  insert into public.orders (client_name, product_ru) values ('Клиент помощника', 'Товар П') returning id into v_o;
+  if (select workspace_id from public.orders where id = v_o) <> v_ws then raise exception 'ПРОВАЛ: заказ помощника попал не в тот кабинет'; end if;
+  update public.orders set status = 'cancelled' where id = v_o;
+  get diagnostics n = row_count; if n <> 1 then raise exception 'ПРОВАЛ: помощник не может менять заказ'; end if;
+
+  delete from public.orders where id = v_o;
+  get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: помощник удалил заказ'; end if;
+  delete from public.suppliers;
+  get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: помощник удалил поставщика'; end if;
+  delete from public.clients;
+  get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: помощник удалил клиента'; end if;
+
+  update public.workspaces set name = 'Захвачен' where id = v_ws;
+  get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: помощник изменил настройки кабинета'; end if;
+
+  begin perform public.request_link_rotate(v_ws); raise exception 'ПРОВАЛ: помощник создал ссылку для заявок';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.team_invite_create(v_ws); raise exception 'ПРОВАЛ: помощник позвал ещё помощника';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.team_list(v_ws); raise exception 'ПРОВАЛ: помощник видит команду';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.team_remove(v_ws, '00000000-0000-0000-0000-0000000000b1'); raise exception 'ПРОВАЛ: помощник убрал владельца';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+
+-- владелец видит команду, может удалять, и убирает помощника
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare l jsonb; n int;
+begin
+  l := public.team_list((select v::uuid from t where k = 'tm_ws'));
+  if jsonb_array_length(l -> 'members') <> 2 then raise exception 'ПРОВАЛ: в команде не 2 человека'; end if;
+  delete from public.orders where client_name = 'Клиент помощника';
+  get diagnostics n = row_count; if n <> 1 then raise exception 'ПРОВАЛ: владелец не смог удалить заказ'; end if;
+  begin perform public.team_remove((select v::uuid from t where k = 'tm_ws'), '00000000-0000-0000-0000-0000000000b1'); raise exception 'ПРОВАЛ: убрали владельца';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  perform public.team_remove((select v::uuid from t where k = 'tm_ws'), '00000000-0000-0000-0000-0000000000a5');
+end $$;
+reset role;
+
+-- после удаления помощник не видит кабинет Б, но может войти в свой новый
+set request.uid = '00000000-0000-0000-0000-0000000000a5';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.orders; if n <> 0 then raise exception 'ПРОВАЛ: убранный помощник видит заказы'; end if;
+  if public.my_workspace_id() is null then raise exception 'ПРОВАЛ: у убранного помощника нет своего кабинета'; end if;
+  if public.is_member((select v::uuid from t where k = 'tm_ws')) then raise exception 'ПРОВАЛ: убранный помощник всё ещё участник'; end if;
+  begin perform count(*) from public.team_invites; raise exception 'ПРОВАЛ: таблица приглашений открыта';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+\echo '✅ 12. Помощник: работает с заказами, но не удаляет и не настраивает; приглашения одноразовые; чужие и посторонние закрыты'
