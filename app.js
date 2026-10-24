@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261107b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261107c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1195,8 +1195,14 @@
     btn.disabled = true;
     try {
       if (pPass && state.me.hasPassword) {
+        // Текущий пароль проверяем в отдельном временном «входе», чтобы не сбросить вашу сессию
+        // (иначе при включённом входе с кодом пришлось бы вводить код ещё раз).
         var sTok = await ULA.captcha.get("cf-settings");
-        var chk = await db.auth.signInWithPassword({ email: state.me.email, password: pCurrent, options: sTok ? { captchaToken: sTok } : undefined });
+        var cfg = window.CARGO_CONFIG || {};
+        var tmp = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY,
+          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+        var chk = await tmp.auth.signInWithPassword({ email: state.me.email, password: pCurrent, options: sTok ? { captchaToken: sTok } : undefined });
+        try { await tmp.auth.signOut({ scope: "local" }); } catch (e) { /* ignore */ }
         if (chk.error) { btn.disabled = false; setCurrentPasswordError("e_current_wrong"); return; }
       }
       if (pName !== state.me.name || pPhone !== state.me.phone) {
@@ -1206,7 +1212,8 @@
         state.me.phone = pPhone;
       }
       if (pPass) {
-        var pw = await db.auth.updateUser({ password: pPass });
+        var pw = await ULA.mfa.updatePassword(pPass);
+        if (pw.error && pw.error.message === "cancelled") { btn.disabled = false; return; }
         if (pw.error) throw pw.error;
         toast(t("password_changed"), "ok");
       }
