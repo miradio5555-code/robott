@@ -19,7 +19,7 @@
   var $ = c.$, esc = c.esc, money = c.money, num = c.num, cur = c.cur, locale = c.locale, state = c.state, toast = c.toast;
 
   var PERIODS = ["month", "3m", "12m", "all"];
-  var ui = { period: "12m", cur: "" };
+  var ui = { period: "12m", cur: "", top: "clients" };
   var STATUS_COLORS = {
     "new": "#8A8F98", awaiting_payment: "#D98A00", purchasing: "#2F6FDE", china_warehouse: "#7A4FD6",
     in_transit: "#0E8FA8", arrived: "#2E9E6A", delivered: "#146C43", cancelled: "#B3202F"
@@ -107,7 +107,8 @@
 
     var list = pr.filter(function (o) { return o.client_currency === ui.cur; });
     var prevList = rPrev ? (state.orders || []).filter(function (o) { return priced(o) && o.client_currency === ui.cur && inRange(o, rPrev); }) : null;
-    return { all: all, list: list, now: sums(list), prev: prevList && prevList.length ? sums(prevList) : null, curs: curs };
+    var prev = prevList && prevList.length >= 3 ? sums(prevList) : null;   // с 1–2 заказами сравнивать нечего
+    return { all: all, list: list, now: sums(list), prev: prev, curs: curs };
   }
 
   // ---------- Показ ----------
@@ -123,8 +124,8 @@
     var a = Math.abs(n), s = n < 0 ? "−" : "";
     var f = function (x) { return (Math.round(x * 10) / 10).toLocaleString(locale()); };
     if (a >= 1e6) return s + f(a / 1e6) + " " + t("an_m");
-    if (a >= 1e3) return s + f(a / 1e3) + " " + t("an_k");
-    return s + f(a);
+    if (a >= 1e5) return s + f(a / 1e3) + " " + t("an_k");
+    return s + money(Math.round(n));
   }
 
   function delta(now, prev, higherIsGood) {
@@ -140,16 +141,21 @@
     return '<div class="an-kpi ' + (cls || "") + '"><span>' + esc(label) + "</span><b>" + value + "</b>" + (extra || "") + "</div>";
   }
 
+  // Одна главная цифра (прибыль) + три маленьких; остальное — в «Подробнее»
   function kpisHtml(d) {
     var N = d.now, P = d.prev, code = ui.cur;
-    var liveCount = (state.orders || []).filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered"; }).length;
-    return kpi(t("r_revenue"), cur(N.rev, code), delta(N.rev, P && P.rev, true)) +
-      kpi(t("r_profit"), cur(N.profit, code), delta(N.profit, P && P.profit, true), N.profit < 0 ? "neg" : "good") +
-      kpi(t("an_markup"), money(N.markup) + " %", delta(N.markup, P && P.markup, true)) +
-      kpi(t("an_orders"), money(N.n), delta(N.n, P && P.n, true)) +
-      kpi(t("an_avg"), cur(Math.round(N.avg), code), delta(N.avg, P && P.avg, true)) +
-      kpi(t("r_debt"), cur(N.debt, code), delta(N.debt, P && P.debt, false), N.debt > 0 ? "warn" : "") +
-      kpi(t("an_live"), money(liveCount), "", "wide");
+    return '<div class="an-hero ' + (N.profit < 0 ? "neg" : "") + '"><span>' + esc(t("r_profit")) + "</span><b>" + esc(cur(N.profit, code)) + "</b>" +
+        '<small>' + esc(t("r_orders", { n: N.n })) + " · " + esc(t("r_markup", { n: money(N.markup) })) + "</small>" + delta(N.profit, P && P.profit, true) + "</div>" +
+      '<div class="an-kpis3">' +
+        kpi(t("r_revenue"), esc(short(N.rev)) + " <small>" + esc(code) + "</small>", delta(N.rev, P && P.rev, true)) +
+        kpi(t("an_orders"), money(N.n), delta(N.n, P && P.n, true)) +
+        kpi(t("r_debt"), esc(short(N.debt)) + " <small>" + esc(code) + "</small>", delta(N.debt, P && P.debt, false), N.debt > 0 ? "warn" : "") +
+      "</div>" +
+      '<details class="an-more"><summary>' + esc(t("an_more")) + "</summary><div class=\"an-kpis3\">" +
+        kpi(t("an_markup"), money(N.markup) + " %", delta(N.markup, P && P.markup, true)) +
+        kpi(t("an_avg"), esc(short(Math.round(N.avg))) + " <small>" + esc(code) + "</small>", delta(N.avg, P && P.avg, true)) +
+        kpi(t("r_cost"), esc(short(N.cost)) + " <small>" + esc(code) + "</small>", "") +
+      "</div></details>";
   }
 
   // Колонки «по месяцам»
@@ -168,6 +174,16 @@
       keys.push(d2.getFullYear() + "-" + ("0" + (d2.getMonth() + 1)).slice(-2));
     }
     return keys;
+  }
+
+  function monthsBy(d) {
+    var keys = monthKeys(d), by = {};
+    keys.forEach(function (k) { by[k] = { rev: 0, profit: 0 }; });
+    d.list.forEach(function (o) {
+      var g = by[String(o.order_date).slice(0, 7)];
+      if (g) { g.rev += num(o.total_som); g.profit += num(o.profit_som); }
+    });
+    return by;
   }
 
   function monthsHtml(d) {
@@ -225,6 +241,75 @@
     }).join("");
   }
 
+  // ---------- Выводы простыми словами ----------
+  function insightsHtml(d, monthsBy) {
+    var N = d.now, P = d.prev, code = ui.cur, lines = [];
+    if (P && P.profit > 0) {
+      var p = Math.round((N.profit - P.profit) / P.profit * 100);
+      if (p !== 0) lines.push([p > 0 ? "up" : "down", t(p > 0 ? "an_i_up" : "an_i_down", { n: Math.min(999, Math.abs(p)) })]);
+    }
+    var months = Object.keys(monthsBy).filter(function (k) { return monthsBy[k].rev > 0; });
+    if (months.length >= 2) {
+      var best = months.reduce(function (b, k) { return monthsBy[k].profit > monthsBy[b].profit ? k : b; }, months[0]);
+      lines.push(["", t("an_i_best", { m: monthLong(best), s: cur(monthsBy[best].profit, code) })]);
+    }
+    var tc = top(d.list, clientKey, clientName, "profit", 1)[0];
+    if (tc && N.profit > 0 && tc.profit > 0 && d.list.length >= 3) {
+      lines.push(["", t("an_i_client", { name: tc.label, n: Math.round(tc.profit / N.profit * 100) })]);
+    }
+    var td = top(d.list, clientKey, clientName, "debt", 1)[0];
+    if (td) lines.push(["down", t("an_i_debt", { name: td.label, s: cur(td.debt, code) })]);
+    if (!lines.length) return "";
+    return '<ul class="an-insights">' + lines.map(function (l) { return '<li class="' + l[0] + '">' + esc(l[1]) + "</li>"; }).join("") + "</ul>";
+  }
+
+  // ---------- Что требует внимания ----------
+  function daysSince(d) { return Math.floor((Date.now() - new Date(d).getTime()) / 86400000); }
+
+  function attentionHtml() {
+    var all = state.orders || [], items = [];
+    function row(o, text, tone) {
+      return '<button type="button" class="an-att ' + tone + '" data-open="' + esc(o.id) + '"><span>' + esc(text) + "</span><i>›</i></button>";
+    }
+    var noPrice = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered" && o.profit_som == null; });
+    if (noPrice.length) {
+      items.push('<p class="an-att-head">' + esc(t("an_a_noprice", { n: noPrice.length })) + "</p>");
+      noPrice.slice(0, 3).forEach(function (o) { items.push(row(o, "№ " + o.order_number + " · " + clientName(o), "warn")); });
+    }
+    var debts = all.filter(function (o) { return o.status !== "cancelled" && num(o.balance_som) > 0 && o.order_date && daysSince(o.order_date) >= 7; })
+      .sort(function (a, b) { return num(b.balance_som) - num(a.balance_som); });
+    if (debts.length) {
+      items.push('<p class="an-att-head">' + esc(t("an_a_debts", { n: debts.length })) + "</p>");
+      debts.slice(0, 3).forEach(function (o) {
+        items.push(row(o, clientName(o) + " · " + cur(o.balance_som, o.client_currency) + " · " + t("an_days", { n: daysSince(o.order_date) }), "bad"));
+      });
+    }
+    var stuck = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered" && o.updated_at && daysSince(o.updated_at) >= 10; })
+      .sort(function (a, b) { return String(a.updated_at).localeCompare(String(b.updated_at)); });
+    if (stuck.length) {
+      items.push('<p class="an-att-head">' + esc(t("an_a_stuck", { n: stuck.length })) + "</p>");
+      stuck.slice(0, 3).forEach(function (o) {
+        items.push(row(o, "№ " + o.order_number + " · " + t("status_" + o.status) + " · " + t("an_days", { n: daysSince(o.updated_at) }), "warn"));
+      });
+    }
+    var live = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered"; }).length;
+    var head = '<p class="an-live">' + esc(t("an_a_live", { n: live })) + "</p>";
+    return items.length ? head + items.join("") : head + '<p class="an-ok">✓ ' + esc(t("an_a_ok")) + "</p>";
+  }
+
+  // Блок «лучшие клиенты / товары / должники» с переключателем
+  function topBlock(d) {
+    var code = ui.cur, tabs = ["clients", "products", "debtors"];
+    var rows, field = "profit", cls = "";
+    if (ui.top === "products") rows = top(d.list, productKey, function (o) { return String(o.product_ru || "—").trim(); }, "profit", 5);
+    else if (ui.top === "debtors") { rows = top(d.list, clientKey, clientName, "debt", 5); field = "debt"; cls = "warn"; }
+    else rows = top(d.list, clientKey, clientName, "profit", 5);
+    var sw = '<div class="chips an-tabs">' + tabs.map(function (k) {
+      return '<button type="button" class="chip' + (k === ui.top ? " active" : "") + '" data-top="' + k + '"><span>' + esc(t("an_top_" + k)) + "</span></button>";
+    }).join("") + "</div>";
+    return sw + barsHtml(rows, field, code, cls);
+  }
+
   function card(title, body, cls) {
     return '<section class="an-card ' + (cls || "") + '"><h3>' + esc(title) + "</h3>" + body + "</section>";
   }
@@ -245,19 +330,16 @@
     }
     $("#an-empty").classList.add("hidden");
 
-    var code = ui.cur;
-    var html = '<div class="an-kpis">' + (d.list.length ? kpisHtml(d) : "") + "</div>";
+    var html = "";
     if (d.list.length) {
-      html += card(t("an_by_month"), monthsHtml(d), "wide");
+      html += '<div class="an-top">' + insightsHtml(d, monthsBy(d)) + kpisHtml(d) + "</div>";
     } else {
-      html += '<p class="fine-print">' + esc(t("an_no_price")) + "</p>";
+      html += '<p class="fine-print an-top">' + esc(t("an_no_price")) + "</p>";
     }
+    html += card(t("an_attention"), attentionHtml(), "att");
+    if (d.list.length) html += card(t("an_by_month"), monthsHtml(d), "wide");
     html += card(t("an_by_status"), statusHtml(d));
-    if (d.list.length) {
-      html += card(t("an_top_clients"), barsHtml(top(d.list, clientKey, clientName, "profit", 5), "profit", code));
-      html += card(t("an_top_products"), barsHtml(top(d.list, productKey, function (o) { return String(o.product_ru || "—").trim(); }, "profit", 5), "profit", code));
-      html += card(t("an_debtors"), barsHtml(top(d.list, clientKey, clientName, "debt", 5), "debt", code, "warn"));
-    }
+    if (d.list.length) html += card(t("an_top"), topBlock(d));
     $("#an-body").innerHTML = html;
   }
 
@@ -297,6 +379,10 @@
         $("#an-readout").innerHTML = readout(col.getAttribute("data-month"), { rev: num(col.getAttribute("data-rev")), profit: num(col.getAttribute("data-profit")) });
         return;
       }
+      var op = e.target.closest("[data-open]");
+      if (op) { c.openDetail(op.getAttribute("data-open")); return; }
+      var tp = e.target.closest("[data-top]");
+      if (tp) { ui.top = tp.getAttribute("data-top"); render(); return; }
       var p = e.target.closest("[data-period]"), cu = e.target.closest("[data-cur]");
       if (p) ui.period = p.getAttribute("data-period");
       else if (cu) ui.cur = cu.getAttribute("data-cur");
