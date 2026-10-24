@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261103b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261104a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -687,15 +687,17 @@
       btn.textContent = t("logging_in");
       setLoginError("");
       try {
+        var cTok = await ULA.captcha.get("cf-login");
         var res = await db.auth.signInWithPassword({
           email: $("#login-email").value.trim(),
-          password: $("#login-password").value
+          password: $("#login-password").value,
+          options: cTok ? { captchaToken: cTok } : undefined
         });
-        if (res.error) setLoginError(t("login_error"));
+        if (res.error) setLoginError(/captcha/i.test(res.error.message || "") ? t("captcha_err") : t("login_error"));
         else await enterAdmin(res.data.user);
       } catch (err) {
         console.error(err);
-        setLoginError(t("error_generic"));
+        setLoginError(/captcha/i.test(String(err && err.message)) ? t("captcha_err") : t("error_generic"));
       } finally {
         btn.disabled = false;
         btn.textContent = t("login_btn");
@@ -1138,7 +1140,8 @@
     btn.disabled = true;
     try {
       if (pPass && state.me.hasPassword) {
-        var chk = await db.auth.signInWithPassword({ email: state.me.email, password: pCurrent });
+        var sTok = await ULA.captcha.get("cf-settings");
+        var chk = await db.auth.signInWithPassword({ email: state.me.email, password: pCurrent, options: sTok ? { captchaToken: sTok } : undefined });
         if (chk.error) { btn.disabled = false; setSettingsError(t("e_current_wrong")); $("#p-current").focus(); return; }
       }
       if (pName !== state.me.name || pPhone !== state.me.phone) {
@@ -2143,10 +2146,12 @@
       btn.textContent = t("join_busy");
       try {
         // Код приглашения уходит вместе с регистрацией — база сама создаст кабинет
+        var jTok = await ULA.captcha.get("cf-join");
         var res = await db.auth.signUp({
           email: email,
           password: pass,
           options: {
+            captchaToken: jTok || undefined,
             data: code
               ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone }
               : { full_name: name, workspace_name: wsName || name, phone: phone },
@@ -2154,7 +2159,7 @@
           }
         });
         if (res.error) {
-          setJoinError(/registered|exists/i.test(res.error.message) ? t("join_exists") : t("error_generic"));
+          setJoinError(/registered|exists/i.test(res.error.message) ? t("join_exists") : /captcha/i.test(res.error.message) ? t("captcha_err") : t("error_generic"));
           return;
         }
         if (res.data && res.data.session) {
