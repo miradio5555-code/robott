@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261029a">
+  <link rel="stylesheet" href="style.css?v=20261030a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -175,14 +175,16 @@
           </button>
           <div id="section-menu" class="section-menu hidden">
             <nav class="tabs section-menu-list" aria-label="Sections">
+            <span class="menu-group" data-i18n="menu_main"></span>
             <button type="button" class="tab active" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
             <button type="button" class="tab" data-tab="clients" data-i18n="nav_clients"></button>
-            <button type="button" class="tab" data-tab="shipments" data-i18n="nav_shipments"></button>
             <button type="button" class="tab" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
+            <span class="menu-group owner-only" data-i18n="menu_money"></span>
             <button type="button" class="tab owner-only" data-tab="analytics" data-i18n="nav_analytics"></button>
-            <button type="button" class="tab owner-only" data-tab="report" data-i18n="nav_report"></button>
-            <button type="button" class="tab" data-tab="suppliers" data-i18n="nav_suppliers"></button>
+            <span class="menu-group" data-i18n="menu_more"></span>
             <button type="button" class="tab" data-tab="quote" data-i18n="nav_quote"></button>
+            <button type="button" class="tab" data-tab="suppliers" data-i18n="nav_suppliers"></button>
+            <button type="button" class="tab" data-tab="shipments" data-i18n="nav_shipments"></button>
             <button type="button" class="tab admin-only" data-tab="buyers" data-i18n="nav_buyers"></button>
             <button type="button" class="tab admin-only" data-tab="support"><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
             </nav>
@@ -308,6 +310,7 @@
 
     <!-- ============ РАЗДЕЛ: ОТЧЁТ (прибыль) ============ -->
     <main id="tab-report" class="container container-narrow hidden">
+      <button id="r-back" class="btn btn-ghost btn-sm r-back" type="button" data-i18n="r_back"></button>
       <div class="page-head">
         <div>
           <h1 class="page-title" data-i18n="nav_report"></h1>
@@ -354,6 +357,10 @@
 
     <!-- ============ РАЗДЕЛ: РАСЧЁТ ЦЕНЫ ДЛЯ КЛИЕНТА ============ -->
     <main id="tab-quote" class="container container-narrow hidden">
+      <div id="q-for" class="q-for hidden">
+        <span id="q-for-text"></span>
+        <button id="q-for-cancel" class="btn btn-ghost btn-sm" type="button" data-i18n="q_for_cancel"></button>
+      </div>
       <section class="client-block">
         <h2 data-i18n="q_title"></h2>
         <p class="fine-print" data-i18n="q_hint"></p>
@@ -437,6 +444,7 @@
         <div class="stack">
           <a id="q-wa" class="btn btn-primary" target="_blank" rel="noopener" data-i18n="notify_wa"></a>
           <button id="q-copy" class="btn" type="button" data-i18n="copy"></button>
+          <button id="q-apply" class="btn btn-primary hidden" type="button" data-write data-i18n="q_apply"></button>
           <button id="q-order" class="btn" type="button" data-write data-i18n="q_order"></button>
           <button id="q-clear" class="btn btn-ghost" type="button" data-i18n="q_clear"></button>
         </div>
@@ -488,8 +496,11 @@
           <p class="page-sub"><span data-i18n="sum_orders"></span>: <b id="sum-orders">0</b></p>
         </div>
         <button id="req-link-btn" class="btn owner-only" type="button" data-write data-i18n="rl_btn"></button>
+        <button id="bulk-btn" class="btn" type="button" data-write data-i18n="bulk_select"></button>
         <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
       </div>
+
+      <section id="onboard-card" class="onboard-card hidden" aria-label="onboarding"></section>
 
       <!-- 2. Главные цифры -->
       <section class="summary" aria-label="summary">
@@ -571,6 +582,14 @@
       <div id="orders" class="orders"></div>
       <div id="empty" class="state-box hidden"></div>
     </main>
+
+    <!-- панель массовых действий (режим выбора заказов) -->
+    <div id="bulk-bar" class="bulk-bar hidden">
+      <span id="bulk-count"></span>
+      <button id="bulk-all" class="btn btn-sm" type="button"></button>
+      <button id="bulk-status" class="btn btn-primary btn-sm" type="button" data-i18n="bulk_status"></button>
+      <button id="bulk-cancel" class="btn btn-ghost btn-sm" type="button" data-i18n="bulk_cancel"></button>
+    </div>
 
     <button id="fab" class="fab" type="button" aria-label="+" data-write>+</button>
   </div>
@@ -767,6 +786,11 @@
         <!-- Внешний вид: тема и язык (применяются сразу) -->
         <section class="s-section">
           <h3 data-i18n="s_sec_look"></h3>
+          <fieldset class="seg">
+            <legend data-i18n="s_menu_sections"></legend>
+            <label class="check-line"><input type="checkbox" id="s-show-shipments"><span data-i18n="s_show_shipments"></span></label>
+            <label class="check-line"><input type="checkbox" id="s-show-suppliers"><span data-i18n="s_show_suppliers"></span></label>
+          </fieldset>
           <fieldset class="seg">
             <legend data-i18n="s_theme"></legend>
             <div class="seg-options seg-3">
@@ -1079,6 +1103,33 @@
   </div>
 
   <!-- ============ ОКНО: СООБЩИТЬ КЛИЕНТУ ============ -->
+  <!-- ============ ОКНА: МАССОВАЯ СМЕНА СТАТУСА ============ -->
+  <div id="modal-bulk-status" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="bulk-status-title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div id="bulk-status-list" class="modal-body status-list"></div>
+    </div>
+  </div>
+
+  <div id="modal-bulk-notify" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="bulk_q_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="bulk_q_hint"></p>
+        <button id="bq-next" class="btn btn-primary btn-block" type="button"></button>
+        <div id="bulk-queue" class="bq-list"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-notify" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
     <div class="modal-sheet">
@@ -1122,21 +1173,23 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261029a"></script>
+  <script src="i18n.js?v=20261030a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261029a"></script>
+  <script src="app.js?v=20261030a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261029a"></script>
-  <script src="js/support.js?v=20261029a"></script>
-  <script src="js/notify.js?v=20261029a"></script>
-  <script src="js/xlsx.js?v=20261029a"></script>
-  <script src="js/analytics.js?v=20261029a"></script>
-  <script src="js/requests.js?v=20261029a"></script>
-  <script src="js/team.js?v=20261029a"></script>
-  <script src="js/shipments.js?v=20261029a"></script>
-  <script src="js/report.js?v=20261029a"></script>
-  <script src="js/debts.js?v=20261029a"></script>
-  <script src="js/quote.js?v=20261029a"></script>
-  <script src="js/client.js?v=20261029a"></script>
+  <script src="js/fx.js?v=20261030a"></script>
+  <script src="js/support.js?v=20261030a"></script>
+  <script src="js/notify.js?v=20261030a"></script>
+  <script src="js/xlsx.js?v=20261030a"></script>
+  <script src="js/analytics.js?v=20261030a"></script>
+  <script src="js/bulk.js?v=20261030a"></script>
+  <script src="js/onboarding.js?v=20261030a"></script>
+  <script src="js/requests.js?v=20261030a"></script>
+  <script src="js/team.js?v=20261030a"></script>
+  <script src="js/shipments.js?v=20261030a"></script>
+  <script src="js/report.js?v=20261030a"></script>
+  <script src="js/debts.js?v=20261030a"></script>
+  <script src="js/quote.js?v=20261030a"></script>
+  <script src="js/client.js?v=20261030a"></script>
 </body>
 </html>

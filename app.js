@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261029a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261030a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -642,7 +642,7 @@
     renderWarehouse();
     switchTab("orders");
     await Promise.all([loadOrders(), loadSuppliers()]);
-    ULA.shipments.load(true);   // названия партий для меток на карточках заказов
+    ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
   }
 
   function renderWsBanner() {
@@ -739,6 +739,8 @@
     ULA.debts.bind();
     ULA.report.bind();
     ULA.analytics.bind();
+    ULA.bulk.bind();
+    ULA.onboarding.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -761,6 +763,14 @@
     $("#onboard-form").addEventListener("submit", saveOnboard);
     $("[data-onboard-logout]").addEventListener("click", function () { $("#logout-btn").click(); closeModal("modal-onboard"); });
     $("#settings-form").addEventListener("submit", saveSettings);
+    ["shipments", "suppliers"].forEach(function (k) {
+      $("#s-show-" + k).addEventListener("change", function (e) {
+        try { localStorage.setItem("ula_show_" + k, e.target.checked ? "1" : "0"); } catch (err) { /* без хранилища — не страшно */ }
+        applyOptionalTabs();
+        if (!e.target.checked && state.tab === k) switchTab("orders");
+      });
+    });
+    $("#r-back").addEventListener("click", function () { switchTab("analytics"); });
     // в настройках: валюта клиента изменилась — обновить список валют доставки
     $("#s-def-client").addEventListener("change", function () {
       var dSel = $("#s-def-delivery");
@@ -988,6 +998,7 @@
     if (ULA.debts) ULA.debts.refresh();   // список должников и красная цифра у «Долги»
     if (ULA.report) ULA.report.refresh(); // отчёт по прибыли (если открыт)
     if (ULA.analytics) ULA.analytics.refresh(); // дашборд (если открыт)
+    if (ULA.onboarding) ULA.onboarding.refresh(); // подсказка «Начните с 4 шагов»
   }
 
   // Блок «Склад в Китае». Адрес хранится в настройках кабинета.
@@ -1020,6 +1031,10 @@
   }
 
   function openSettings(scrollTo) {
+    // разделы меню
+    var ot = optionalTabs();
+    $("#s-show-shipments").checked = ot.shipments;
+    $("#s-show-suppliers").checked = ot.suppliers;
     // внешний вид
     $$('input[name="theme"]').forEach(function (r) { r.checked = r.value === getTheme(); });
     $$('input[name="s-lang"]').forEach(function (r) { r.checked = r.value === getLang(); });
@@ -1262,8 +1277,9 @@
         (urls.length > 1 ? "<span>+" + (urls.length - 1) + "</span>" : "") + "</button>"
       : '<div class="card-photo card-photo-empty" aria-hidden="true">📦</div>';
     return '' +
-      '<article class="card st-' + o.status + '" data-id="' + esc(o.id) + '">' +
+      '<article class="card st-' + o.status + (ULA.bulk && ULA.bulk.has(o.id) ? " selected" : "") + '" data-id="' + esc(o.id) + '">' +
         '<div class="card-top">' +
+          '<label class="sel-box"><input type="checkbox" data-sel="' + esc(o.id) + '"' + (ULA.bulk && ULA.bulk.has(o.id) ? " checked" : "") + '><span></span></label>' +
           '<span class="order-no">№ ' + esc(o.order_number) + "</span>" +
           '<span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
@@ -1284,7 +1300,9 @@
         "</dl>" +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
         '<div class="card-actions">' +
-          '<button type="button" class="btn btn-primary" data-act="open">' + t("open") + "</button>" +
+          (o.source === "request" && o.status === "new"
+            ? '<button type="button" class="btn btn-primary" data-act="quote" data-write>' + t("rq_calc") + "</button>"
+            : '<button type="button" class="btn btn-primary" data-act="open">' + t("open") + "</button>") +
           '<button type="button" class="btn btn-notify" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           // «⋯» — редкие действия, чтобы не загромождать карточку
           '<details class="card-more">' +
@@ -1375,11 +1393,13 @@
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     $$(".tab").forEach(function (b) {
-      var on = b.getAttribute("data-tab") === state.tab;
+      // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
+      var on = b.getAttribute("data-tab") === (state.tab === "report" ? "analytics" : state.tab);
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
     closeSectionMenu();
+    if (state.tab !== "orders" && ULA.bulk && ULA.bulk.isOn()) ULA.bulk.off();
     window.scrollTo(0, 0);
     if (state.tab === "clients" && db && state.ws) loadClients();
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
@@ -1399,6 +1419,20 @@
     // название раздела без красной цифры (она лежит в отдельном <span>)
     var name = active && (active.querySelector("[data-i18n]") || active);
     if (label) label.textContent = name ? name.textContent.trim() : t("nav_menu");
+  }
+
+  // Необязательные разделы меню («Партии», «Поставщики»): по умолчанию «Партии» спрятаны, пока ими не пользуются
+  function optionalTabs() {
+    function stored(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+    var hasShipments = !!(ULA.shipments && ULA.shipments.count && ULA.shipments.count() > 0);
+    var sh = stored("ula_show_shipments");
+    return { shipments: sh === "1" || (sh === null && hasShipments), suppliers: stored("ula_show_suppliers") !== "0" };
+  }
+  function applyOptionalTabs() {
+    var o = optionalTabs();
+    var a = $('.section-menu .tab[data-tab="shipments"]'), b = $('.section-menu .tab[data-tab="suppliers"]');
+    if (a) a.classList.toggle("hidden", !o.shipments);
+    if (b) b.classList.toggle("hidden", !o.suppliers);
   }
 
   function closeSectionMenu() {
@@ -2095,6 +2129,7 @@
     else if (act === "edit") { closeModal("modal-detail"); openOrderForm(o); }
     else if (act === "status") openStatus(o);
     else if (act === "link") openLink(o);
+    else if (act === "quote") ULA.quote.forOrder(o);
     else if (act === "notify") ULA.notify.open(o);
     else if (act === "delete") deleteOrder(o);
   }
@@ -2415,6 +2450,26 @@
     updateCalc();
   }
 
+  // Цена из «Расчёта» для уже существующего заказа (заявки клиента): открываем заказ и подставляем цифры
+  function openOrderApply(o, d) {
+    openOrderForm(o);
+    var set = function (id, v) { $("#f-" + id).value = v == null || v === 0 ? "" : String(v); };
+    fillCurrencySelect($("#f-purchase_currency"), d.purchase_currency, PURCHASE_CURRENCIES);
+    fillCurrencySelect($("#f-client_currency"), d.client_currency);
+    fillCurrencySelect($("#f-delivery_currency"), d.delivery_currency, deliveryCurrencies(d.client_currency));
+    set("quantity", d.quantity);
+    set("unit_price_cny", d.unit_price);
+    set("exchange_rate", d.exchange_rate);
+    set("weight_kg", d.weight);
+    set("delivery_tariff", d.tariff);
+    set("delivery_cost", d.delivery_cost);
+    set("delivery_rate", d.delivery_rate);
+    set("client_price", d.client_price);
+    set("markup", d.markup);
+    if (o.status === "new") $("#f-status").value = "awaiting_payment";   // цена названа — ждём оплату
+    updateCalc();
+  }
+
   // Себестоимость по тому, что сейчас вписано в форме (в валюте клиента)
   function currentCost() {
     return parseNum($("#f-quantity").value) * parseNum($("#f-unit_price_cny").value) * parseNum($("#f-exchange_rate").value) +
@@ -2661,7 +2716,8 @@
     photoUrl: photoUrl, openLightbox: openLightbox, showView: showView,
     clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
     switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
-    lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openDetail: openDetail,
+    lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
+    filteredOrders: function () { return filtered(); },
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
     csvCell: csvCell, todayISO: todayISO, reloadOrders: loadOrders, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,

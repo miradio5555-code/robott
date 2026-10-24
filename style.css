@@ -1787,3 +1787,48 @@ body.is-staff .owner-only { display: none !important; }
 .an-goal-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
 .an-goal-form { display: flex; gap: 8px; flex-wrap: wrap; }
 .an-goal-form input { flex: 1; min-width: 150px; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--field); color: var(--ink); font: inherit; }
+
+/* ---- Массовые действия ---- */
+.sel-box { display: none; align-items: center; }
+body.selecting .sel-box { display: inline-flex; margin-right: 4px; }
+.sel-box input { position: absolute; opacity: 0; pointer-events: none; }
+.sel-box span { width: 24px; height: 24px; border: 2px solid var(--line-strong); border-radius: 7px; background: var(--field); display: inline-block; position: relative; flex: none; }
+.sel-box input:checked + span { background: var(--primary); border-color: var(--primary); }
+.sel-box input:checked + span::after { content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 12px; border: solid var(--on-primary); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+body.selecting #orders .card { cursor: pointer; }
+body.selecting #orders .card.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+body.selecting .card-actions, body.selecting #fab { display: none; }
+.bulk-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line-strong); box-shadow: 0 -8px 24px rgba(0,0,0,.14); }
+.bulk-bar #bulk-count { font-weight: 800; margin-right: auto; }
+.bq-list { display: grid; gap: 8px; margin-top: 12px; }
+.bq-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.bq-row span { display: block; font-size: 12px; color: var(--muted); }
+.bq-row.done { opacity: .6; }
+.q-for { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; margin-bottom: 12px; background: var(--red-tint); border: 1px solid var(--danger-line); border-radius: var(--r-md); font-weight: 700; font-size: 14px; }
+body.selecting #orders .card-actions { display: none !important; }
+body.selecting #tab-orders { padding-bottom: 96px; }
+body.selecting .sel-box + .order-no { margin-right: auto; }
+
+/* Меню по группам, необязательные разделы */
+.menu-group { display: block; padding: 10px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+body:not(.is-staff) .section-menu-list .menu-group.owner-only { display: block; }
+.r-back { margin-bottom: 8px; }
+.an-detail { margin-top: 4px; }
+.check-line { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-weight: 600; }
+.check-line input { width: 20px; height: 20px; }
+
+/* Подсказка для нового байера */
+.onboard-card { margin: 0 0 14px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--red); border-radius: var(--r-lg); }
+.ob-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ob-head h2 { margin: 0; font-size: 17px; }
+.ob-head span { font-size: 13px; font-weight: 800; color: var(--muted); }
+.ob-bar { height: 8px; background: var(--hover); border-radius: 99px; margin: 10px 0 12px; overflow: hidden; }
+.ob-bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+.ob-step { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; margin-bottom: 6px; background: var(--soft); border: 1px solid var(--line); border-radius: var(--r-sm); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.ob-step:hover:not(:disabled) { background: var(--hover); }
+.ob-step b { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--line); font-size: 13px; flex: none; }
+.ob-step.done { opacity: .6; cursor: default; }
+.ob-step.done b { background: var(--green); color: #fff; }
+.ob-step span { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; }
+.ob-step i { font-style: normal; color: var(--muted); font-size: 18px; }
+.ob-hide { margin-top: 4px; }
