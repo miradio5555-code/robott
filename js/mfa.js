@@ -190,5 +190,16 @@
     });
   }
 
-  U.mfa = { bind: bind, gate: gate, refresh: refresh };
+  // Сменить пароль. Когда включён вход с кодом, Supabase разрешает это только после ввода кода:
+  // если ответил «нужен код» — просим код и пробуем ещё раз.
+  async function updatePassword(password) {
+    var res = await c.db().auth.updateUser({ password: password });
+    if (res.error && /aal2/i.test(String(res.error.message || ""))) {
+      if (!(await gate())) return { error: { message: "cancelled" } };
+      res = await c.db().auth.updateUser({ password: password });
+    }
+    return res;
+  }
+
+  U.mfa = { bind: bind, gate: gate, refresh: refresh, updatePassword: updatePassword };
 })(window.ULA);

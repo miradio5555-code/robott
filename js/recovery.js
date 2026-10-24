@@ -69,7 +69,8 @@
         var btn = $("#np-save");
         btn.disabled = true;
         try {
-          var res = await c.db().auth.updateUser({ password: p1 });
+          var res = await U.mfa.updatePassword(p1);
+          if (res.error && res.error.message === "cancelled") return;
           if (res.error) { bad("error_generic"); return; }
           form.removeEventListener("submit", onSubmit);
           c.closeModal("modal-newpass");
