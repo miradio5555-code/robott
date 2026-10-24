@@ -147,6 +147,10 @@
       if (res.error) throw res.error;
       rq.result = res.data || {};
       rq.step = "sent";
+      // сообщить байеру в Telegram (если подключён); ошибка здесь клиенту не видна
+      try {
+        if (rq.result.token) c.db().functions.invoke("telegram-notify", { body: { action: "request_notify", token: rq.result.token } }).catch(function () {});
+      } catch (e) { /* ignore */ }
       rq.draft = {};
     } catch (err) {
       console.error(err);
