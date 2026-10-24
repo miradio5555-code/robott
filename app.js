@@ -246,6 +246,18 @@
     } catch (e) { /* нет сети — кнопку не показываем */ }
   }
 
+  // глазок «показать пароль»
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pw-eye]");
+    if (!b) return;
+    e.preventDefault();
+    var inp = b.parentNode.querySelector("input");
+    var show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    b.classList.toggle("on", show);
+    inp.focus();
+  });
+
   async function signInWithGoogle() {
     var res = await db.auth.signInWithOAuth({
       provider: "google",
@@ -304,6 +316,8 @@
       return;
     }
 
+    // ошибка входа, которую Supabase вернул в адресе (Google не пустил, ссылка из письма устарела…)
+    var authErr = readAuthError();
     db = window.supabase.createClient(url, key);
     $$("[data-google]").forEach(function (b) { b.addEventListener("click", signInWithGoogle); });
 
@@ -313,8 +327,12 @@
     //   иначе            — вход и кабинет
     var token = new URLSearchParams(location.search).get("order");
     var join = location.hash.match(/^#\/join(?:\/([a-f0-9]{32}))?$/i);
-    window.addEventListener("hashchange", function () {
-      if (/^#\/join/.test(location.hash) || location.hash === "") location.reload();
+    // переход «Регистрация» ↔ «Вход» перерисовываем перезагрузкой.
+    // ВАЖНО: не перезагружать, когда библиотека входа сама очищает адрес после Google или ссылки из письма
+    // (иначе вход через Google и «Забыли пароль» терялись и снова показывался вход).
+    window.addEventListener("hashchange", function (e) {
+      var wasJoin = String(e.oldURL || "").indexOf("#/join") !== -1;
+      if (/^#\/join/.test(location.hash) || (location.hash === "" && wasJoin)) location.reload();
     });
     showGoogleIfEnabled(url, key);
 
@@ -326,8 +344,20 @@
       initJoin(join[1] ? join[1].toLowerCase() : null);
     } else {
       mode = "admin";
-      initAdmin();
+      initAdmin().then(function () { if (authErr) setLoginError(authErr); });
     }
+  }
+
+  // ?error=…&error_description=… или #error=… в адресе после входа через Google / ссылки из письма
+  function readAuthError() {
+    var raw = (location.hash || "").replace(/^#/, "") + "&" + (location.search || "").replace(/^\?/, "");
+    var p = new URLSearchParams(raw);
+    var code = p.get("error_code") || "", err = p.get("error") || "", desc = p.get("error_description") || "";
+    if (!err && !code) return "";
+    history.replaceState(null, "", location.pathname);
+    if (/otp_expired|expired/i.test(code + " " + desc)) return t("auth_err_expired");
+    if (/exchange external code|provider/i.test(desc)) return t("auth_err_google");
+    return t("auth_err_generic") + (desc ? " (" + desc.replace(/\+/g, " ").slice(0, 120) + ")" : "");
   }
 
   function setCurrency() { /* валюта теперь своя у каждого заказа */ }

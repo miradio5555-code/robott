@@ -65,8 +65,20 @@
   </main>
 
   <!-- ============ ВХОД ============ -->
-  <main id="view-login" class="center-screen hidden">
-    <form id="login-form" class="panel" autocomplete="on">
+  <main id="view-login" class="center-screen auth-screen hidden">
+    <aside class="auth-aside" aria-hidden="true">
+      <div class="auth-aside-in">
+        <img class="auth-mark" src="img/mark.svg" alt="" width="56" height="56">
+        <div class="auth-brand"><b>ULA</b> Factory</div>
+        <p class="auth-tag" data-i18n="auth_tag"></p>
+        <ul class="auth-points">
+          <li><span>1</span><b data-i18n="auth_b1"></b></li>
+          <li><span>2</span><b data-i18n="auth_b2"></b></li>
+          <li><span>3</span><b data-i18n="auth_b3"></b></li>
+        </ul>
+      </div>
+    </aside>
+    <form id="login-form" class="panel auth-panel" autocomplete="on">
       <img class="logo-full" src="img/logo-full.jpg" alt="ULA Factory" width="520" height="468">
       <h1 data-i18n="login_title"></h1>
       <p class="muted" data-i18n="login_hint"></p>
@@ -78,7 +90,7 @@
       </label>
       <label class="field">
         <span data-i18n="password"></span>
-        <input id="login-password" type="password" autocomplete="current-password" required>
+        <span class="pw-wrap"><input id="login-password" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" data-pw-eye aria-label="show"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
       </label>
 
       <div id="cf-login" class="cf-box hidden"></div>
@@ -106,8 +118,20 @@
   </main>
 
   <!-- ============ РЕГИСТРАЦИЯ БАЙЕРА ПО ПРИГЛАШЕНИЮ (#/join/КОД) ============ -->
-  <main id="view-join" class="center-screen hidden">
-    <div class="panel">
+  <main id="view-join" class="center-screen auth-screen hidden">
+    <aside class="auth-aside" aria-hidden="true">
+      <div class="auth-aside-in">
+        <img class="auth-mark" src="img/mark.svg" alt="" width="56" height="56">
+        <div class="auth-brand"><b>ULA</b> Factory</div>
+        <p class="auth-tag" data-i18n="auth_tag"></p>
+        <ul class="auth-points">
+          <li><span>1</span><b data-i18n="auth_b1"></b></li>
+          <li><span>2</span><b data-i18n="auth_b2"></b></li>
+          <li><span>3</span><b data-i18n="auth_b3"></b></li>
+        </ul>
+      </div>
+    </aside>
+    <div class="panel auth-panel">
       <img class="logo-full" src="img/logo-full.jpg" alt="ULA Factory" width="520" height="468">
 
       <!-- проверяем приглашение -->
@@ -133,7 +157,7 @@
         <label class="field"><span data-i18n="email"></span>
           <input id="join-email" type="email" autocomplete="email" required></label>
         <label class="field"><span data-i18n="join_password"></span>
-          <input id="join-password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <span class="pw-wrap"><input id="join-password" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="pw-eye" data-pw-eye aria-label="show"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>
         <label class="field"><span data-i18n="password_repeat"></span>
           <input id="join-password2" type="password" autocomplete="new-password" minlength="8" required></label>
         <div id="cf-join" class="cf-box hidden"></div>
@@ -1090,7 +1114,7 @@
       <div class="modal-body">
         <p class="muted" data-i18n="newpass_hint"></p>
         <label class="field"><span data-i18n="s_new_password"></span>
-          <input id="np-pass" type="password" autocomplete="new-password" minlength="8"></label>
+          <span class="pw-wrap"><input id="np-pass" type="password" autocomplete="new-password" minlength="8"><button type="button" class="pw-eye" data-pw-eye aria-label="show"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>
         <label class="field"><span data-i18n="password_repeat"></span>
           <input id="np-pass2" type="password" autocomplete="new-password" minlength="8"></label>
         <p id="np-error" class="form-error hidden" role="alert"></p>

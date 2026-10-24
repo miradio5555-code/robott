@@ -2149,3 +2149,58 @@ body.touring .section-menu .tab.mg-hidden { display: flex !important; }
 .forgot-row a { color: var(--muted); font-weight: 700; text-underline-offset: 3px; }
 .reset-msg { padding: 10px 12px; background: var(--green-tint); color: var(--green); border-radius: var(--r-sm); font-weight: 700; font-size: 14px; }
 .toast { width: max-content; max-width: min(380px, calc(100vw - 32px)); text-align: center; }
+
+/* =====================================================
+   ВХОД И РЕГИСТРАЦИЯ — профессиональный вид
+   Компьютер: слева тёмная панель с логотипом и пользой, справа форма.
+   Телефон: аккуратная карточка с логотипом сверху.
+   ===================================================== */
+.auth-screen { display: grid; grid-template-columns: 1fr; place-items: stretch; padding: 0;
+  background: radial-gradient(1200px 600px at 100% -10%, color-mix(in srgb, var(--red) 10%, transparent), transparent 60%), var(--paper); }
+.auth-aside { display: none; }
+.auth-panel { align-self: center; justify-self: center; width: 100%; max-width: 440px; margin: 24px 16px; padding: 32px 28px 26px;
+  border-radius: 22px; box-shadow: var(--shadow-md); animation: ula-sheet .35s var(--ease); }
+.auth-panel .logo-full { width: 132px; margin: -6px auto 14px; border-radius: 16px; }
+.auth-panel h1 { font-family: var(--font-display); font-size: 24px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 6px; }
+.auth-panel > .muted, .auth-panel form > .muted { margin-bottom: 22px; font-size: 14.5px; }
+.auth-panel .field { margin-bottom: 14px; }
+.auth-panel .field > span { font-weight: 700; font-size: 13px; color: var(--ink-soft); }
+.auth-panel input:not([type="checkbox"]) { min-height: 50px; font-size: 16px; background: var(--field); }
+.auth-panel .btn-primary { min-height: 52px; font-size: 16px; border-radius: 14px; }
+.auth-panel .btn-google { min-height: 50px; border-radius: 14px; background: var(--surface); font-weight: 700; }
+.auth-panel .btn-google:hover { background: var(--hover); }
+.auth-panel .forgot-row { margin: -6px 0 14px; }
+.auth-panel .form-error { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--red-tint); color: var(--red); font-weight: 700; font-size: 14px; text-align: left; }
+.auth-panel .lang-center { margin-top: 18px; }
+
+/* показать пароль */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { width: 100%; padding-right: 48px !important; }
+.pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; display: grid; place-items: center;
+  border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; }
+.pw-eye:hover { background: var(--hover); color: var(--ink); }
+.pw-eye.on { color: var(--ink); }
+.pw-eye.on svg path { stroke-dasharray: 2 2; }
+
+@media (min-width: 900px) {
+  .auth-screen { grid-template-columns: minmax(380px, 46%) 1fr; }
+  .auth-aside { display: flex; align-items: center; justify-content: center; padding: 48px;
+    background: radial-gradient(800px 500px at 0% 0%, rgba(229, 72, 91, .28), transparent 60%), #141317; color: #fff; }
+  .auth-aside-in { max-width: 420px; }
+  .auth-mark { width: 56px; height: 56px; border-radius: 14px; margin-bottom: 22px; }
+  .auth-brand { font-family: var(--font-display); font-size: 34px; letter-spacing: -.01em; margin-bottom: 10px; }
+  .auth-brand b { color: #FF5468; }
+  .auth-tag { font-size: 17px; line-height: 1.5; color: rgba(255,255,255,.72); margin: 0 0 30px; }
+  .auth-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .auth-points li { display: flex; align-items: center; gap: 14px; }
+  .auth-points span { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 10px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); font-weight: 800; font-size: 14px; }
+  .auth-points b { font-weight: 600; font-size: 15.5px; color: rgba(255,255,255,.9); }
+  .auth-panel { margin: 40px auto; box-shadow: none; border: 0; background: transparent; }
+  .auth-panel .logo-full { display: none; }
+  .auth-panel h1, .auth-panel > .muted, .auth-panel form > .muted { text-align: left; }
+}
+.auth-panel { width: calc(100% - 32px); }
+.auth-panel .legal-links a, .auth-panel .forgot-row a { text-decoration: none; }
+.auth-panel .legal-links a:hover, .auth-panel .forgot-row a:hover { text-decoration: underline; }
+@media (min-width: 900px) { .auth-panel { width: 100%; max-width: 420px; } }
