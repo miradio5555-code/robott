@@ -2068,3 +2068,26 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--focus-ri
 .check-line input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .check-line input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 3px var(--focus-ring); }
 .check-line input[type="checkbox"] { min-height: 0 !important; height: 28px !important; width: 46px !important; padding: 0 !important; border: 0 !important; box-sizing: border-box; }
+
+/* Шапка справа: кнопка раздела и «обновить» в одном стиле — мягкие, без рамок */
+.topbar-actions .gear-btn, #refresh-btn { width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--soft); color: var(--ink); transition: background .15s, transform .08s; }
+.topbar-actions .gear-btn:hover, #refresh-btn:hover { background: var(--hover); }
+.topbar-actions .gear-btn:active, #refresh-btn:active { transform: scale(.95); }
+#refresh-btn svg { width: 19px; height: 19px; }
+.section-menu-btn { height: 40px; padding: 0 10px 0 5px; gap: 8px; border: 0; border-radius: 12px; background: var(--soft); box-shadow: none; font-weight: 800; }
+.section-menu-btn:hover, .section-menu-btn[aria-expanded="true"] { border: 0; background: var(--hover); }
+.section-menu-ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; flex: none; }
+.section-menu-ico .ico { display: block; }
+.section-menu-ico.g-main  { background: rgba(47, 111, 222, .12); color: #2F6FDE; }
+.section-menu-ico.g-money { background: rgba(30, 158, 98, .13);  color: #1E9E62; }
+.section-menu-ico.g-more  { background: rgba(138, 92, 246, .13); color: #8A5CF6; }
+html[data-theme="dark"] .section-menu-ico.g-main  { background: rgba(127, 166, 255, .16); color: #7FA6FF; }
+html[data-theme="dark"] .section-menu-ico.g-money { background: rgba(76, 195, 138, .16); color: #4CC38A; }
+html[data-theme="dark"] .section-menu-ico.g-more  { background: rgba(181, 156, 255, .16); color: #B59CFF; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="dark"]) .section-menu-ico.g-main  { background: rgba(127, 166, 255, .16); color: #7FA6FF; }
+  html:not([data-theme="light"]):not([data-theme="dark"]) .section-menu-ico.g-money { background: rgba(76, 195, 138, .16); color: #4CC38A; }
+  html:not([data-theme="light"]):not([data-theme="dark"]) .section-menu-ico.g-more  { background: rgba(181, 156, 255, .16); color: #B59CFF; }
+}
+.section-menu-chev { width: 15px; height: 15px; }
+.topbar-actions { gap: 8px; }

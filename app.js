@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261101a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261101b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1473,6 +1473,15 @@
     // название раздела без красной цифры (она лежит в отдельном <span>)
     var name = active && (active.querySelector("[data-i18n]") || active);
     if (label) label.textContent = name ? name.textContent.trim() : t("nav_menu");
+    // значок открытого раздела в цвете его группы (Главное — синий, Деньги — зелёный, Ещё — фиолетовый)
+    var ico = $("#section-menu-ico");
+    if (ico && ULA.icon) {
+      var tab = state.tab === "report" ? "analytics" : state.tab;
+      var ICONS = { orders: "package", clients: "users", debts: "wallet", analytics: "chart", quote: "calc",
+        suppliers: "factory", shipments: "truck", buyers: "users", support: "message" };
+      ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
+      ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
+    }
   }
 
   // Необязательные разделы меню («Партии», «Поставщики»): по умолчанию «Партии» спрятаны, пока ими не пользуются
