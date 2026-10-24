@@ -469,7 +469,7 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 .st-awaiting_payment { --st: #925A00; --st-bg: #FCEFD5; }
 .st-purchasing       { --st: #6340B5; --st-bg: #EEE9FA; }
 .st-china_warehouse  { --st: #0B6E78; --st-bg: #DDF1F3; }
-.st-in_transit       { --st: #A30F1F; --st-bg: #FAEAEC; }
+.st-in_transit       { --st: #1C6FB0; --st-bg: #E3F0FA; }
 .st-arrived          { --st: #146C43; --st-bg: #E2F3EA; }
 .st-delivered        { --st: #4A4E57; --st-bg: #E9EBEE; }
 .st-cancelled        { --st: #6E6F75; --st-bg: #ECECEE; }
@@ -1162,7 +1162,7 @@ html[data-theme="dark"] .st-new              { --st: #7FA6FF; --st-bg: rgba(127,
 html[data-theme="dark"] .st-awaiting_payment { --st: #F2B84B; --st-bg: rgba(242, 184, 75, 0.16); }
 html[data-theme="dark"] .st-purchasing       { --st: #B59CFF; --st-bg: rgba(181, 156, 255, 0.16); }
 html[data-theme="dark"] .st-china_warehouse  { --st: #4FD1DB; --st-bg: rgba(79, 209, 219, 0.15); }
-html[data-theme="dark"] .st-in_transit       { --st: #FF7A89; --st-bg: rgba(229, 72, 91, 0.18); }
+html[data-theme="dark"] .st-in_transit       { --st: #6CB8F5; --st-bg: rgba(108, 184, 245, 0.16); }
 html[data-theme="dark"] .st-arrived          { --st: #4CC38A; --st-bg: rgba(76, 195, 138, 0.16); }
 html[data-theme="dark"] .st-delivered        { --st: #B4B8C2; --st-bg: rgba(180, 184, 194, 0.14); }
 html[data-theme="dark"] .st-cancelled        { --st: #8E9099; --st-bg: rgba(142, 144, 153, 0.14); }
@@ -1176,7 +1176,7 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-awaiting_payment { --st: #F2B84B; --st-bg: rgba(242, 184, 75, 0.16); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-purchasing       { --st: #B59CFF; --st-bg: rgba(181, 156, 255, 0.16); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-china_warehouse  { --st: #4FD1DB; --st-bg: rgba(79, 209, 219, 0.15); }
-  html:not([data-theme="light"]):not([data-theme="dark"]) .st-in_transit       { --st: #FF7A89; --st-bg: rgba(229, 72, 91, 0.18); }
+  html:not([data-theme="light"]):not([data-theme="dark"]) .st-in_transit       { --st: #6CB8F5; --st-bg: rgba(108, 184, 245, 0.16); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-arrived          { --st: #4CC38A; --st-bg: rgba(76, 195, 138, 0.16); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-delivered        { --st: #B4B8C2; --st-bg: rgba(180, 184, 194, 0.14); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-cancelled        { --st: #8E9099; --st-bg: rgba(142, 144, 153, 0.14); }
@@ -1832,3 +1832,97 @@ body:not(.is-staff) .section-menu-list .menu-group.owner-only { display: block; 
 .ob-step span { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; }
 .ob-step i { font-style: normal; color: var(--muted); font-size: 18px; }
 .ob-hide { margin-top: 4px; }
+
+/* =====================================================
+   ДИЗАЙН v2: спокойнее и компактнее (особенно на телефоне)
+   ===================================================== */
+
+/* Шапка: на узком экране только значок, чтобы не налезало на меню */
+@media (max-width: 420px) {
+  .topbar .brand-name { display: none; }
+}
+
+/* Заголовок раздела: название сверху, кнопки аккуратной строкой под ним */
+.page-head { flex-wrap: wrap; align-items: flex-start; }
+.page-head > div:first-child { flex: 1 1 200px; min-width: 0; }
+.page-sub { max-width: 60ch; line-height: 1.45; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn-pill { border-radius: 999px; min-height: 36px; padding: 0 14px; font-size: 14px; white-space: nowrap; }
+@media (max-width: 640px) {
+  .page-head { margin: 4px 0 12px; }
+  .page-title { font-size: 24px; }
+  .head-actions { width: 100%; }
+}
+
+/* Сводка: тихие плитки, нули серые, а не красные */
+#tab-orders .summary { margin-bottom: 6px; }
+#tab-orders .summary-item { padding: 12px 14px; gap: 2px; }
+#tab-orders .summary-label { font-size: 12px; }
+#tab-orders .summary-value { font-size: 18px; line-height: 1.3; }
+.summary-value .zero, .summary-value .zero small { color: var(--muted) !important; }
+#tab-orders > .fine-print { font-size: 12px; margin: 0 0 12px; }
+
+/* Склад: на телефоне одна строка, по нажатию раскрывается */
+@media (max-width: 640px) {
+  #tab-orders .warehouse { padding: 12px 14px 12px 18px; gap: 8px; }
+  #tab-orders .warehouse h2 { cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin: 0; }
+  #tab-orders .warehouse h2::after { content: "▾"; margin-left: auto; font-size: 14px; color: rgba(255,255,255,.6); transition: transform .15s; }
+  #tab-orders .warehouse.open h2::after { transform: rotate(180deg); }
+  #tab-orders .warehouse-address { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; }
+  #tab-orders .warehouse.open .warehouse-address { -webkit-line-clamp: unset; }
+  #tab-orders .warehouse:not(.open) .warehouse-contacts,
+  #tab-orders .warehouse:not(.open) #wh-edit { display: none; }
+  #tab-orders .warehouse-actions .btn { min-height: 34px; font-size: 13px; }
+}
+
+/* Помощник: одна строка, пока не раскроете */
+#tab-orders .assistant-head { padding: 12px 14px; }
+
+/* Карточка заказа: компактнее, деньги одной полоской */
+#tab-orders .card { gap: 10px; padding: 14px 14px 14px 18px; }
+#tab-orders .card-photo, #tab-orders .card-photo-empty { width: 52px; height: 52px; flex: none; border-radius: 12px; font-size: 22px; }
+#tab-orders .card-main { gap: 12px; align-items: center; }
+#tab-orders .card-info h3 { font-size: 16px; line-height: 1.3; }
+#tab-orders .card-sub { font-size: 13px; }
+.card-pay { display: grid; gap: 6px; padding: 10px 12px; background: var(--soft); border: 1px solid var(--line); border-radius: var(--r-md); }
+.card-pay.none { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+.pay-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pay-line b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.pay-owe { font-size: 13px; font-weight: 800; color: var(--red); }
+.pay-ok { font-size: 13px; font-weight: 800; color: var(--green); }
+.pay-bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.pay-bar i { display: block; height: 100%; background: #D98A00; border-radius: 99px; }
+.pay-bar.full i { background: var(--green); }
+.pay-meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.pay-profit { font-weight: 700; color: var(--green); }
+.pay-profit.loss { color: var(--red); }
+.pay-paid { color: var(--muted); font-size: 13px; }
+#tab-orders .card-history { padding: 0 2px; background: none; border: 0; font-size: 12px; }
+#tab-orders .card-actions { gap: 6px; }
+#tab-orders .card-actions .btn { min-height: 40px; font-size: 14px; }
+
+/* Пустые списки: дружелюбно, с картинкой */
+#empty, .state-box[id$="-empty"] { padding: 32px 20px; text-align: center; line-height: 1.5; color: var(--muted); }
+#empty::before, .state-box[id$="-empty"]::before { content: "📭"; display: block; font-size: 36px; margin-bottom: 8px; }
+#empty strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 4px; }
+
+/* Поля и блоки: чуть больше воздуха и мягче углы */
+.client-block { border-radius: var(--r-lg); }
+.field > span { font-size: 13px; }
+
+/* Формы на телефоне: короткие поля по два в ряд — форма вдвое короче */
+@media (max-width: 640px) and (min-width: 340px) {
+  #tab-quote .grid-2, #tab-quote .grid-3,
+  #order-form .grid-2, #order-form .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #tab-quote .field, #order-form .field { min-width: 0; }
+  #tab-quote select, #order-form select { text-overflow: ellipsis; }
+  #tab-quote .field > span, #tab-quote .field > label, #order-form .field > span { font-size: 12px; }
+}
+@media (max-width: 640px) and (min-width: 340px) {
+  #tab-quote .grid-2, #tab-quote .grid-3, #order-form .grid-2, #order-form .grid-3 { align-items: start; }
+  #tab-quote .grid-2 .field > span, #tab-quote .grid-3 .field > span, #tab-quote .grid-3 .field > label,
+  #order-form .grid-2 .field > span, #order-form .grid-3 .field > span { min-height: 2.7em; display: flex; align-items: flex-end; line-height: 1.3; }
+  #tab-quote select, #order-form select { padding-right: 26px; font-size: 14px; }
+}
+#tab-quote .quote-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#tab-quote .quote-modes .notify-lang { padding: 4px 10px; font-size: 12px; min-height: 30px; }

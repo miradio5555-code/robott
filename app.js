@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261030b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261031a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -719,6 +719,8 @@
       toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
     });
     // 💡 помощник: свернуть / развернуть, кнопки в подсказках
+    // склад: на телефоне свёрнут в одну строку, нажатие на заголовок раскрывает контакты
+    $("#wh-title").addEventListener("click", function () { $("#tab-orders .warehouse").classList.toggle("open"); });
     $("#as-toggle").addEventListener("click", function () {
       var box = $("#assistant");
       var collapsed = !box.classList.contains("collapsed");
@@ -727,7 +729,8 @@
       try { localStorage.setItem("cc_as_collapsed", collapsed ? "1" : ""); } catch (e) { /* ignore */ }
     });
     try {
-      if (localStorage.getItem("cc_as_collapsed")) { $("#assistant").classList.add("collapsed"); $("#as-toggle").setAttribute("aria-expanded", "false"); }
+      var asc = localStorage.getItem("cc_as_collapsed");
+      if (asc === null || asc === "1") { $("#assistant").classList.add("collapsed"); $("#as-toggle").setAttribute("aria-expanded", "false"); }
     } catch (e) { /* ignore */ }
     $("#as-list").addEventListener("click", onHintClick);
     $("#hint-filter-clear").addEventListener("click", function () { setHintFilter(null); });
@@ -1166,7 +1169,9 @@
     function lines(map) {
       var codes = Object.keys(map);
       if (!codes.length) return "0";
-      return codes.map(function (c) { return money(map[c]) + " <small>" + esc(c) + "</small>"; }).join("<br>");
+      return codes.map(function (c) {
+        return '<span class="' + (map[c] ? "" : "zero") + '">' + money(map[c]) + " <small>" + esc(c) + "</small></span>";
+      }).join("<br>");
     }
     $("#sum-orders").textContent = money(state.orders.length);
     $("#sum-total").innerHTML = lines(total);
@@ -1303,14 +1308,8 @@
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
+        payHtml(o) +
         cardHistoryHtml(o) +
-        '<dl class="card-money">' +
-          "<div><dt>" + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
-          "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
-          '<div class="' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
-          '<div class="profit owner-only' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
-            (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
-        "</dl>" +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
         '<div class="card-actions">' +
           (o.source === "request" && o.status === "new"
@@ -1329,6 +1328,25 @@
           "</details>" +
         "</div>" +
       "</article>";
+  }
+
+  // Оплата в карточке: сумма, полоска «сколько оплачено», остаток и прибыль одной строкой
+  function payHtml(o) {
+    var c = o.client_currency, total = num(o.total_som), paid = num(o.paid_amount), bal = num(o.balance_som);
+    if (!(total > 0)) {
+      return '<div class="card-pay none"><span class="flag-missing">' + esc(t("no_price")) + "</span>" +
+        (paid > 0 ? '<span class="pay-paid">' + esc(t("l_paid")) + " " + cur(paid, c) + "</span>" : "") + "</div>";
+    }
+    var pct = Math.max(0, Math.min(100, Math.round(paid / total * 100)));
+    var pr = num(o.profit_som);
+    return '<div class="card-pay">' +
+      '<div class="pay-line"><b>' + cur(total, c) + "</b>" +
+        (bal > 0 ? '<span class="pay-owe">' + esc(t("pay_owe", { s: cur(bal, c) })) + "</span>"
+                 : '<span class="pay-ok">✓ ' + esc(t("pay_full")) + "</span>") + "</div>" +
+      '<div class="pay-bar' + (pct >= 100 ? " full" : "") + '"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="pay-meta"><span>' + esc(t("l_paid")) + " " + cur(paid, c) + "</span>" +
+        (o.profit_som != null ? '<span class="owner-only pay-profit' + (pr < 0 ? " loss" : "") + '">' + esc(t("l_profit")) + " " + cur(pr, c) + "</span>" : "") +
+      "</div></div>";
   }
 
   // ---------- Данные клиента в карточке заказа ----------
