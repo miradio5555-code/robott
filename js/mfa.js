@@ -134,12 +134,36 @@
     render();
   }
 
-  async function disable() {
-    if (!window.confirm(t(state.me && state.me.role === "admin" ? "mfa_confirm_off_admin" : "mfa_confirm_off"))) return;
-    var res = await mfa().unenroll({ factorId: st.factorId });
-    if (res.error) { c.handleError(res.error); return; }
-    toast(t("mfa_off_done"), "ok");
-    await refresh();
+  // Отключить можно только с новым кодом из телефона: так забытый открытый телефон или украденный пароль не снимут защиту
+  function disable() {
+    $("#mfa-off-code").value = "";
+    $("#mfa-off-error").classList.add("hidden");
+    $("#mfa-offbox").classList.remove("hidden");
+    $("#mfa-off").classList.add("hidden");
+    $("#mfa-off-code").focus();
+  }
+
+  function cancelDisable() {
+    $("#mfa-offbox").classList.add("hidden");
+    render();
+  }
+
+  async function confirmDisable() {
+    var err = $("#mfa-off-error"), code = cleanCode($("#mfa-off-code").value);
+    if (code.length !== 6) { err.textContent = t("mfa_err_code"); err.classList.remove("hidden"); return; }
+    var btn = $("#mfa-off-confirm");
+    btn.disabled = true;
+    try {
+      var ver = await mfa().challengeAndVerify({ factorId: st.factorId, code: code });
+      if (ver.error) { err.textContent = t("mfa_err_wrong"); err.classList.remove("hidden"); $("#mfa-off-code").select(); return; }
+      var res = await mfa().unenroll({ factorId: st.factorId });
+      if (res.error) { c.handleError(res.error); return; }
+      $("#mfa-offbox").classList.add("hidden");
+      toast(t("mfa_off_done"), "ok");
+      await refresh();
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // Напоминание администратору: «Включите вход с кодом»
@@ -154,6 +178,9 @@
     $("#mfa-confirm").addEventListener("click", confirm);
     $("#mfa-cancel").addEventListener("click", cancelSetup);
     $("#mfa-off").addEventListener("click", disable);
+    $("#mfa-off-confirm").addEventListener("click", confirmDisable);
+    $("#mfa-off-cancel").addEventListener("click", cancelDisable);
+    $("#mfa-off-code").addEventListener("input", function (e) { e.target.value = cleanCode(e.target.value); });
     $("#mfa-banner-btn").addEventListener("click", function () { $("#settings-btn").click(); });
     $("#mfa-code").addEventListener("input", function (e) { e.target.value = cleanCode(e.target.value); });
     $("#mfa-login-code").addEventListener("input", function (e) { e.target.value = cleanCode(e.target.value); });
