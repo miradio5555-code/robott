@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 19 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 20 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -617,6 +617,8 @@ begin
   exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
   begin perform public.team_invite_create(v_ws); raise exception 'ПРОВАЛ: помощник позвал ещё помощника';
   exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.set_profit_goal(v_ws, 'KGS', 1); raise exception 'ПРОВАЛ: помощник поставил цель';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
   begin perform public.team_list(v_ws); raise exception 'ПРОВАЛ: помощник видит команду';
   exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
   begin perform public.team_remove(v_ws, '00000000-0000-0000-0000-0000000000b1'); raise exception 'ПРОВАЛ: помощник убрал владельца';
@@ -654,3 +656,40 @@ begin
 end $$;
 reset role;
 \echo '✅ 12. Помощник: работает с заказами, но не удаляет и не настраивает; приглашения одноразовые; чужие и посторонние закрыты'
+
+
+-- ---------- 13. Цель по прибыли ----------
+-- владелец Б ставит цель; помощник (в команде Б нет — она закрыта после проверки 12) и чужие — нет
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare ws uuid := public.my_workspace_id(); g jsonb;
+begin
+  g := public.set_profit_goal(ws, 'KGS', 100000);
+  if (g ->> 'KGS')::numeric <> 100000 then raise exception 'ПРОВАЛ: цель не сохранилась'; end if;
+  g := public.set_profit_goal(ws, 'USD', 2000.555);
+  if (g ->> 'USD')::numeric <> 2000.56 or (g ->> 'KGS')::numeric <> 100000 then raise exception 'ПРОВАЛ: вторая валюта испортила первую'; end if;
+  g := public.set_profit_goal(ws, 'USD', 0);
+  if g ? 'USD' then raise exception 'ПРОВАЛ: цель не убралась'; end if;
+  begin perform public.set_profit_goal(ws, 'kgs', 5); raise exception 'ПРОВАЛ: плохая валюта принята';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.set_profit_goal(ws, 'KGS', -5); raise exception 'ПРОВАЛ: отрицательная цель принята';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.set_profit_goal(ws, 'KGS', 1e15); raise exception 'ПРОВАЛ: огромная цель принята';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  -- напрямую поле менять нельзя
+  begin update public.workspaces set profit_goals = '{"KGS": 1}' where id = ws; raise exception 'ПРОВАЛ: цель изменена напрямую';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  begin perform public.set_profit_goal((select id from public.workspaces where name = 'Б-карго' limit 1), 'KGS', 1);
+    raise exception 'ПРОВАЛ: чужой байер поставил цель';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+\echo '✅ 13. Цель по прибыли: ставится и убирается владельцем, мусор отклоняется, чужие и прямое изменение закрыты'
