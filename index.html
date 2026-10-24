@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261110a">
+  <link rel="stylesheet" href="style.css?v=20261111a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -515,7 +515,8 @@
       <div class="page-head"><div><h1 class="page-title" data-i18n="nav_clients"></h1><p class="page-sub" data-i18n="cl_page_hint"></p></div></div>
       <section class="toolbar toolbar-clients">
         <input id="clients-search" class="search" type="search" data-i18n-placeholder="clients_search" autocomplete="off">
-        <button id="clients-export" class="btn btn-primary" type="button" data-i18n="export_csv"></button>
+        <div class="clients-actions"><button id="bc-btn" class="btn btn-primary" type="button" data-write data-i18n="bc_btn"></button>
+        <button id="clients-export" class="btn" type="button" data-i18n="export_csv"></button></div>
       </section>
       <p id="clients-count" class="fine-print"></p>
       <div id="clients-loading" class="state-box hidden" data-i18n="loading"></div>
@@ -1174,6 +1175,36 @@
     </form>
   </div>
 
+  <!-- ============ ОКНО: РАССЫЛКА КЛИЕНТАМ ============ -->
+  <div id="modal-broadcast" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="bc_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="bc_hint"></p>
+        <h4 class="money-sub" data-i18n="bc_who"></h4>
+        <div id="bc-segs" class="chips"></div>
+        <h4 class="money-sub" data-i18n="bc_what"></h4>
+        <div id="bc-tpls" class="chips"></div>
+        <div class="notify-langs" role="group">
+          <span class="notify-langs-label" data-i18n="notify_lang"></span>
+          <button type="button" class="notify-lang" data-bc-lang="ru" aria-pressed="false">RU</button>
+          <button type="button" class="notify-lang" data-bc-lang="en" aria-pressed="false">EN</button>
+          <button type="button" class="notify-lang" data-bc-lang="zh" aria-pressed="false">中文</button>
+        </div>
+        <label class="field"><span data-i18n="bc_text"></span>
+          <textarea id="bc-text" rows="4" maxlength="1500"></textarea>
+          <p class="field-hint" data-i18n="bc_text_hint"></p></label>
+        <p id="bc-count" class="fine-print"></p>
+        <button id="bc-next" class="btn btn-primary btn-block" type="button"></button>
+        <div id="bc-list" class="bq-list"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ ОКНО: ТОВАР ВИТРИНЫ ============ -->
   <div id="modal-product" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1393,30 +1424,31 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261110a"></script>
+  <script src="i18n.js?v=20261111a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261110a"></script>
+  <script src="app.js?v=20261111a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261110a"></script>
-  <script src="js/support.js?v=20261110a"></script>
-  <script src="js/notify.js?v=20261110a"></script>
-  <script src="js/icons.js?v=20261110a"></script>
-  <script src="js/xlsx.js?v=20261110a"></script>
-  <script src="js/analytics.js?v=20261110a"></script>
-  <script src="js/bulk.js?v=20261110a"></script>
-  <script src="js/onboarding.js?v=20261110a"></script>
-  <script src="js/tgws.js?v=20261110a"></script>
-  <script src="js/mfa.js?v=20261110a"></script>
-  <script src="js/captcha.js?v=20261110a"></script>
-  <script src="js/tour.js?v=20261110a"></script>
-  <script src="js/recovery.js?v=20261110a"></script>
-  <script src="js/shop.js?v=20261110a"></script>
-  <script src="js/requests.js?v=20261110a"></script>
-  <script src="js/team.js?v=20261110a"></script>
-  <script src="js/shipments.js?v=20261110a"></script>
-  <script src="js/report.js?v=20261110a"></script>
-  <script src="js/debts.js?v=20261110a"></script>
-  <script src="js/quote.js?v=20261110a"></script>
-  <script src="js/client.js?v=20261110a"></script>
+  <script src="js/fx.js?v=20261111a"></script>
+  <script src="js/support.js?v=20261111a"></script>
+  <script src="js/notify.js?v=20261111a"></script>
+  <script src="js/icons.js?v=20261111a"></script>
+  <script src="js/xlsx.js?v=20261111a"></script>
+  <script src="js/analytics.js?v=20261111a"></script>
+  <script src="js/bulk.js?v=20261111a"></script>
+  <script src="js/onboarding.js?v=20261111a"></script>
+  <script src="js/tgws.js?v=20261111a"></script>
+  <script src="js/mfa.js?v=20261111a"></script>
+  <script src="js/captcha.js?v=20261111a"></script>
+  <script src="js/tour.js?v=20261111a"></script>
+  <script src="js/recovery.js?v=20261111a"></script>
+  <script src="js/shop.js?v=20261111a"></script>
+  <script src="js/broadcast.js?v=20261111a"></script>
+  <script src="js/requests.js?v=20261111a"></script>
+  <script src="js/team.js?v=20261111a"></script>
+  <script src="js/shipments.js?v=20261111a"></script>
+  <script src="js/report.js?v=20261111a"></script>
+  <script src="js/debts.js?v=20261111a"></script>
+  <script src="js/quote.js?v=20261111a"></script>
+  <script src="js/client.js?v=20261111a"></script>
 </body>
 </html>

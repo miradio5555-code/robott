@@ -2327,3 +2327,11 @@ body {
 .shop-link-row .link-input { flex: 1; min-width: 0; }
 .pr-photo-row { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
 .pr-preview { width: 110px; flex: none; }
+/* Рассылка */
+.clients-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.clients-actions .btn { flex: 1 1 auto; }
+#modal-broadcast .chips { flex-wrap: wrap; overflow: visible; margin-bottom: 4px; }
+#modal-broadcast .money-sub { margin: 14px 0 8px; }
+#modal-broadcast #bc-next { margin: 4px 0 10px; }
+.bc-none { margin: 8px 0; }
+#modal-broadcast .notify-lang[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }

@@ -267,7 +267,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261110a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261111a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -879,6 +879,7 @@
     ULA.recovery.bind();
     ULA.tour.bind();
     ULA.shop.bind();
+    ULA.broadcast.bind();
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
     // ↻ обновить данные открытой вкладки
