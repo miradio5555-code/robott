@@ -191,7 +191,7 @@
   function showView(name) {
     var boot = document.getElementById("boot");
     if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
-    ["config", "login", "join", "admin", "client"].forEach(function (v) {
+    ["config", "login", "join", "admin", "client", "request"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
   }
@@ -251,7 +251,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261025a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261026a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -279,6 +279,15 @@
       db = miniClient(url, key);
       mode = "client";
       ULA.client.init(clientToken);
+      return;
+    }
+
+    // Страница заявки для клиента (?request=ТОКЕН): тоже без библиотеки supabase.js
+    var requestToken = new URLSearchParams(location.search).get("request");
+    if (requestToken) {
+      db = miniClient(url, key);
+      mode = "request";
+      ULA.requests.init(requestToken);
       return;
     }
 
@@ -396,6 +405,10 @@
     setCurrency();
     if (mode === "client") {
       ULA.client.render();
+      return;
+    }
+    if (mode === "request") {
+      ULA.requests.render();
       return;
     }
     if (!$("#view-admin").classList.contains("hidden")) {
@@ -594,7 +607,7 @@
   }
 
   var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
-    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates";
+    "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
   async function openWorkspace(ws) {
@@ -701,6 +714,7 @@
     ULA.fx.bind();
     ULA.quote.bind();
     ULA.shipments.bind();
+    ULA.requests.bind();
     ULA.debts.bind();
     ULA.report.bind();
 
@@ -1233,7 +1247,7 @@
         '<div class="card-main" data-act="open">' + photo +
           '<div class="card-info">' +
             "<h3>" + esc(o.product_ru) + "</h3>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + shipTag(o) +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) +
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
@@ -1267,6 +1281,11 @@
   var CLOSED = ["delivered", "cancelled"]; // завершённые заказы
 
   // В строке под номером заказа: город клиента или красная пометка «Нет адреса»
+  // Метка «📥 Заявка»: заказ создал клиент по ссылке, ещё не обработан
+  function reqTag(o) {
+    return o.source === "request" && o.status === "new" ? '<span class="batch-tag req-tag">📥 ' + esc(t("rq_tag")) + "</span>" : "";
+  }
+
   // Метка «📦 Партия» на карточке заказа
   function shipTag(o) {
     if (!o.shipment_id) return "";
@@ -1622,6 +1641,7 @@
 
   // Подсказки, которые можно «Показать» — это фильтры списка заказов
   var HINT_FILTERS = {
+    requests: function (o) { return o.source === "request" && o.status === "new"; },
     no_price: function (o) { return isActive(o) && o.client_price == null; },
     no_address: function (o) { return isActive(o) && !o.client; },
     no_rate: function (o) {
@@ -1643,7 +1663,7 @@
       add("warn", t("h_no_wh"), { type: "settings" });
     }
     // группы заказов
-    ["no_price", "no_address", "no_rate"].forEach(function (k) {
+    ["requests", "no_price", "no_address", "no_rate"].forEach(function (k) {
       var n = list.filter(HINT_FILTERS[k]).length;
       if (n) add(k === "no_rate" ? "bad" : "warn", t("h_" + k, { n: n }), { type: "filter", key: k });
     });

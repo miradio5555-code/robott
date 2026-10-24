@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261025a">
+  <link rel="stylesheet" href="style.css?v=20261026a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -469,6 +469,7 @@
           <h1 class="page-title" data-i18n="nav_orders"></h1>
           <p class="page-sub"><span data-i18n="sum_orders"></span>: <b id="sum-orders">0</b></p>
         </div>
+        <button id="req-link-btn" class="btn" type="button" data-write data-i18n="rl_btn"></button>
         <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
       </div>
 
@@ -574,6 +575,23 @@
       </div>
     </header>
     <main id="client-content" class="container container-narrow"></main>
+  </div>
+
+  <!-- ============ СТРАНИЦА ЗАЯВКИ (для клиента, без входа) ============ -->
+  <div id="view-request" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><img class="brand-mark" src="img/mark.svg" alt="" width="36" height="36"><span class="brand-name"><b>ULA</b> Factory</span></div>
+        <div class="client-actions">
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="ru" title="Русский">RU</button>
+            <button type="button" data-lang="en" title="English">EN</button>
+            <button type="button" data-lang="zh" title="中文">中文</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main id="request-content" class="container container-narrow"></main>
   </div>
 
   <!-- ============ ОКНО: ФОРМА ЗАКАЗА ============ -->
@@ -931,6 +949,32 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ССЫЛКА ДЛЯ ЗАЯВОК ============ -->
+  <div id="modal-reqlink" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="rl_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="rl_hint"></p>
+        <p id="rl-state" class="fine-print"></p>
+        <input id="rl-input" class="link-input" type="text" readonly>
+        <div id="rl-controls" class="stack">
+          <button id="rl-copy" class="btn btn-primary" type="button" data-i18n="copy"></button>
+          <a id="rl-wa" class="btn" target="_blank" rel="noopener" data-i18n="link_whatsapp"></a>
+          <a id="rl-open" class="btn" target="_blank" rel="noopener" data-i18n="link_open"></a>
+        </div>
+        <div class="stack link-manage">
+          <button id="rl-create" class="btn" type="button" data-i18n="rl_create"></button>
+          <button id="rl-revoke" class="btn btn-ghost" type="button" data-i18n="rl_revoke"></button>
+        </div>
+        <p class="fine-print" data-i18n="rl_limits"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ ОКНО: ПАРТИЯ ============ -->
   <div id="modal-shipment" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1041,17 +1085,18 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261025a"></script>
+  <script src="i18n.js?v=20261026a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261025a"></script>
+  <script src="app.js?v=20261026a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261025a"></script>
-  <script src="js/support.js?v=20261025a"></script>
-  <script src="js/notify.js?v=20261025a"></script>
-  <script src="js/shipments.js?v=20261025a"></script>
-  <script src="js/report.js?v=20261025a"></script>
-  <script src="js/debts.js?v=20261025a"></script>
-  <script src="js/quote.js?v=20261025a"></script>
-  <script src="js/client.js?v=20261025a"></script>
+  <script src="js/fx.js?v=20261026a"></script>
+  <script src="js/support.js?v=20261026a"></script>
+  <script src="js/notify.js?v=20261026a"></script>
+  <script src="js/requests.js?v=20261026a"></script>
+  <script src="js/shipments.js?v=20261026a"></script>
+  <script src="js/report.js?v=20261026a"></script>
+  <script src="js/debts.js?v=20261026a"></script>
+  <script src="js/quote.js?v=20261026a"></script>
+  <script src="js/client.js?v=20261026a"></script>
 </body>
 </html>

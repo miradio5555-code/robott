@@ -1669,3 +1669,17 @@ body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
 .sh-notify-row .btn { min-height: 38px; padding: 0 12px; }
 #sh-delete { margin-top: 16px; width: 100%; }
 .sh-warn.info { color: var(--muted); font-weight: 500; }
+
+/* =====================================================
+   📥 ЗАЯВКИ ПО ССЫЛКЕ
+   ===================================================== */
+.req-tag { background: var(--red-tint); border-color: transparent; color: var(--red); }
+.hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+.rq-title { margin-bottom: 8px; font-size: 22px; line-height: 1.25; }
+#request-content .client-block form { margin-top: 12px; }
+#request-content .field.has-error input, #request-content .field.has-error textarea { border-color: var(--red); }
+#request-content textarea { width: 100%; resize: vertical; line-height: 1.5; }
+.rq-sent { text-align: center; display: grid; gap: 12px; }
+.rq-check { margin: 4px auto 0; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--green-tint); color: var(--green); font-size: 30px; font-weight: 800; }
+.rq-num { font-family: var(--font-display); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.rq-to { margin: -2px 0 8px; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
