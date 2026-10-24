@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261106c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261107a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -510,16 +510,29 @@
 
   async function initAdmin() {
     bindAdminUI();
-    db.auth.onAuthStateChange(function (event) {
+    var recovering = false;
+    // Перешли по ссылке «забыли пароль» из письма: сначала новый пароль, потом вход
+    async function recover(session) {
+      if (recovering) return;
+      recovering = true;
+      showView("login");
+      await ULA.recovery.newPassword();
+      recovering = false;
+      await enterAdmin(session.user);
+    }
+    db.auth.onAuthStateChange(function (event, session) {
       if (event === "SIGNED_OUT" && mode === "admin") {
         state.orders = [];
         showView("login");
+      } else if (event === "PASSWORD_RECOVERY" && session) {
+        recover(session);
       }
     });
     var res = await db.auth.getSession();
     var session = res && res.data && res.data.session;
-    if (session) await enterAdmin(session.user);
-    else showView("login");
+    if (session && ULA.recovery.isRecoveryLink()) recover(session);
+    else if (session && !recovering) await enterAdmin(session.user);
+    else if (!session) showView("login");
   }
 
   // После входа: узнаём роль (админ / байер) и кабинет пользователя
@@ -791,6 +804,7 @@
     ULA.onboarding.bind();
     ULA.tgws.bind();
     ULA.mfa.bind();
+    ULA.recovery.bind();
     ULA.tour.bind();
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
