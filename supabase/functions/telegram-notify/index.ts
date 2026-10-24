@@ -1,12 +1,17 @@
 // =====================================================
-// ULA FACTORY — уведомления о техподдержке в Telegram (Supabase Edge Function)
+// ULA FACTORY — уведомления в Telegram (Supabase Edge Function)
 //
 // Что умеет (поле action в запросе):
-//   "notify"  — байер только что написал в поддержку → прислать админу сообщение в Telegram.
-//               Берём только новые сообщения ЭТОГО байера, о которых ещё не сообщали.
-//   "connect" — (только админ) найти чат, где админ нажал Start у бота, запомнить его
-//               и прислать «✅ Уведомления подключены».
-//   "status"  — (только админ) подключено ли, как зовут бота.
+//   Для админа (техподдержка):
+//   "notify"         — байер только что написал в поддержку → прислать админу сообщение в Telegram.
+//   "connect"        — (только админ) найти чат, где админ нажал Start у бота, и запомнить его.
+//   "status"         — (только админ) подключено ли, как зовут бота.
+//   Для байера (заявки клиентов):
+//   "bot"            — (вошедший пользователь) как зовут бота, чтобы собрать ссылку «Start».
+//   "connect_ws"     — (владелец кабинета) проверить, что он нажал Start с его кодом, и запомнить чат.
+//   Для страницы заявки клиента (без входа):
+//   "request_notify" — клиент только что оставил заявку → прислать байеру сообщение в Telegram.
+//                      Принимает только секретный номер новой заявки; про каждую заявку сообщает один раз.
 //
 // Секрет TELEGRAM_BOT_TOKEN хранится в Supabase → Edge Functions → Secrets.
 // SUPABASE_SERVICE_ROLE_KEY Supabase даёт функции сам — в коде сайта его нет.
@@ -36,8 +41,54 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const auth = req.headers.get("Authorization") ?? "";
+    const body = await req.json().catch(() => ({}));
+    const action = String(body.action ?? "");
 
-    // 1) Кто спрашивает (от имени пользователя, с его правами)
+    // Служебный доступ к базе — только внутри этой функции
+    const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+      auth: { persistSession: false },
+    });
+
+    const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+    if (!token) return json({ error: "no_bot_token" });
+    const tg = async (method: string, payload: Record<string, unknown> = {}) => {
+      const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return await r.json().catch(() => ({ ok: false }));
+    };
+
+    // ---------- заявка клиента (без входа) ----------
+    if (action === "request_notify") {
+      const tok = String(body.token ?? "");
+      if (!/^[a-f0-9]{32}$/.test(tok)) return json({ ok: false });
+      const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      // «забираем» заявку одним действием: второй вызов уже ничего не найдёт
+      const { data: o } = await db.from("orders")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("public_token", tok).eq("source", "request").is("notified_at", null).gte("created_at", since)
+        .select("workspace_id, order_number, client_name, client_phone, product_ru, supplier_link, quantity, admin_comment")
+        .maybeSingle();
+      if (!o) return json({ ok: true, sent: 0 });
+      const { data: link } = await db.from("ws_telegram").select("chat_id").eq("workspace_id", o.workspace_id).maybeSingle();
+      if (!link?.chat_id) return json({ ok: true, sent: 0, reason: "not_connected" });
+      const text = [
+        "📥 Новая заявка " + o.order_number,
+        "👤 " + (o.client_name || "—"),
+        "📞 " + (o.client_phone || "—"),
+        "🛍 " + String(o.product_ru || "—").slice(0, 200) + " × " + (o.quantity ?? 1),
+        ...(o.supplier_link ? ["🔗 " + String(o.supplier_link).slice(0, 300)] : []),
+        ...(o.admin_comment ? ["", String(o.admin_comment).slice(0, 600)] : []),
+        "",
+        "Открыть: " + SITE_URL,
+      ].join("\n").slice(0, 3900);
+      const sent = await tg("sendMessage", { chat_id: link.chat_id, text, disable_web_page_preview: true });
+      return json({ ok: true, sent: sent.ok ? 1 : 0 });
+    }
+
+    // ---------- дальше нужен вход ----------
     const userSb = createClient(
       url,
       Deno.env.get("SUPABASE_ANON_KEY") || req.headers.get("apikey") || "",
@@ -48,22 +99,6 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "not_authenticated" }, 401);
     const { data: isAdmin } = await userSb.rpc("is_admin");
 
-    // 2) Служебный доступ к базе — только внутри этой функции
-    const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-      auth: { persistSession: false },
-    });
-
-    const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    if (!token) return json({ error: "no_bot_token" });
-    const tg = async (method: string, body: Record<string, unknown> = {}) => {
-      const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      return await r.json().catch(() => ({ ok: false }));
-    };
-
     const getSetting = async (key: string) => {
       const { data } = await db.from("admin_settings").select("value").eq("key", key).maybeSingle();
       return data?.value ?? null;
@@ -71,8 +106,38 @@ Deno.serve(async (req) => {
     const setSetting = (key: string, value: string) =>
       db.from("admin_settings").upsert({ key, value, updated_at: new Date().toISOString() });
 
-    const body = await req.json().catch(() => ({}));
-    const action = String(body.action ?? "");
+    // ---------- как зовут бота (любой вошедший) ----------
+    if (action === "bot") {
+      const me = await tg("getMe");
+      if (!me.ok) return json({ error: "bad_token" });
+      return json({ ok: true, bot: me.result?.username ?? null });
+    }
+
+    // ---------- подключить Telegram кабинета (владелец) ----------
+    if (action === "connect_ws") {
+      const wsId = String(body.ws_id ?? "");
+      const { data: owner } = await userSb.rpc("is_owner", { p_ws: wsId });
+      if (owner !== true) return json({ error: "forbidden" }, 403);
+      const { data: row } = await db.from("ws_telegram").select("code, code_expires_at").eq("workspace_id", wsId).maybeSingle();
+      if (!row?.code || !row.code_expires_at || new Date(row.code_expires_at) < new Date()) return json({ error: "code_expired" });
+      const up = await tg("getUpdates", { limit: 100 });
+      if (!up.ok) return json({ error: "bad_token" });
+      const want = "/start w" + row.code;
+      const msg = (up.result ?? []).map((u: any) => u.message)
+        .filter((m: any) => m && m.chat && m.chat.type === "private" && String(m.text ?? "").trim() === want).pop();
+      if (!msg) return json({ error: "no_start" });
+      const chat = msg.chat;
+      const name = [chat.first_name, chat.last_name].filter(Boolean).join(" ") || chat.username || String(chat.id);
+      await db.from("ws_telegram").update({
+        chat_id: String(chat.id), chat_name: name.slice(0, 200), connected_at: new Date().toISOString(),
+        code: null, code_expires_at: null,
+      }).eq("workspace_id", wsId);
+      await tg("sendMessage", {
+        chat_id: chat.id,
+        text: "✅ Telegram подключён к кабинету ULA Factory.\nСюда будут приходить новые заявки клиентов.",
+      });
+      return json({ ok: true, chat_name: name });
+    }
 
     // ---------- статус (админ) ----------
     if (action === "status") {
@@ -92,10 +157,11 @@ Deno.serve(async (req) => {
       if (isAdmin !== true) return json({ error: "forbidden" }, 403);
       const up = await tg("getUpdates", { limit: 100 });
       if (!up.ok) return json({ error: "bad_token" });
-      // последний личный чат, где написали боту (например, нажали Start)
+      // последний личный чат, где написали боту (например, нажали Start).
+      // Сообщения байеров «/start w…» (подключение их кабинетов) пропускаем — это не чат админа.
       const msgs = (up.result ?? [])
         .map((u: any) => u.message)
-        .filter((m: any) => m && m.chat && m.chat.type === "private");
+        .filter((m: any) => m && m.chat && m.chat.type === "private" && !/^\/start w[a-f0-9]{24}$/.test(String(m.text ?? "").trim()));
       const last = msgs[msgs.length - 1];
       if (!last) return json({ error: "no_start" });
       const chat = last.chat;
