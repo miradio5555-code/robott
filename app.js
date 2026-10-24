@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261107c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261107d"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -507,6 +507,22 @@
   //  АДМИНКА
   // =====================================================
   var adminBound = false;
+  var adminEntryUserId = "";
+  var adminEntryPromise = null;
+
+  // Google сообщает о входе отдельным событием; объединяем его с обычной проверкой сессии.
+  function enterAdminOnce(user) {
+    if (!user || !user.id) return Promise.resolve();
+    if (adminEntryUserId === user.id) return adminEntryPromise || Promise.resolve();
+    adminEntryUserId = user.id;
+    var promise = enterAdmin(user);
+    adminEntryPromise = promise;
+    function clearEntry() {
+      if (adminEntryUserId === user.id && adminEntryPromise === promise) adminEntryPromise = null;
+    }
+    promise.then(clearEntry, clearEntry);
+    return promise;
+  }
 
   async function initAdmin() {
     bindAdminUI();
@@ -518,12 +534,19 @@
       showView("login");
       await ULA.recovery.newPassword();
       recovering = false;
-      await enterAdmin(session.user);
+      await enterAdminOnce(session.user);
     }
     db.auth.onAuthStateChange(function (event, session) {
       if (event === "SIGNED_OUT" && mode === "admin") {
+        adminEntryUserId = "";
+        adminEntryPromise = null;
         state.orders = [];
         showView("login");
+      } else if (event === "SIGNED_IN" && session && session.user && mode === "admin") {
+        // Откладываем запросы к базе, чтобы не блокировать обработчик Supabase Auth.
+        setTimeout(function () {
+          enterAdminOnce(session.user).catch(function (err) { console.error("Не удалось открыть кабинет после входа", err); });
+        }, 0);
       } else if (event === "PASSWORD_RECOVERY" && session) {
         recover(session);
       }
@@ -531,7 +554,7 @@
     var res = await db.auth.getSession();
     var session = res && res.data && res.data.session;
     if (session && ULA.recovery.isRecoveryLink()) recover(session);
-    else if (session && !recovering) await enterAdmin(session.user);
+    else if (session && !recovering) await enterAdminOnce(session.user);
     else if (!session) showView("login");
   }
 
@@ -710,7 +733,7 @@
           options: cTok ? { captchaToken: cTok } : undefined
         });
         if (res.error) setLoginError(/captcha/i.test(res.error.message || "") ? t("captcha_err") : t("login_error"));
-        else await enterAdmin(res.data.user);
+        else await enterAdminOnce(res.data.user);
       } catch (err) {
         console.error(err);
         setLoginError(/captcha/i.test(String(err && err.message)) ? t("captcha_err") : t("error_generic"));
