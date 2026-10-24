@@ -20,6 +20,7 @@
   var ROUND_STEPS = [0, 10, 50, 100];
 
   var qs = {
+    orderId: null,       // расчёт сделан для заявки клиента (кнопка «Применить к заказу»)
     wsId: null,          // для какого кабинета заполнены поля
     wmode: "total",      // вес указан «за всё» (total) или «за 1 шт» (unit)
     lang: "ru",
@@ -206,6 +207,13 @@
     var text = $("#q-msg").value;
     $("#q-copy").disabled = !ok || !text;
     $("#q-order").disabled = !ok;
+    $("#q-apply").classList.toggle("hidden", !qs.orderId);
+    $("#q-apply").disabled = !ok;
+    $("#q-for").classList.toggle("hidden", !qs.orderId);
+    if (qs.orderId) {
+      var fo = c.state.orders.filter(function (x) { return x.id === qs.orderId; })[0];
+      $("#q-for-text").textContent = fo ? t("q_for", { n: fo.order_number, name: fo.client_name || "—" }) : "";
+    }
     var wa = $("#q-wa");
     wa.href = ok ? "https://wa.me/?text=" + encodeURIComponent(text) : "#";
     wa.classList.toggle("disabled", !ok);
@@ -234,6 +242,7 @@
   // Очистить данные товара (валюты, тариф, наценку оставляем)
   function clearItem() {
     ["q-name", "q-link", "q-price", "q-weight"].forEach(function (id) { $("#" + id).value = ""; });
+    qs.orderId = null;
     $("#q-qty").value = "1";
     qs.msgEdited = false;
   }
@@ -263,6 +272,33 @@
       markup: r.cost > 0 ? Math.round((r.out / r.cost - 1) * 1000) / 10 : "",
       product_ru: $("#q-name").value.trim(), supplier_link: link
     });
+  }
+
+  // Расчёт для заявки клиента: подставляем ссылку, название и количество из заказа
+  function forOrder(o) {
+    c.switchTab("quote");
+    clearItem();
+    $("#q-name").value = o.product_ru && o.product_ru !== "Товар по ссылке" ? o.product_ru : "";
+    $("#q-link").value = o.supplier_link || "";
+    $("#q-qty").value = String(Number(o.quantity) || 1);
+    qs.orderId = o.id;
+    render();
+    $("#q-price").focus();
+  }
+
+  // Перенести рассчитанную цену в заявку: откроется форма заказа, останется проверить и сохранить
+  function applyToOrder() {
+    var r = qs.result, o = c.state.orders.filter(function (x) { return x.id === qs.orderId; })[0];
+    if (!r || !r.valid || !o) return;
+    c.switchTab("orders");
+    c.openOrderApply(o, {
+      purchase_currency: r.a, client_currency: r.b, delivery_currency: r.dc,
+      quantity: r.qty, unit_price: r.price, exchange_rate: r.rate,
+      weight: r.wTotal, tariff: r.tariff, delivery_cost: r.dAmount, delivery_rate: r.drate,
+      client_price: r.out,
+      markup: r.cost > 0 ? Math.round((r.out / r.cost - 1) * 1000) / 10 : ""
+    });
+    qs.orderId = null;
   }
 
   // ---------- События ----------
@@ -304,6 +340,8 @@
     });
     $("#q-wa").addEventListener("click", function (e) { if (!(qs.result && qs.result.valid)) e.preventDefault(); });
     $("#q-order").addEventListener("click", makeOrder);
+    $("#q-apply").addEventListener("click", applyToOrder);
+    $("#q-for-cancel").addEventListener("click", function () { qs.orderId = null; refreshButtons(); });
     $("#q-bar").addEventListener("click", function () {
       $("#q-result").scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -348,5 +386,5 @@
     });
   }
 
-  U.quote = { open: open, render: render, bind: bind };
+  U.quote = { open: open, render: render, bind: bind, forOrder: forOrder };
 })(window.ULA);

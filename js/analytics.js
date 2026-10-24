@@ -395,6 +395,7 @@
     if (d.list.length) html += card(t("an_by_month"), monthsHtml(d), "wide");
     html += card(t("an_by_status"), statusHtml(d));
     if (d.list.length) html += card(t("an_top"), topBlock(d));
+    html += '<button type="button" class="btn btn-block an-detail" data-detail>' + esc(t("an_detail")) + " →</button>";
     $("#an-body").innerHTML = html;
   }
 
@@ -434,6 +435,7 @@
         $("#an-readout").innerHTML = readout(col.getAttribute("data-month"), { rev: num(col.getAttribute("data-rev")), profit: num(col.getAttribute("data-profit")) });
         return;
       }
+      if (e.target.closest("[data-detail]")) { c.switchTab("report"); return; }
       var g = e.target.closest("[data-goal]");
       if (g) {
         var act = g.getAttribute("data-goal");

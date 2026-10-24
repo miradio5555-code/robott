@@ -406,5 +406,5 @@
     load(false);   // свежие партии при открытии раздела
   }
 
-  U.shipments = { open: open, refresh: refresh, load: load, bind: bind, name: name, _calc: calc };
+  U.shipments = { count: function () { return sh.list.length; }, open: open, refresh: refresh, load: load, bind: bind, name: name, _calc: calc };
 })(window.ULA);
