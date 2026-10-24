@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261107d"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261107e"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -542,13 +542,19 @@
         adminEntryPromise = null;
         state.orders = [];
         showView("login");
-      } else if (event === "SIGNED_IN" && session && session.user && mode === "admin") {
-        // Откладываем запросы к базе, чтобы не блокировать обработчик Supabase Auth.
-        setTimeout(function () {
-          enterAdminOnce(session.user).catch(function (err) { console.error("Не удалось открыть кабинет после входа", err); });
-        }, 0);
       } else if (event === "PASSWORD_RECOVERY" && session) {
+        // Сначала покажем форму нового пароля, а код MFA спросим при сохранении.
         recover(session);
+      } else if (event === "SIGNED_IN" && session && session.user && mode === "admin") {
+        if (ULA.recovery.isRecoveryLink()) {
+          // Ссылка восстановления — не обычный вход в кабинет.
+          recover(session);
+        } else {
+          // Откладываем запросы к базе, чтобы не блокировать обработчик Supabase Auth.
+          setTimeout(function () {
+            enterAdminOnce(session.user).catch(function (err) { console.error("Не удалось открыть кабинет после входа", err); });
+          }, 0);
+        }
       }
     });
     var res = await db.auth.getSession();
