@@ -337,6 +337,7 @@
     var o = state.client;
     var urls = clientPhotoUrls();
     var bal = num(o.balance_som);
+    var priceKnown = num(o.total_som) > 0 || num(o.paid_amount) > 0;   // цена уже рассчитана?
     var cc = o.client_currency || "KGS"; // валюта клиента
     var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
     var idx = flow.indexOf(o.status);
@@ -385,12 +386,13 @@
 
       '<section class="client-block">' +
         "<h2>" + esc(t("cl_payment")) + "</h2>" +
-        '<dl class="money">' +
+        // цена ещё не рассчитана (например, новая заявка): вместо «к оплате 0» — пояснение
+        (priceKnown ? '<dl class="money">' +
           '<div class="money-total"><dt>' + t("cl_due") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
           "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
           '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("cl_left") + "</dt><dd>" +
             (bal > 0 ? cur(bal, cc) : esc(t("cl_paid_full"))) + "</dd></div>" +
-        "</dl>" +
+        "</dl>" : '<p class="muted">' + esc(t("cl_price_pending")) + "</p>") +
       "</section>" +
 
       (deliveryFirst ? "" : delivery) +
