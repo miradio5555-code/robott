@@ -188,12 +188,16 @@
     else toast(t("error_generic"), "error");
   }
 
+  function isStaff() { return !!state.myRole && state.myRole === "staff"; }
+
   function showView(name) {
     var boot = document.getElementById("boot");
     if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
     ["config", "login", "join", "admin", "client", "request"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
+    // пришёл по приглашению помощника — подсказать, что делать
+    if (name === "login" && ULA.team) $("#login-team-note").classList.toggle("hidden", !ULA.team.pendingCode());
   }
 
   function photoUrl(path) {
@@ -251,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261026a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261027a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -271,6 +275,9 @@
       showView("config");
       return;
     }
+
+    // Ссылка-приглашение помощника (?team=КОД): запоминаем код, он примется после входа
+    ULA.team.captureFromUrl();
 
     // Страница клиента работает без библиотеки supabase.js —
     // так она открывается и на старых телефонах, и во встроенных браузерах WhatsApp / Telegram.
@@ -533,12 +540,23 @@
       return;
     }
 
+    // Пришёл по приглашению помощника — вступаем в команду до выбора кабинета
+    var teamMsg = "";
+    if (p.role === "buyer") {
+      var tj = await ULA.team.acceptPending();
+      if (tj === "ok") teamMsg = "tm_joined";
+      else if (tj !== "none") teamMsg = tj;
+    }
+
     var mem = await db.from("workspace_members")
       .select("role, created_at, workspace:workspaces(" + WS_FIELDS + ")")
       .eq("user_id", user.id)
-      .order("created_at")
-      .limit(1);
-    var myWs = mem.data && mem.data[0] ? mem.data[0].workspace : null;
+      .order("created_at");
+    var memRows = mem.data || [];
+    var memRow = memRows.filter(function (m) { return m.role === "staff"; })[0] || memRows[0] || null;
+    var myWs = memRow ? memRow.workspace : null;
+    state.myRole = memRow ? memRow.role : null;
+    document.body.classList.toggle("is-staff", state.myRole === "staff");
 
     // у байера обязательно должен быть кабинет; админ может работать и без своего
     if (!myWs && p.role !== "admin") {
@@ -562,6 +580,8 @@
       history.replaceState(null, "", location.pathname + location.search);
       if (p.role === "admin") switchTab("support"); else ULA.support.open(null, null);
     }
+
+    if (teamMsg) toast(t(teamMsg), teamMsg === "tm_joined" ? "ok" : "error");
 
     // нет телефона (например, вход через Google) — попросить указать
     if (p.role === "buyer" && !p.phone) openOnboard();
@@ -715,6 +735,7 @@
     ULA.quote.bind();
     ULA.shipments.bind();
     ULA.requests.bind();
+    ULA.team.bind();
     ULA.debts.bind();
     ULA.report.bind();
 
@@ -1208,7 +1229,7 @@
               "<div><dt>" + t("l_delivery") + "</dt><dd>" + deliveryText(o) + "</dd></div>" : "") +
       '<div class="money-cost"><dt>' + t("l_cost") + "</dt><dd>" + cur(o.cost_som, c) + "</dd></div>" +
       '<div class="money-total"><dt>' + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
-      '<div class="money-profit' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
+      '<div class="money-profit owner-only' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
         (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
       "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
       '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
@@ -1256,7 +1277,7 @@
           "<div><dt>" + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
           "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
           '<div class="' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
-          '<div class="profit' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
+          '<div class="profit owner-only' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
             (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
         "</dl>" +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
@@ -1270,7 +1291,7 @@
               '<button type="button" class="menu-action" data-act="link">' + t("client_link") + "</button>" +
               '<button type="button" class="menu-action" data-act="edit" data-write>' + t("edit") + "</button>" +
               '<button type="button" class="menu-action" data-act="status" data-write>' + t("change_status") + "</button>" +
-              '<button type="button" class="menu-action menu-logout" data-act="delete" data-write>' + t("remove") + "</button>" +
+              '<button type="button" class="menu-action menu-logout owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
             "</div>" +
           "</details>" +
         "</div>" +
@@ -1499,7 +1520,7 @@
         (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(t("l_link")) + '</a>' : '') +
         (s.notes ? '<p class="fine-print">' + esc(s.notes) + '</p>' : '') + '</div>' +
         '<div class="client-row-orders"><button type="button" class="btn" data-write data-supplier-edit="' + esc(s.id) + '">' + esc(t("edit")) + '</button>' +
-        '<button type="button" class="btn btn-danger" data-write data-supplier-delete="' + esc(s.id) + '">' + esc(t("remove")) + '</button></div></article>';
+        '<button type="button" class="btn btn-danger owner-only" data-write data-supplier-delete="' + esc(s.id) + '">' + esc(t("remove")) + '</button></div></article>';
     }).join("");
   }
 
@@ -1668,7 +1689,7 @@
       if (n) add(k === "no_rate" ? "bad" : "warn", t("h_" + k, { n: n }), { type: "filter", key: k });
     });
     // заказы в убытке
-    list.filter(function (o) { return o.profit_som != null && num(o.profit_som) < 0; }).slice(0, 3).forEach(function (o) {
+    list.filter(function (o) { return !isStaff() && o.profit_som != null && num(o.profit_som) < 0; }).slice(0, 3).forEach(function (o) {
       add("bad", t("h_loss", { num: o.order_number, sum: money(o.profit_som) + " " + (o.client_currency || "") }), { type: "order", id: o.id });
     });
     // клиент должен, а товар уже прибыл
@@ -1685,7 +1706,7 @@
     // прибыль за текущий месяц (хорошая новость — в конце)
     var month = todayISO().slice(0, 7), profit = {};
     list.forEach(function (o) {
-      if (o.status !== "cancelled" && o.profit_som != null && String(o.order_date).slice(0, 7) === month) {
+      if (!isStaff() && o.status !== "cancelled" && o.profit_som != null && String(o.order_date).slice(0, 7) === month) {
         var c = o.client_currency || "";
         profit[c] = (profit[c] || 0) + num(o.profit_som);
       }
@@ -2124,7 +2145,7 @@
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
           '<button type="button" class="btn" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
-          '<button type="button" class="btn btn-danger" data-act="delete" data-write>' + t("remove") + "</button>" +
+          '<button type="button" class="btn btn-danger owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
         "</div>" +
       "</div>";
   }

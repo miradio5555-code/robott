@@ -1683,3 +1683,12 @@ body.readonly #tab-orders .card-actions { grid-template-columns: 1fr auto; }
 .rq-check { margin: 4px auto 0; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--green-tint); color: var(--green); font-size: 30px; font-weight: 800; }
 .rq-num { font-family: var(--font-display); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .rq-to { margin: -2px 0 8px; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
+
+/* ---- Команда (помощники) ---- */
+body.is-staff .owner-only { display: none !important; }
+.team-note { background: #eef6ff; border: 1px solid #b9d7f5; color: #17406b; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.tm-list { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.tm-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line, #e3e3e8); border-radius: 10px; }
+.tm-row .link-input { width: 100%; margin-top: 6px; }
+.tm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-sm { padding: 6px 10px; font-size: 13px; }
