@@ -1692,3 +1692,57 @@ body.is-staff .owner-only { display: none !important; }
 .tm-row .link-input { width: 100%; margin-top: 6px; }
 .tm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-sm { padding: 6px 10px; font-size: 13px; }
+
+/* ---- Аналитика (дашборд) ---- */
+.an-grid { display: grid; gap: 14px; margin-top: 8px; }
+.an-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.an-kpi { display: grid; gap: 2px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); min-width: 0; }
+.an-kpi span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.an-kpi b { font-family: var(--font-display); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.an-kpi.good b { color: var(--green); }
+.an-kpi.neg b, .an-kpi.warn b { color: var(--red); }
+.an-kpi.wide { grid-column: 1 / -1; }
+.an-delta { font-style: normal; font-size: 12px; font-weight: 800; }
+.an-delta.up { color: var(--green); }
+.an-delta.down { color: var(--red); }
+.an-card { padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+.an-card h3 { margin: 0 0 12px; font-size: 15px; }
+.an-legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.an-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+.an-legend i.rev, .an-bars i.rev { background: var(--line-strong); }
+.an-legend i.pro, .an-bars i.pro { background: var(--green); }
+.an-bars i.pro.neg { background: var(--red); }
+.an-cols { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4px; height: 190px; align-items: stretch; }
+.an-col { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; border-radius: 6px; }
+.an-col.on, .an-col:hover { background: var(--hover); }
+.an-bars { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; min-height: 0; }
+.an-bars i { display: block; width: 42%; max-width: 16px; border-radius: 4px 4px 0 0; min-height: 0; }
+.an-lbl { font-size: 10px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.an-readout { margin: 10px 0 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.an-readout b { color: var(--ink); }
+.an-donut-wrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.an-donut { width: 140px; height: 140px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.an-donut > div { width: 88px; height: 88px; border-radius: 50%; background: var(--surface); display: grid; place-content: center; text-align: center; }
+.an-donut b { font-family: var(--font-display); font-size: 22px; font-weight: 500; line-height: 1.1; }
+.an-donut span { font-size: 11px; color: var(--muted); }
+.an-legend-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1; min-width: 150px; }
+.an-legend-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.an-legend-list li i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.an-legend-list li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.an-hrow { margin-bottom: 12px; }
+.an-hrow:last-child { margin-bottom: 0; }
+.an-hline { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.an-hname { min-width: 0; overflow-wrap: anywhere; font-weight: 700; }
+.an-hline b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.an-hbar { height: 8px; background: var(--hover); border-radius: 99px; margin-top: 5px; overflow: hidden; }
+.an-hbar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+.an-hbar.warn i { background: var(--red); }
+.an-hbar.neg i { background: var(--red); }
+.an-none { margin: 0; }
+@media (min-width: 760px) {
+  .an-kpis { grid-template-columns: repeat(4, 1fr); }
+  .an-grid { grid-template-columns: repeat(2, 1fr); }
+  .an-kpis, .an-card.wide { grid-column: 1 / -1; }
+  .an-cols { height: 240px; }
+  .an-lbl { font-size: 12px; }
+}

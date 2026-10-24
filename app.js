@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261027a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261028a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -738,6 +738,7 @@
     ULA.team.bind();
     ULA.debts.bind();
     ULA.report.bind();
+    ULA.analytics.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -986,6 +987,7 @@
     if (ULA.shipments) ULA.shipments.refresh();   // список партий (если открыт)
     if (ULA.debts) ULA.debts.refresh();   // список должников и красная цифра у «Долги»
     if (ULA.report) ULA.report.refresh(); // отчёт по прибыли (если открыт)
+    if (ULA.analytics) ULA.analytics.refresh(); // дашборд (если открыт)
   }
 
   // Блок «Склад в Китае». Адрес хранится в настройках кабинета.
@@ -1359,13 +1361,14 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shipments" || name === "debts" || name === "report" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
     $("#tab-shipments").classList.toggle("hidden", state.tab !== "shipments");
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-report").classList.toggle("hidden", state.tab !== "report");
+    $("#tab-analytics").classList.toggle("hidden", state.tab !== "analytics");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
@@ -1385,6 +1388,7 @@
     if (state.tab === "shipments") ULA.shipments.open();
     if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "report") ULA.report.open();
+    if (state.tab === "analytics") ULA.analytics.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
   }
@@ -1628,29 +1632,22 @@
   function exportClientsCsv() {
     var list = filteredClients();
     if (!list.length) { toast(t("export_empty"), "error"); return; }
-    var head = ["l_name", "l_phone", "l_telegram", "l_city", "l_address", "l_pickup", "l_orders", "l_added"]
-      .map(function (k) { return csvCell(t(k)); }).join(";");
-    var lines = list.map(function (c) {
-      return [
-        csvCell(c.name),
-        csvCell(c.phone, true),
-        csvCell(c.telegram || ""), // без @: Excel принял бы @ за начало формулы
-        csvCell(c.city),
-        csvCell(c.address),
-        csvCell(c.pickup_point),
-        csvCell((c.orders || []).map(function (o) { return o.order_number; }).join(", ")),
-        csvCell(String(c.created_at || "").slice(0, 10))
-      ].join(";");
-    });
-    var blob = new Blob(["﻿" + head + "\r\n" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "ula-clients-" + todayISO() + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    ULA.xlsx.download("ula-clients-" + todayISO() + ".xlsx", [{
+      name: t("nav_clients"),
+      title: (state.ws ? state.ws.name + " — " : "") + t("nav_clients"),
+      subtitle: t("x_made", { d: fmtDate(todayISO()) }) + " · " + t("x_count", { n: list.length }),
+      columns: [
+        { h: t("l_name"), w: 26, type: "text" }, { h: t("l_phone"), w: 18, type: "text" },
+        { h: t("l_telegram"), w: 18, type: "text" }, { h: t("l_city"), w: 18, type: "text" },
+        { h: t("l_address"), w: 36, type: "text" }, { h: t("l_pickup"), w: 28, type: "text" },
+        { h: t("l_orders"), w: 30, type: "text" }, { h: t("l_added"), w: 14, type: "date" }
+      ],
+      rows: list.map(function (c) {
+        return [c.name, c.phone ? fmtPhone(c.phone) : "", c.telegram ? "@" + String(c.telegram).replace(/^@/, "") : "", c.city, c.address, c.pickup_point,
+          (c.orders || []).map(function (o) { return o.order_number; }).join(", "), String(c.created_at || "").slice(0, 10)];
+      }),
+      total: null
+    }]);
     toast(t("export_done"), "ok");
   }
 
