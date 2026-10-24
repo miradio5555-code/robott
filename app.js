@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261102a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261102b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1084,6 +1084,7 @@
     $("#p-phone").value = state.me && state.me.phone ? fmtPhone(state.me.phone) : "";
     $("#p-password").value = "";
     $("#p-current").value = "";
+    $("#p-password2").value = "";
     $("#p-current-wrap").classList.toggle("hidden", !(state.me && state.me.hasPassword));
     // разделы кабинета — только для своего кабинета
     var ws = canEditWs();
@@ -1124,6 +1125,7 @@
     if (pPhone && !/^\+?\d{9,15}$/.test(pPhone)) { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
     if (!pPhone && state.me.role === "buyer") { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
     if (pPass && pPass.length < 8) { setSettingsError(t("e_password")); $("#p-password").focus(); return; }
+    if (pPass && pPass !== $("#p-password2").value) { setSettingsError(t("e_password_match")); $("#p-password2").focus(); return; }
     // смена пароля только при вводе текущего пароля (если кто-то получит ваш открытый телефон, пароль он не сменит)
     var pCurrent = $("#p-current").value;
     if (pPass && state.me.hasPassword && !pCurrent) { setSettingsError(t("e_current_password")); $("#p-current").focus(); return; }
@@ -2128,6 +2130,7 @@
       if (!/^\+?\d{9,15}$/.test(phone)) return setJoinError(t("e_phone"), "#join-phone");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setJoinError(t("e_email"), "#join-email");
       if (pass.length < 8) return setJoinError(t("e_password"), "#join-password");
+      if (pass !== $("#join-password2").value) return setJoinError(t("e_password_match"), "#join-password2");
       setJoinError("");
 
       var btn = $("#join-btn");
