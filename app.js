@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261104a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261105a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -602,6 +602,9 @@
 
     // нет телефона (например, вход через Google) — попросить указать
     if (p.role === "buyer" && !p.phone) openOnboard();
+
+    // новому байеру один раз показываем обучение по шагам
+    ULA.tour.maybeStart();
   }
 
   // ---------- Завершение регистрации: телефон обязателен ----------
@@ -788,6 +791,7 @@
     ULA.onboarding.bind();
     ULA.tgws.bind();
     ULA.mfa.bind();
+    ULA.tour.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);

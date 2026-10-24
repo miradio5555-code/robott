@@ -2102,3 +2102,19 @@ html[data-theme="dark"] .section-menu-ico.g-more  { background: rgba(181, 156, 2
 .mfa-setup .field { width: 100%; }
 #mfa-off-code { letter-spacing: .3em; font-size: 22px; text-align: center; }
 .cf-box { display: flex; justify-content: center; margin: 8px 0; min-height: 0; }
+
+/* Обучение (пошаговый тур) */
+.tour { position: fixed; inset: 0; z-index: 100; }
+.tour.hidden { display: none; }
+.tour-shield { position: absolute; inset: 0; }                 /* ловит нажатия, чтобы страница под туром не реагировала */
+.tour.dim .tour-shield { background: rgba(10, 10, 14, .66); }
+.tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 10, 14, .66), 0 0 0 3px rgba(255,255,255,.9); pointer-events: none; transition: left .22s var(--ease), top .22s var(--ease), width .22s var(--ease), height .22s var(--ease); }
+.tour-card { position: fixed; padding: 16px 16px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg); animation: ula-pop .2s var(--ease); }
+.tour-step { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.tour-title { margin: 4px 0 6px; font-size: 18px; }
+.tour-text { margin: 0 0 14px; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-spacer { flex: 1; }
+body.touring { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
+body.touring .section-menu .tab.mg-hidden { display: flex !important; }
