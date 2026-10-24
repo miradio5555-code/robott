@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261031c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261101a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1316,7 +1316,7 @@
     var photo = urls.length
       ? '<button type="button" class="card-photo" data-act="photo" data-i="0"><img src="' + esc(urls[0]) + '" loading="lazy" alt="">' +
         (urls.length > 1 ? "<span>+" + (urls.length - 1) + "</span>" : "") + "</button>"
-      : '<div class="card-photo card-photo-empty" aria-hidden="true">📦</div>';
+      : '<div class="card-photo card-photo-empty" aria-hidden="true">' + ULA.icon("package", 24) + "</div>";
     return '' +
       '<article class="card st-' + o.status + (ULA.bulk && ULA.bulk.has(o.id) ? " selected" : "") + '" data-id="' + esc(o.id) + '">' +
         '<div class="card-top">' +
@@ -1365,7 +1365,7 @@
     return '<div class="card-pay">' +
       '<div class="pay-line"><b>' + cur(total, c) + "</b>" +
         (bal > 0 ? '<span class="pay-owe">' + esc(t("pay_owe", { s: cur(bal, c) })) + "</span>"
-                 : '<span class="pay-ok">✓ ' + esc(t("pay_full")) + "</span>") + "</div>" +
+                 : '<span class="pay-ok">' + ULA.icon("check", 14) + esc(t("pay_full")) + "</span>") + "</div>" +
       '<div class="pay-bar' + (pct >= 100 ? " full" : "") + '"><i style="width:' + pct + '%"></i></div>' +
       '<div class="pay-meta"><span>' + esc(t("l_paid")) + " " + cur(paid, c) + "</span>" +
         (o.profit_som != null ? '<span class="owner-only pay-profit' + (pr < 0 ? " loss" : "") + '">' + esc(t("l_profit")) + " " + cur(pr, c) + "</span>" : "") +
@@ -1378,14 +1378,14 @@
   // В строке под номером заказа: город клиента или красная пометка «Нет адреса»
   // Метка «📥 Заявка»: заказ создал клиент по ссылке, ещё не обработан
   function reqTag(o) {
-    return o.source === "request" && o.status === "new" ? '<span class="batch-tag req-tag">📥 ' + esc(t("rq_tag")) + "</span>" : "";
+    return o.source === "request" && o.status === "new" ? '<span class="batch-tag req-tag">' + ULA.icon("inbox", 13) + esc(t("rq_tag")) + "</span>" : "";
   }
 
   // Метка «📦 Партия» на карточке заказа
   function shipTag(o) {
     if (!o.shipment_id) return "";
     var n = ULA.shipments ? ULA.shipments.name(o.shipment_id) : "";
-    return '<span class="batch-tag">📦 ' + esc(n || t("sh_tag_short")) + "</span>";
+    return '<span class="batch-tag">' + ULA.icon("truck", 13) + esc(n || t("sh_tag_short")) + "</span>";
   }
 
   function placeHtml(o) {

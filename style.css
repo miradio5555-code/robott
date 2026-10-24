@@ -1960,3 +1960,111 @@ html[data-theme="dark"] .mg-more { color: #B59CFF; }
 .section-menu .tab[data-group="main"].active::after { background: #2F6FDE; }
 .section-menu .tab[data-group="money"].active::after { background: #1E9E62; }
 .section-menu .tab[data-group="more"].active::after { background: #8A5CF6; }
+
+/* =====================================================
+   ЕДИНЫЙ СТИЛЬ: одинаковые «кирпичики» во всех разделах
+   (тени, кнопки, поля, плашки, иконки, анимации)
+   ===================================================== */
+:root {
+  --shadow-sm: 0 1px 2px rgba(16, 16, 22, .04), 0 2px 6px rgba(16, 16, 22, .05);
+  --shadow-md: 0 10px 30px rgba(16, 16, 22, .12);
+  --shadow-lg: 0 24px 60px rgba(16, 16, 22, .22);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --warn: #A15C00;
+  --warn-tint: #FDF1DC;
+  --r-btn: 12px;
+}
+html[data-theme="dark"] { --shadow-sm: none; --shadow-md: 0 10px 30px rgba(0,0,0,.45); --shadow-lg: 0 24px 60px rgba(0,0,0,.6); --warn: #F2B84B; --warn-tint: rgba(242,184,75,.14); }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="dark"]) { --shadow-sm: none; --shadow-md: 0 10px 30px rgba(0,0,0,.45); --shadow-lg: 0 24px 60px rgba(0,0,0,.6); --warn: #F2B84B; --warn-tint: rgba(242,184,75,.14); }
+}
+
+/* Иконки: по центру строки, не сжимаются */
+.ico { display: inline-block; flex: none; vertical-align: -0.18em; }
+.btn .ico, .batch-tag .ico, .pay-ok .ico, .an-ok .ico { vertical-align: middle; }
+.batch-tag { display: inline-flex; align-items: center; gap: 4px; }
+.pay-ok { display: inline-flex; align-items: center; gap: 4px; }
+.as-icon { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--warn-tint); color: var(--warn); font-size: 0; }
+.card-photo-empty { display: grid; place-items: center; color: var(--muted); background: var(--soft); }
+#wh-title { display: flex; align-items: center; gap: 6px; }
+.sh-warn { display: flex; gap: 8px; align-items: flex-start; }
+.sh-warn .ico { margin-top: 1px; }
+.icon-btn .ico { display: block; }
+.rq-check .ico { display: block; }
+.an-ok { display: flex; align-items: center; gap: 6px; }
+.ob-step b .ico { display: block; }
+
+/* Карточки и блоки: мягкая тень в светлой теме, одинаковые углы */
+.client-block, .an-card, .an-kpi, .summary, .assistant, .sh-card, .onboard-card,
+.r-row, .tm-row, .supplier-card, .client-card, .r-summary .r-cell {
+  box-shadow: var(--shadow-sm);
+}
+/* у карточек заказов и долгов цветная полоска слева — тень добавляем к ней, а не вместо */
+.card { box-shadow: inset 4px 0 0 var(--st, var(--line)), var(--shadow-sm); }
+.debt-card { box-shadow: inset 4px 0 0 var(--line-strong), var(--shadow-sm); }
+.debt-card.overdue { box-shadow: inset 4px 0 0 var(--red), var(--shadow-sm); }
+.card, .client-block, .an-card, .sh-card, .onboard-card, .assistant, .summary { border-radius: 16px; }
+@media (hover: hover) {
+  #tab-orders .card { transition: border-color .15s, box-shadow .15s, transform .15s var(--ease); }
+  #tab-orders .card:hover { box-shadow: inset 4px 0 0 var(--st, var(--line)), var(--shadow-md); transform: translateY(-1px); }
+}
+
+/* Кнопки: один размер, один угол, лёгкое нажатие */
+.btn { border-radius: var(--r-btn); transition: background .15s, border-color .15s, color .15s, transform .08s, box-shadow .15s; }
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn-primary { box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+.btn-pill { border-radius: 999px; }
+.btn:focus-visible, .chip:focus-visible, .tab:focus-visible, .menu-group:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* Поля ввода: одинаковые, с мягкой подсветкой при вводе */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea { border-radius: 12px; transition: border-color .15s, box-shadow .15s; }
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* Предупреждения («Нет адреса», «Нет цены») — спокойная жёлтая плашка, а не красная надпись */
+.flag-missing { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: var(--warn-tint); color: var(--warn); font-weight: 700; font-size: 12px; line-height: 1.6; }
+
+/* Плашки статусов: одного размера везде */
+.pill { padding: 3px 10px; font-size: 12px; font-weight: 800; letter-spacing: .01em; }
+
+/* Чипы-фильтры */
+.chip { transition: background .15s, border-color .15s, color .15s; }
+
+/* Окна: плавно выезжают снизу (на компьютере — появляются по центру) */
+@keyframes ula-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ula-sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ula-pop { from { transform: translateY(-6px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal.open .modal-backdrop { animation: ula-fade .18s ease-out; }
+.modal.open .modal-sheet { animation: ula-sheet .26s var(--ease); box-shadow: var(--shadow-lg); }
+.section-menu:not(.hidden) { animation: ula-pop .16s var(--ease); box-shadow: var(--shadow-md); }
+.toast { box-shadow: var(--shadow-md); transition: opacity .2s, transform .25s var(--ease); }
+.card-more-menu { box-shadow: var(--shadow-md); animation: ula-pop .14s var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Пустые списки: аккуратная иконка вместо эмодзи */
+#empty::before, .state-box[id$="-empty"]::before {
+  content: ""; width: 44px; height: 44px; margin: 0 auto 10px; background: var(--muted); opacity: .55;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z'/></svg>") center / contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z'/></svg>") center / contain no-repeat;
+  font-size: 0;
+}
+
+/* Заголовки разделов — один стиль */
+.page-title { letter-spacing: -.01em; }
+.client-block h2, .an-card h3 { letter-spacing: -.005em; }
+@media (max-width: 420px) { #tab-orders .card-history-label { display: none; } #tab-orders .card-history { flex-wrap: nowrap; } #tab-orders .card-history strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+
+/* Переключатели (вкл/выкл) вместо галочек в Настройках */
+.seg-switches { display: grid; gap: 2px; }
+.check-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-weight: 600; cursor: pointer; }
+.check-line span { order: 1; }
+.check-line input[type="checkbox"] { order: 2; -webkit-appearance: none; appearance: none; flex: none; width: 46px; height: 28px; margin: 0; border-radius: 999px;
+  background: var(--line-strong); position: relative; cursor: pointer; transition: background .18s; }
+.check-line input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .18s var(--ease); }
+.check-line input[type="checkbox"]:checked { background: var(--green); }
+.check-line input[type="checkbox"]:checked::after { transform: translateX(18px); }
+.check-line input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 3px var(--focus-ring); }
+.check-line input[type="checkbox"] { min-height: 0 !important; height: 28px !important; width: 46px !important; padding: 0 !important; border: 0 !important; box-sizing: border-box; }
