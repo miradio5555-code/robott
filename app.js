@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261102b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261103a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -524,6 +524,8 @@
 
   // После входа: узнаём роль (админ / байер) и кабинет пользователя
   async function enterAdmin(user) {
+    // включён вход с кодом — сначала просим код (без него базе нельзя доверять, что это тот же человек)
+    if (!(await ULA.mfa.gate())) { showView("login"); return; }
     var PROFILE = "role, full_name, phone, is_active";
     var prof = await db.from("profiles").select(PROFILE).eq("user_id", user.id).maybeSingle();
     var p = prof.data;
@@ -587,6 +589,7 @@
     showView("admin");
 
     ULA.support.startPolling();
+    ULA.mfa.refresh();   // для администратора: напоминание «включите вход с кодом»
     if (myWs) await openWorkspace(myWs);
     else switchTab("buyers");
     // ссылка из Telegram «Ответить: …#/support» — сразу открыть поддержку
@@ -782,6 +785,7 @@
     ULA.bulk.bind();
     ULA.onboarding.bind();
     ULA.tgws.bind();
+    ULA.mfa.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1090,6 +1094,7 @@
     var ws = canEditWs();
     $$("[data-ws-section]").forEach(function (el) { el.classList.toggle("hidden", !ws); });
     setSettingsError("");
+    ULA.mfa.refresh();
     if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); }
     openModal("modal-settings");
     var body = $("#settings-form .modal-body");

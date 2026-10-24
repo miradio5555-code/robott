@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261102b">
+  <link rel="stylesheet" href="style.css?v=20261103a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -248,6 +248,10 @@
 
     <!-- ============ РАЗДЕЛ: БАЙЕРЫ (только админ) ============ -->
     <main id="tab-buyers" class="container hidden">
+      <div id="mfa-banner" class="mfa-banner hidden">
+        <span data-i18n="mfa_banner"></span>
+        <button id="mfa-banner-btn" class="btn btn-primary btn-sm" type="button" data-i18n="mfa_banner_btn"></button>
+      </div>
       <section class="client-block">
         <h2 data-i18n="b_invite_title"></h2>
         <p class="muted b-lead" data-i18n="b_invite_hint"></p>
@@ -814,6 +818,32 @@
           </fieldset>
         </section>
 
+        <!-- Вход с кодом (2FA) -->
+        <section class="s-section" id="s-mfa">
+          <h3 data-i18n="mfa_title"></h3>
+          <p class="field-hint" data-i18n="mfa_hint"></p>
+          <p id="mfa-state" class="fine-print"></p>
+          <div id="mfa-setup" class="mfa-setup hidden">
+            <ol class="mfa-steps">
+              <li data-i18n="mfa_step1"></li>
+              <li data-i18n="mfa_step2"></li>
+            </ol>
+            <img id="mfa-qr" class="mfa-qr" alt="QR" width="180" height="180">
+            <p class="fine-print"><span data-i18n="mfa_secret"></span> <code id="mfa-secret" class="mfa-secret" title="copy"></code></p>
+            <label class="field"><span data-i18n="mfa_step3"></span>
+              <input id="mfa-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label>
+            <p id="mfa-setup-error" class="form-error hidden" role="alert"></p>
+            <div class="stack">
+              <button id="mfa-confirm" class="btn btn-primary" type="button" data-i18n="mfa_confirm"></button>
+              <button id="mfa-cancel" class="btn btn-ghost" type="button" data-i18n="mfa_cancel"></button>
+            </div>
+          </div>
+          <div class="stack">
+            <button id="mfa-start" class="btn" type="button" data-i18n="mfa_start"></button>
+            <button id="mfa-off" class="btn btn-ghost hidden" type="button" data-i18n="mfa_disable"></button>
+          </div>
+        </section>
+
         <!-- Профиль -->
         <section class="s-section">
           <h3 data-i18n="s_sec_profile"></h3>
@@ -1014,6 +1044,24 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: КОД ПРИ ВХОДЕ (2FA) ============ -->
+  <div id="modal-mfa" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <form id="mfa-login-form" class="modal-sheet" novalidate>
+      <div class="modal-head"><h2 data-i18n="mfa_login_title"></h2></div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="mfa_login_hint"></p>
+        <label class="field"><span data-i18n="mfa_step3"></span>
+          <input id="mfa-login-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label>
+        <p id="mfa-login-error" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-foot">
+        <button id="mfa-login-out" class="btn btn-ghost" type="button" data-i18n="logout"></button>
+        <button id="mfa-login-btn" class="btn btn-primary" type="submit" data-i18n="mfa_login_btn"></button>
+      </div>
+    </form>
+  </div>
+
   <!-- ============ ОКНО: КОМАНДА (помощники) ============ -->
   <div id="modal-team" class="modal modal-small" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1196,25 +1244,26 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261102b"></script>
+  <script src="i18n.js?v=20261103a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261102b"></script>
+  <script src="app.js?v=20261103a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261102b"></script>
-  <script src="js/support.js?v=20261102b"></script>
-  <script src="js/notify.js?v=20261102b"></script>
-  <script src="js/icons.js?v=20261102b"></script>
-  <script src="js/xlsx.js?v=20261102b"></script>
-  <script src="js/analytics.js?v=20261102b"></script>
-  <script src="js/bulk.js?v=20261102b"></script>
-  <script src="js/onboarding.js?v=20261102b"></script>
-  <script src="js/tgws.js?v=20261102b"></script>
-  <script src="js/requests.js?v=20261102b"></script>
-  <script src="js/team.js?v=20261102b"></script>
-  <script src="js/shipments.js?v=20261102b"></script>
-  <script src="js/report.js?v=20261102b"></script>
-  <script src="js/debts.js?v=20261102b"></script>
-  <script src="js/quote.js?v=20261102b"></script>
-  <script src="js/client.js?v=20261102b"></script>
+  <script src="js/fx.js?v=20261103a"></script>
+  <script src="js/support.js?v=20261103a"></script>
+  <script src="js/notify.js?v=20261103a"></script>
+  <script src="js/icons.js?v=20261103a"></script>
+  <script src="js/xlsx.js?v=20261103a"></script>
+  <script src="js/analytics.js?v=20261103a"></script>
+  <script src="js/bulk.js?v=20261103a"></script>
+  <script src="js/onboarding.js?v=20261103a"></script>
+  <script src="js/tgws.js?v=20261103a"></script>
+  <script src="js/mfa.js?v=20261103a"></script>
+  <script src="js/requests.js?v=20261103a"></script>
+  <script src="js/team.js?v=20261103a"></script>
+  <script src="js/shipments.js?v=20261103a"></script>
+  <script src="js/report.js?v=20261103a"></script>
+  <script src="js/debts.js?v=20261103a"></script>
+  <script src="js/quote.js?v=20261103a"></script>
+  <script src="js/client.js?v=20261103a"></script>
 </body>
 </html>
