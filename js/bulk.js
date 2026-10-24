@@ -26,7 +26,7 @@
     on = !!v;
     if (!on) sel = {};
     document.body.classList.toggle("selecting", on);
-    $("#bulk-btn").textContent = t(on ? "bulk_done_btn" : "bulk_select");
+    $("#bulk-btn-text").textContent = t(on ? "bulk_done_btn" : "bulk_select");
     c.renderAll();
     renderBar();
   }

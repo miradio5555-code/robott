@@ -219,7 +219,7 @@
     if (r.zero && r.error !== "no_weight") warns.push({ t: t("sh_w_noweight", { n: r.zero }) });
     (r.missing || []).forEach(function (cc) { warns.push({ t: t("sh_w_rate", { a: code, b: cc }) }); });
     $("#sh-warns").innerHTML = warns.map(function (w) {
-      return '<p class="sh-warn' + (w.info ? " info" : "") + '">' + (w.info ? "ℹ " : "⚠ ") + esc(w.t) + "</p>";
+      return '<p class="sh-warn' + (w.info ? " info" : "") + '">' + U.icon(w.info ? "info" : "alert", 15) + "<span>" + esc(w.t) + "</span>" + "</p>";
     }).join("");
 
     // заказы партии: вес, доля, доставка
@@ -233,7 +233,7 @@
           (x && x.weight > 0 ? "<span>" + esc(money(Math.round(x.share * 1000) / 10)) + "%</span><b>" + cur(x.cost, code) +
             (code !== o.client_currency ? ' <small class="muted">≈ ' + cur(x.som, o.client_currency) + "</small>" : "") + "</b>"
             : "<span class=\"flag-missing\">" + esc(cancelled ? t("status_cancelled") : t("sh_no_weight")) + "</span>") + "</div>" +
-        (state.readOnly ? "" : '<button type="button" class="icon-btn sh-x" data-remove="' + esc(o.id) + '" aria-label="' + esc(t("sh_remove")) + '">✕</button>') +
+        (state.readOnly ? "" : '<button type="button" class="icon-btn sh-x" data-remove="' + esc(o.id) + '" aria-label="' + esc(t("sh_remove")) + '">' + U.icon("x", 16) + "</button>") +
         "</div>";
     }).join("") : "";
     renderPicker();

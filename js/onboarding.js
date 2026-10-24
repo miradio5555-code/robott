@@ -38,7 +38,7 @@
       '<div class="ob-bar"><i style="width:' + Math.round((list.length - left) / list.length * 100) + '%"></i></div>' +
       list.map(function (s) {
         return '<button type="button" class="ob-step' + (s.done ? " done" : "") + '" data-ob="' + s.id + '"' + (s.done ? " disabled" : "") + '><b>' +
-          (s.done ? "✓" : "•") + "</b><span>" + esc(s.text) + "</span>" + (s.done ? "" : "<i>›</i>") + "</button>";
+          (s.done ? U.icon("check", 13) : "") + "</b><span>" + esc(s.text) + "</span>" + (s.done ? "" : "<i>›</i>") + "</button>";
       }).join("") +
       '<button type="button" class="btn btn-ghost btn-sm ob-hide" data-ob="hide">' + esc(t("ob_hide")) + "</button>";
   }

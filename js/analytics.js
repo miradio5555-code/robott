@@ -302,7 +302,7 @@
     }
     var live = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered"; }).length;
     var head = '<p class="an-live">' + esc(t("an_a_live", { n: live })) + "</p>";
-    return items.length ? head + items.join("") : head + '<p class="an-ok">✓ ' + esc(t("an_a_ok")) + "</p>";
+    return items.length ? head + items.join("") : head + '<p class="an-ok">' + U.icon("check", 16) + esc(t("an_a_ok")) + "</p>";
   }
 
   // ---------- Цель по прибыли на месяц ----------

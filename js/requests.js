@@ -71,7 +71,7 @@
     if (rq.step === "sent") {
       var r = rq.result || {};
       var track = r.token ? location.pathname.replace(/index\.html$/, "") + "?order=" + r.token : "";
-      box.innerHTML = '<section class="client-block rq-sent"><div class="rq-check" aria-hidden="true">✓</div>' +
+      box.innerHTML = '<section class="client-block rq-sent"><div class="rq-check" aria-hidden="true">' + U.icon("check", 30) + '</div>' +
         '<h1 class="rq-title">' + esc(t("rq_sent_title")) + "</h1>" +
         '<p class="rq-num">№ ' + esc(r.order_number || "") + "</p>" +
         "<p>" + esc(t("rq_sent_text", { n: rq.name })) + "</p>" +

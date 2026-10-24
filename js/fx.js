@@ -103,7 +103,7 @@
       var p = k.split("_");
       return '<div class="fx-cell"><button type="button" class="link-btn" data-pick="' + esc(k) + '">1 ' + esc(p[0]) + " = <b>" +
         esc(fxNum(Number(r[k]))) + " " + esc(p[1]) + "</b></button>" +
-        (state.readOnly ? "" : '<button type="button" class="icon-btn fx-del" data-del="' + esc(k) + '" aria-label="' + esc(t("remove")) + '">✕</button>') +
+        (state.readOnly ? "" : '<button type="button" class="icon-btn fx-del" data-del="' + esc(k) + '" aria-label="' + esc(t("remove")) + '">' + U.icon("x", 16) + "</button>") +
         "</div>";
     }).join("") : '<p class="muted">' + esc(t("fx_my_empty")) + "</p>";
   }
