@@ -22,7 +22,7 @@
   var ui = { period: "12m", cur: "", top: "clients", goalEdit: false };
   var STATUS_COLORS = {
     "new": "#8A8F98", awaiting_payment: "#D98A00", purchasing: "#2F6FDE", china_warehouse: "#7A4FD6",
-    in_transit: "#0E8FA8", arrived: "#2E9E6A", delivered: "#146C43", cancelled: "#B3202F"
+    in_transit: "#3A8FD6", arrived: "#2E9E6A", delivered: "#146C43", cancelled: "#B3202F"
   };
 
   // ---------- Даты ----------
