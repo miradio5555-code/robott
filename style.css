@@ -2243,3 +2243,54 @@ body {
 .topbar { background: color-mix(in srgb, var(--surface) 82%, transparent); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px); }
 /* карточки чуть светлее фона, чтобы не сливались */
 .card, .client-block, .an-card, .an-kpi, .summary, .assistant, .sh-card, .onboard-card { background: var(--surface); }
+
+/* =====================================================
+   ЛЁГКАЯ АНИМАЦИЯ (короткая и мягкая; отключается, если в телефоне включено «Уменьшить движение»)
+   ===================================================== */
+@keyframes ula-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ula-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ula-shimmer { from { background-position: -240px 0; } to { background-position: 240px 0; } }
+@keyframes ula-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+/* раздел появляется плавно при переключении */
+#view-admin > main.container:not(.hidden) { animation: ula-rise .28s var(--ease) backwards; }
+
+/* карточки появляются по очереди (только первые, чтобы длинный список не «ехал») */
+#orders > .card, .an-grid > *, .debt-card, .sh-card, #clients > *, #suppliers > *, .r-row, .tm-row, .bq-row {
+  animation: ula-rise .32s var(--ease) backwards;
+}
+#orders > .card:nth-child(1), .an-grid > *:nth-child(1) { animation-delay: .02s; }
+#orders > .card:nth-child(2), .an-grid > *:nth-child(2) { animation-delay: .06s; }
+#orders > .card:nth-child(3), .an-grid > *:nth-child(3) { animation-delay: .10s; }
+#orders > .card:nth-child(4), .an-grid > *:nth-child(4) { animation-delay: .14s; }
+#orders > .card:nth-child(5), .an-grid > *:nth-child(5) { animation-delay: .18s; }
+#orders > .card:nth-child(n+6), .an-grid > *:nth-child(n+6) { animation-delay: .22s; }
+
+/* полоски «сколько оплачено», цели и графиков заполняются слева направо */
+.pay-bar i, .an-goal-bar i, .an-hbar i, .ob-bar i, .r-bar i { transform-origin: left center; animation: ula-grow .7s var(--ease) backwards .15s; }
+.an-bars i { transform-origin: bottom center; animation: ula-bar-up .6s var(--ease) backwards .1s; }
+@keyframes ula-bar-up { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* кнопки и чипы: мягкий отклик */
+@media (hover: hover) {
+  .btn:not(:disabled):hover { transform: translateY(-1px); }
+  .btn-primary:not(:disabled):hover { box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+  .chip:hover { transform: translateY(-1px); }
+}
+.chip { transition: background .15s, border-color .15s, color .15s, transform .15s; }
+.chip.active { animation: ula-pop .18s var(--ease); }
+.fab { transition: transform .18s var(--ease), box-shadow .18s; }
+.fab:active { transform: scale(.92); }
+
+/* красная цифра «новое» слегка пульсирует, чтобы её заметили */
+.badge-inline:not(.hidden), .as-count:not(:empty) { animation: ula-pulse 1.6s ease-in-out 2; }
+
+/* загрузка: мерцающая полоска вместо простого текста */
+.state-box[id$="-loading"]:not(.hidden), #loading:not(.hidden) {
+  color: transparent; position: relative; min-height: 64px; border-radius: 14px;
+  background: linear-gradient(90deg, var(--soft) 0, var(--hover) 120px, var(--soft) 240px) 0 0 / 480px 100% repeat-x;
+  animation: ula-shimmer 1.2s linear infinite;
+}
+
+/* галочка «Заявка принята» появляется с лёгким «прыжком» */
+.rq-check { animation: ula-pop .4s var(--ease) both; }
