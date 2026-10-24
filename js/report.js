@@ -1,7 +1,7 @@
 // =====================================================
 // ULA FACTORY — раздел «Отчёт»: сколько вы заработали.
 // Прибыль по месяцам, по клиентам и по товарам, за выбранный период,
-// с выгрузкой в Excel (CSV). Считается из уже загруженных заказов.
+// с выгрузкой в Excel (.xlsx, оформленная таблица). Считается из уже загруженных заказов.
 //
 // Что считается:
 //   • заказы с ценой для клиента (без неё прибыль неизвестна), без отменённых;
@@ -196,34 +196,34 @@
   }
 
   // ---------- Выгрузка в Excel ----------
-  function nstr(n) { return n.toLocaleString(locale(), { useGrouping: false, maximumFractionDigits: 2 }); }
-
-  function exportCsv() {
+  function exportXlsx() {
     var d = build();
     if (!d.list.length) { toast(t("export_empty"), "error"); return; }
     var rows = ui.view === "months" ? monthRows(d.list) : ui.view === "clients" ? clientRows(d.list) : productRows(d.list);
-    var first = ui.view === "months" ? "r_col_month" : ui.view === "clients" ? "r_col_client" : "r_col_product";
-    var cols = [first, "r_col_orders"].concat(ui.view === "products" ? ["r_col_qty"] : [],
-      ["r_col_revenue", "r_col_cost", "r_col_profit", "r_col_markup", "r_col_paid", "r_col_debt"],
-      ui.view === "clients" ? ["r_col_share"] : [], ["r_col_cur"]);
-    var head = cols.map(function (k) { return c.csvCell(t(k)); }).join(";");
-    var total = d.total;
-    var lines = rows.map(function (r) {
-      var a = r.agg;
-      var cells = [c.csvCell(r.name), nstr(a.orders)].concat(ui.view === "products" ? [nstr(a.qty)] : [],
-        [nstr(a.rev), nstr(a.cost), nstr(a.profit), nstr(markup(a)), nstr(a.paid), nstr(a.debt)],
-        ui.view === "clients" ? [nstr(total.profit > 0 ? Math.round(a.profit / total.profit * 1000) / 10 : 0)] : [], [c.csvCell(ui.cur)]);
-      return cells.join(";");
-    });
-    var blob = new Blob(["﻿" + head + "\r\n" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "ula-report-" + ui.view + "-" + ui.period + "-" + ui.cur + "-" + c.todayISO() + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    var total = d.total, products = ui.view === "products", clients = ui.view === "clients";
+    var first = ui.view === "months" ? "r_col_month" : clients ? "r_col_client" : "r_col_product";
+    var cols = [{ h: t(first), w: products ? 40 : 28, type: "text" }, { h: t("r_col_orders"), w: 11, type: "int" }];
+    if (products) cols.push({ h: t("r_col_qty"), w: 11, type: "int" });
+    cols.push({ h: t("r_col_revenue"), w: 16, type: "money" }, { h: t("r_col_cost"), w: 16, type: "money" },
+      { h: t("r_col_profit"), w: 16, type: "money" }, { h: t("r_col_markup"), w: 12, type: "pct" },
+      { h: t("r_col_paid"), w: 16, type: "money" }, { h: t("r_col_debt"), w: 16, type: "money" });
+    if (clients) cols.push({ h: t("r_col_share"), w: 12, type: "pct" });
+
+    function line(name, a, shareBase) {
+      var v = [name, a.orders];
+      if (products) v.push(a.qty);
+      v.push(a.rev, a.cost, a.profit, markup(a), a.paid, a.debt);
+      if (clients) v.push(shareBase > 0 ? Math.round(a.profit / shareBase * 1000) / 10 : 0);
+      return v;
+    }
+    U.xlsx.download("ula-report-" + ui.view + "-" + ui.cur + "-" + c.todayISO() + ".xlsx", [{
+      name: t("r_v_" + ui.view),
+      title: t("nav_report") + ": " + t("r_v_" + ui.view),
+      subtitle: t("r_p_" + ui.period) + " · " + ui.cur + " · " + t("x_made", { d: c.fmtDate(c.todayISO()) }),
+      columns: cols,
+      rows: rows.map(function (r) { return line(r.name, r.agg, total.profit); }),
+      total: line(t("x_total"), total, total.profit)
+    }]);
     toast(t("export_done"), "ok");
   }
 
@@ -237,7 +237,7 @@
       else return;
       render();
     });
-    $("#r-export").addEventListener("click", exportCsv);
+    $("#r-export").addEventListener("click", exportXlsx);
   }
 
   U.report = { open: render, refresh: render, bind: bind, _build: build, _rows: function () { return ui.view; } };
