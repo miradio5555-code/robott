@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 22 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 23 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -763,3 +763,70 @@ end $$;
 reset role;
 delete from auth.mfa_factors;
 \echo '✅ 15. 2FA администратора: без кода админские права не действуют, с кодом и без 2FA — работают'
+
+
+-- ---------- 16. Витрина байера ----------
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+do $$
+declare ws uuid := public.my_workspace_id(); tok text; pid uuid; hid uuid;
+begin
+  tok := public.request_link_rotate(ws);
+  insert into public.shop_products (workspace_id, title, price, currency, description) values (ws, 'Кроссовки Nike', 3500, 'KGS', 'Размеры 39–44') returning id into pid;
+  insert into public.shop_products (workspace_id, title, price, is_active) values (ws, 'Скрытый товар', 100, false) returning id into hid;
+  insert into t values ('shop_tok', tok), ('shop_pid', pid::text), ('shop_hid', hid::text);
+end $$;
+reset role;
+
+-- чужой байер не видит и не меняет чужие товары
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.shop_products; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер видит товары витрины'; end if;
+  update public.shop_products set price = 1; get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер изменил товар'; end if;
+end $$;
+reset role;
+
+-- клиент без входа: видит только показанные товары и без лишнего; заказ создаётся с ценой из базы
+reset request.uid;
+set role anon;
+do $$
+declare j json; r json; n int;
+begin
+  begin perform count(*) from public.shop_products; raise exception 'ПРОВАЛ: аноним читает таблицу товаров';
+  exception when insufficient_privilege then null; end;
+  j := public.get_shop((select v from t where k = 'shop_tok'));
+  if json_array_length(j -> 'products') <> 1 then raise exception 'ПРОВАЛ: в витрине не 1 показанный товар'; end if;
+  if (j -> 'products' -> 0 ->> 'title') <> 'Кроссовки Nike' then raise exception 'ПРОВАЛ: не тот товар в витрине'; end if;
+  if (j -> 'products' -> 0)::jsonb ? 'workspace_id' then raise exception 'ПРОВАЛ: витрина показывает служебные поля'; end if;
+  if public.get_shop('00000000000000000000000000000000') is not null then raise exception 'ПРОВАЛ: витрина открылась по чужой ссылке'; end if;
+  -- скрытый товар заказать нельзя
+  begin perform public.shop_order((select v from t where k = 'shop_tok'), (select v::uuid from t where k = 'shop_hid'), 1, 'Азамат', '+996555777001', null, null, null);
+    raise exception 'ПРОВАЛ: заказали скрытый товар';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  r := public.shop_order((select v from t where k = 'shop_tok'), (select v::uuid from t where k = 'shop_pid'), 2, 'Азамат', '+996555777001', null, 'Размер 42', null);
+  if not (r ->> 'ok')::boolean then raise exception 'ПРОВАЛ: заказ из витрины не создан'; end if;
+  insert into t values ('shop_onum', r ->> 'order_number');
+end $$;
+reset role;
+do $$
+declare o record;
+begin
+  select * into o from public.orders where order_number = (select v from t where k = 'shop_onum') and source = 'request';
+  if o.product_ru <> 'Кроссовки Nike' or o.quantity <> 2 then raise exception 'ПРОВАЛ: заказ из витрины с неверным товаром или количеством'; end if;
+  if o.admin_comment not like '%3500 KGS%' or o.admin_comment not like '%Размер 42%' then raise exception 'ПРОВАЛ: цена или комментарий не попали в заказ: %', o.admin_comment; end if;
+end $$;
+-- ссылка отключена — витрина закрыта
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+select public.request_link_revoke(public.my_workspace_id());
+reset role;
+set role anon;
+do $$
+begin
+  if public.get_shop((select v from t where k = 'shop_tok')) is not null then raise exception 'ПРОВАЛ: витрина работает после отключения ссылки'; end if;
+end $$;
+reset role;
+\echo '✅ 16. Витрина: показывает только видимые товары, цена берётся из базы, чужие и отключённые ссылки закрыты'
