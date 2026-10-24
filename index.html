@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261109b">
+  <link rel="stylesheet" href="style.css?v=20261110a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -207,6 +207,7 @@
             <button type="button" class="menu-group mg-main" data-group-toggle="main" aria-expanded="true"><i></i><span data-i18n="menu_main"></span><b class="mg-caret">▾</b></button>
             <button type="button" class="tab active" data-group="main" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
             <button type="button" class="tab" data-group="main" data-tab="clients" data-i18n="nav_clients"></button>
+            <button type="button" class="tab" data-group="main" data-tab="shop" data-i18n="nav_shop"></button>
             <button type="button" class="tab" data-group="main" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
             <button type="button" class="menu-group mg-money owner-only" data-group-toggle="money" aria-expanded="true"><i></i><span data-i18n="menu_money"></span><b class="mg-caret">▾</b></button>
             <button type="button" class="tab owner-only" data-group="money" data-tab="analytics" data-i18n="nav_analytics"></button>
@@ -496,6 +497,19 @@
       </details>
     </main>
 
+    <!-- ============ РАЗДЕЛ: ВИТРИНА ============ -->
+    <main id="tab-shop" class="container hidden">
+      <div class="page-head">
+        <div><h1 class="page-title" data-i18n="nav_shop"></h1><p class="page-sub" data-i18n="sh2_page_hint"></p></div>
+        <div class="head-actions"><button id="shop-add" class="btn btn-primary" type="button" data-write>+ <span data-i18n="sh2_add"></span></button></div>
+      </div>
+      <section class="client-block shop-linkbox">
+        <h2 data-i18n="sh2_link_title"></h2>
+        <div id="shop-link"></div>
+      </section>
+      <div id="shop-list"></div>
+    </main>
+
     <!-- ============ РАЗДЕЛ: КЛИЕНТЫ ============ -->
     <main id="tab-clients" class="container hidden">
       <div class="page-head"><div><h1 class="page-title" data-i18n="nav_clients"></h1><p class="page-sub" data-i18n="cl_page_hint"></p></div></div>
@@ -653,6 +667,23 @@
   </div>
 
   <!-- ============ СТРАНИЦА ЗАЯВКИ (для клиента, без входа) ============ -->
+  <!-- ============ ВИТРИНА ДЛЯ КЛИЕНТА (?shop=ТОКЕН) ============ -->
+  <div id="view-shop" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><img class="brand-mark bm-on-light" src="img/mark-dark.svg" alt="" width="36" height="36"><img class="brand-mark bm-on-dark" src="img/mark.svg" alt="" width="36" height="36"><span class="brand-name"><b>ULA</b> Factory</span></div>
+        <div class="client-actions">
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="ru" title="Русский">RU</button>
+            <button type="button" data-lang="en" title="English">EN</button>
+            <button type="button" data-lang="zh" title="中文">中文</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main id="shop-content" class="container sp-wrap"></main>
+  </div>
+
   <div id="view-request" class="hidden">
     <header class="topbar">
       <div class="topbar-inner">
@@ -1143,6 +1174,43 @@
     </form>
   </div>
 
+  <!-- ============ ОКНО: ТОВАР ВИТРИНЫ ============ -->
+  <div id="modal-product" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="product-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 id="pr-heading"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="pr-photo-row">
+          <div id="pr-preview" class="sp-photo pr-preview"></div>
+          <div class="stack">
+            <button id="pr-pick" class="btn" type="button" data-i18n="sh2_photo_pick"></button>
+            <button id="pr-photo-del" class="btn btn-ghost hidden" type="button" data-i18n="sh2_photo_del"></button>
+            <input id="pr-file" type="file" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <label class="field"><span data-i18n="sh2_f_title"></span>
+          <input id="pr-title" type="text" maxlength="160" required></label>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="sh2_f_price"></span>
+            <input id="pr-price" type="text" inputmode="decimal" placeholder="—"></label>
+          <label class="field"><span data-i18n="f_client_currency"></span>
+            <select id="pr-currency" class="currency-select"></select></label>
+        </div>
+        <label class="field"><span data-i18n="sh2_f_desc"></span>
+          <textarea id="pr-desc" rows="3" maxlength="1500"></textarea></label>
+        <label class="check-line"><input type="checkbox" id="pr-active"><span data-i18n="sh2_f_active"></span></label>
+        <p id="pr-error" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-foot">
+        <button id="pr-delete" class="btn btn-ghost owner-only hidden" type="button" data-i18n="remove"></button>
+        <button id="pr-save" class="btn btn-primary" type="submit" data-i18n="s_save"></button>
+      </div>
+    </form>
+  </div>
+
   <!-- ============ ОКНО: КОМАНДА (помощники) ============ -->
   <div id="modal-team" class="modal modal-small" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1325,29 +1393,30 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261109b"></script>
+  <script src="i18n.js?v=20261110a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261109b"></script>
+  <script src="app.js?v=20261110a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261109b"></script>
-  <script src="js/support.js?v=20261109b"></script>
-  <script src="js/notify.js?v=20261109b"></script>
-  <script src="js/icons.js?v=20261109b"></script>
-  <script src="js/xlsx.js?v=20261109b"></script>
-  <script src="js/analytics.js?v=20261109b"></script>
-  <script src="js/bulk.js?v=20261109b"></script>
-  <script src="js/onboarding.js?v=20261109b"></script>
-  <script src="js/tgws.js?v=20261109b"></script>
-  <script src="js/mfa.js?v=20261109b"></script>
-  <script src="js/captcha.js?v=20261109b"></script>
-  <script src="js/tour.js?v=20261109b"></script>
-  <script src="js/recovery.js?v=20261109b"></script>
-  <script src="js/requests.js?v=20261109b"></script>
-  <script src="js/team.js?v=20261109b"></script>
-  <script src="js/shipments.js?v=20261109b"></script>
-  <script src="js/report.js?v=20261109b"></script>
-  <script src="js/debts.js?v=20261109b"></script>
-  <script src="js/quote.js?v=20261109b"></script>
-  <script src="js/client.js?v=20261109b"></script>
+  <script src="js/fx.js?v=20261110a"></script>
+  <script src="js/support.js?v=20261110a"></script>
+  <script src="js/notify.js?v=20261110a"></script>
+  <script src="js/icons.js?v=20261110a"></script>
+  <script src="js/xlsx.js?v=20261110a"></script>
+  <script src="js/analytics.js?v=20261110a"></script>
+  <script src="js/bulk.js?v=20261110a"></script>
+  <script src="js/onboarding.js?v=20261110a"></script>
+  <script src="js/tgws.js?v=20261110a"></script>
+  <script src="js/mfa.js?v=20261110a"></script>
+  <script src="js/captcha.js?v=20261110a"></script>
+  <script src="js/tour.js?v=20261110a"></script>
+  <script src="js/recovery.js?v=20261110a"></script>
+  <script src="js/shop.js?v=20261110a"></script>
+  <script src="js/requests.js?v=20261110a"></script>
+  <script src="js/team.js?v=20261110a"></script>
+  <script src="js/shipments.js?v=20261110a"></script>
+  <script src="js/report.js?v=20261110a"></script>
+  <script src="js/debts.js?v=20261110a"></script>
+  <script src="js/quote.js?v=20261110a"></script>
+  <script src="js/client.js?v=20261110a"></script>
 </body>
 </html>

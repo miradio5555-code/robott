@@ -193,7 +193,7 @@
   function showView(name) {
     var boot = document.getElementById("boot");
     if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
-    ["config", "login", "join", "admin", "client", "request"].forEach(function (v) {
+    ["config", "login", "join", "admin", "client", "request", "shop"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
     // пришёл по приглашению помощника — подсказать, что делать
@@ -267,7 +267,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261109b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261110a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -298,6 +298,15 @@
       db = miniClient(url, key);
       mode = "client";
       ULA.client.init(clientToken);
+      return;
+    }
+
+    // Витрина байера для клиента (?shop=ТОКЕН): без входа и без библиотеки supabase.js
+    var shopToken = new URLSearchParams(location.search).get("shop");
+    if (shopToken) {
+      db = miniClient(url, key);
+      mode = "shop";
+      ULA.shop.initPublic(shopToken);
       return;
     }
 
@@ -458,6 +467,10 @@
     }
     if (mode === "request") {
       ULA.requests.render();
+      return;
+    }
+    if (mode === "shop") {
+      ULA.shop.renderPublic();
       return;
     }
     if (!$("#view-admin").classList.contains("hidden")) {
@@ -865,6 +878,7 @@
     ULA.mfa.bind();
     ULA.recovery.bind();
     ULA.tour.bind();
+    ULA.shop.bind();
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
     // ↻ обновить данные открытой вкладки
@@ -1575,10 +1589,11 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "shop" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
+    $("#tab-shop").classList.toggle("hidden", state.tab !== "shop");
     $("#tab-shipments").classList.toggle("hidden", state.tab !== "shipments");
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-report").classList.toggle("hidden", state.tab !== "report");
@@ -1601,6 +1616,7 @@
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
+    if (state.tab === "shop" && db && state.ws) ULA.shop.open();
     if (state.tab === "shipments") ULA.shipments.open();
     if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "report") ULA.report.open();
@@ -1619,7 +1635,7 @@
     var ico = $("#section-menu-ico");
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
-      var ICONS = { orders: "package", clients: "users", debts: "wallet", analytics: "chart", quote: "calc",
+      var ICONS = { orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", quote: "calc",
         suppliers: "factory", shipments: "truck", buyers: "users", support: "message" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
