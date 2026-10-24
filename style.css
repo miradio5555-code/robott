@@ -1423,7 +1423,7 @@ body.is-admin .buyer-only { display: none !important; }
 }
 /* очень узкий телефон: только значок логотипа, чтобы название раздела поместилось */
 @media (max-width: 360px) {
-  #view-admin .brand-name { display: none; }
+  #view-admin .brand-mark { width: 30px; height: 30px; }
 }
 
 /* =====================================================
@@ -1838,7 +1838,7 @@ body.selecting .sel-box + .order-no { margin-right: auto; }
 
 /* Шапка: на узком экране только значок, чтобы не налезало на меню */
 @media (max-width: 420px) {
-  .topbar .brand-name { display: none; }
+  #view-client .topbar .brand-name, #view-request .topbar .brand-name { display: none; }
 }
 
 /* Заголовок раздела: название сверху, кнопки аккуратной строкой под ним */
@@ -2118,3 +2118,30 @@ html[data-theme="dark"] .section-menu-ico.g-more  { background: rgba(181, 156, 2
 body.touring { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
 body.touring .section-menu .tab.mg-hidden { display: flex !important; }
+
+/* Шапка кабинета на телефоне: логотип, название и ниже — название вашего кабинета (понятно, где вы) */
+.brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+#view-admin .brand-name { display: block; font-size: 15px; }
+.brand-ws { display: block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 700; color: var(--muted); }
+.brand-ws:empty { display: none; }
+@media (max-width: 480px) {
+  #view-admin .topbar-inner { gap: 4px; padding: 8px 10px; }
+  #view-admin .brand { gap: 7px; }
+  #view-admin .brand-name { font-size: 13.5px; letter-spacing: 0; }
+  .brand-ws { max-width: 82px; font-size: 10.5px; }
+  .topbar-actions { gap: 4px; }
+  .topbar-actions .gear-btn, #refresh-btn { width: 36px; height: 36px; border-radius: 11px; }
+  .section-menu-btn { gap: 6px; padding: 0 8px 0 4px; }
+  .section-menu-label { max-width: 70px; }
+  .section-menu-ico { width: 28px; height: 28px; }
+}
+@media (max-width: 350px) { .brand-ws { display: none; } }
+
+/* «Обновить» на телефоне переехало в меню, чтобы в шапке хватило места логотипу и названию раздела */
+.menu-refresh { display: none; }
+@media (max-width: 480px) {
+  #refresh-btn { display: none; }
+  .menu-refresh { display: flex; }
+  .section-menu-label { max-width: 96px; }
+  .brand-ws { max-width: 100px; }
+}

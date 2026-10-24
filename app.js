@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261105a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261106b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -792,6 +792,7 @@
     ULA.tgws.bind();
     ULA.mfa.bind();
     ULA.tour.bind();
+    $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1040,7 +1041,14 @@
   }
 
   // ---------- Отрисовка админки ----------
+  // Под названием сайта в шапке: название открытого кабинета
+  function renderBrandWs() {
+    var el = $("#brand-ws");
+    if (el) el.textContent = (state.ws && state.ws.name) || "";
+  }
+
   function renderAll() {
+    renderBrandWs();
     renderSummary();
     renderAssistant();
     renderChips();
