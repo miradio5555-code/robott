@@ -19,7 +19,7 @@
   var $ = c.$, esc = c.esc, money = c.money, num = c.num, cur = c.cur, locale = c.locale, state = c.state, toast = c.toast;
 
   var PERIODS = ["month", "3m", "12m", "all"];
-  var ui = { period: "12m", cur: "", top: "clients" };
+  var ui = { period: "12m", cur: "", top: "clients", goalEdit: false };
   var STATUS_COLORS = {
     "new": "#8A8F98", awaiting_payment: "#D98A00", purchasing: "#2F6FDE", china_warehouse: "#7A4FD6",
     in_transit: "#0E8FA8", arrived: "#2E9E6A", delivered: "#146C43", cancelled: "#B3202F"
@@ -266,7 +266,7 @@
   // ---------- Что требует внимания ----------
   function daysSince(d) { return Math.floor((Date.now() - new Date(d).getTime()) / 86400000); }
 
-  function attentionHtml() {
+  function attentionHtml(d) {
     var all = state.orders || [], items = [];
     function row(o, text, tone) {
       return '<button type="button" class="an-att ' + tone + '" data-open="' + esc(o.id) + '"><span>' + esc(text) + "</span><i>›</i></button>";
@@ -284,6 +284,14 @@
         items.push(row(o, clientName(o) + " · " + cur(o.balance_som, o.client_currency) + " · " + t("an_days", { n: daysSince(o.order_date) }), "bad"));
       });
     }
+    var losses = (d ? d.list : []).filter(function (o) { return num(o.profit_som) < 0; })
+      .sort(function (a, b) { return num(a.profit_som) - num(b.profit_som); });
+    if (losses.length) {
+      items.push('<p class="an-att-head">' + esc(t("an_a_loss", { n: losses.length })) + "</p>");
+      losses.slice(0, 3).forEach(function (o) {
+        items.push(row(o, "№ " + o.order_number + " · " + clientName(o) + " · " + cur(o.profit_som, o.client_currency), "bad"));
+      });
+    }
     var stuck = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered" && o.updated_at && daysSince(o.updated_at) >= 10; })
       .sort(function (a, b) { return String(a.updated_at).localeCompare(String(b.updated_at)); });
     if (stuck.length) {
@@ -295,6 +303,52 @@
     var live = all.filter(function (o) { return o.status !== "cancelled" && o.status !== "delivered"; }).length;
     var head = '<p class="an-live">' + esc(t("an_a_live", { n: live })) + "</p>";
     return items.length ? head + items.join("") : head + '<p class="an-ok">✓ ' + esc(t("an_a_ok")) + "</p>";
+  }
+
+  // ---------- Цель по прибыли на месяц ----------
+  function canEditGoal() { return !state.readOnly && state.ws && state.myWs && state.myWs.id === state.ws.id; }
+
+  function goalHtml() {
+    var code = ui.cur;
+    var goal = num(((state.ws && state.ws.profit_goals) || {})[code]);
+    var month = c.todayISO().slice(0, 7), got = 0;
+    (state.orders || []).forEach(function (o) {
+      if (priced(o) && o.client_currency === code && String(o.order_date).slice(0, 7) === month) got += num(o.profit_som);
+    });
+    var now = new Date(), daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+    var edit = ui.goalEdit && canEditGoal();
+    var html = "";
+
+    if (goal > 0) {
+      var pct = Math.max(0, Math.round(got / goal * 100));
+      html += '<div class="an-goal-line"><b>' + esc(cur(got, code)) + "</b><span>" + esc(t("an_g_of", { s: cur(goal, code) })) + "</span></div>" +
+        '<div class="an-goal-bar' + (pct >= 100 ? " done" : "") + '"><i style="width:' + Math.min(100, pct) + '%"></i></div>' +
+        '<p class="an-goal-note">' + esc(pct >= 100 ? t("an_g_done") :
+          t("an_g_left", { p: pct, d: daysLeft }) + (daysLeft > 0 ? " " + t("an_g_need", { s: cur(Math.ceil((goal - got) / daysLeft), code) }) : "")) + "</p>";
+    } else {
+      html += '<p class="muted an-none">' + esc(t("an_g_none")) + "</p>";
+    }
+
+    if (canEditGoal()) {
+      if (edit) {
+        html += '<div class="an-goal-form"><input id="an-goal-input" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(t("an_g_ph", { c: code })) +
+          '" value="' + (goal > 0 ? esc(c.numStr(goal)) : "") + '"><button type="button" class="btn btn-primary" data-goal="save">' + esc(t("s_save")) + "</button>" +
+          (goal > 0 ? '<button type="button" class="btn btn-ghost" data-goal="clear">' + esc(t("an_g_clear")) + "</button>" : "") + "</div>";
+      } else {
+        html += '<button type="button" class="btn" data-goal="edit">' + esc(t(goal > 0 ? "an_g_change" : "an_g_set")) + "</button>";
+      }
+    }
+    return html;
+  }
+
+  async function saveGoal(amount) {
+    var res = await c.db().rpc("set_profit_goal", { p_ws: state.ws.id, p_cur: ui.cur, p_amount: amount });
+    if (res.error) { c.handleError(res.error); return; }
+    state.ws.profit_goals = res.data;
+    if (state.myWs && state.myWs.id === state.ws.id) state.myWs.profit_goals = res.data;
+    ui.goalEdit = false;
+    toast(t("s_saved"), "ok");
+    render();
   }
 
   // Блок «лучшие клиенты / товары / должники» с переключателем
@@ -336,7 +390,8 @@
     } else {
       html += '<p class="fine-print an-top">' + esc(t("an_no_price")) + "</p>";
     }
-    html += card(t("an_attention"), attentionHtml(), "att");
+    if (ui.cur) html += card(t("an_goal", { c: ui.cur }), goalHtml(), "goal");
+    html += card(t("an_attention"), attentionHtml(d), "att");
     if (d.list.length) html += card(t("an_by_month"), monthsHtml(d), "wide");
     html += card(t("an_by_status"), statusHtml(d));
     if (d.list.length) html += card(t("an_top"), topBlock(d));
@@ -377,6 +432,18 @@
       if (col) {
         $$cols().forEach(function (b) { b.classList.toggle("on", b === col); });
         $("#an-readout").innerHTML = readout(col.getAttribute("data-month"), { rev: num(col.getAttribute("data-rev")), profit: num(col.getAttribute("data-profit")) });
+        return;
+      }
+      var g = e.target.closest("[data-goal]");
+      if (g) {
+        var act = g.getAttribute("data-goal");
+        if (act === "edit") { ui.goalEdit = true; render(); var inp = $("#an-goal-input"); if (inp) inp.focus(); }
+        else if (act === "clear") saveGoal(0);
+        else if (act === "save") {
+          var v = c.parseNum($("#an-goal-input").value);
+          if (!(v > 0)) { toast(t("an_g_bad"), "error"); return; }
+          saveGoal(v);
+        }
         return;
       }
       var op = e.target.closest("[data-open]");
