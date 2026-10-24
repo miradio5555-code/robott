@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 20 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 21 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -693,3 +693,36 @@ begin
 end $$;
 reset role;
 \echo '✅ 13. Цель по прибыли: ставится и убирается владельцем, мусор отклоняется, чужие и прямое изменение закрыты'
+
+
+-- ---------- 14. Telegram кабинета ----------
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare ws uuid := public.my_workspace_id(); code text; st jsonb;
+begin
+  st := public.tg_status(ws);
+  if (st ->> 'connected')::boolean then raise exception 'ПРОВАЛ: Telegram подключён сам по себе'; end if;
+  code := public.tg_connect_start(ws);
+  if code !~ '^[a-f0-9]{24}$' then raise exception 'ПРОВАЛ: код подключения неправильный'; end if;
+  if public.tg_connect_start(ws) = code then raise exception 'ПРОВАЛ: код не обновился'; end if;
+  begin perform count(*) from public.ws_telegram; raise exception 'ПРОВАЛ: таблица Telegram открыта сайту';
+  exception when insufficient_privilege then null; end;
+  perform public.tg_disconnect(ws);
+end $$;
+reset role;
+-- чужой байер не управляет чужим подключением (id кабинета берём от имени служебной роли)
+do $$
+declare ws uuid := (select id from public.workspaces where name = 'Б-карго' limit 1);
+begin
+  perform set_config('request.uid', '00000000-0000-0000-0000-0000000000c1', false);
+  set local role authenticated;
+  begin perform public.tg_connect_start(ws); raise exception 'ПРОВАЛ: чужой байер создал код подключения';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.tg_status(ws); raise exception 'ПРОВАЛ: чужой байер смотрит Telegram чужого кабинета';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.tg_disconnect(ws); raise exception 'ПРОВАЛ: чужой байер отключил чужой Telegram';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+\echo '✅ 14. Telegram кабинета: код одноразовый, статус и отключение только у владельца, таблица закрыта'
