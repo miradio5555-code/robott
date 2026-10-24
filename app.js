@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261101b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261102a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -578,7 +578,9 @@
       return;
     }
 
-    state.me = { id: user.id, email: user.email, role: p.role, name: p.full_name || "", phone: p.phone || "" };
+    state.me = { id: user.id, email: user.email, role: p.role, name: p.full_name || "", phone: p.phone || "",
+      // вход через Google без пароля: текущего пароля нет, проверять нечего
+      hasPassword: ((user.app_metadata && user.app_metadata.providers) || ["email"]).indexOf("email") !== -1 };
     state.myWs = myWs;
     document.body.classList.toggle("is-admin", p.role === "admin");
     setLoginError("");
@@ -1081,6 +1083,8 @@
     $("#p-name").value = (state.me && state.me.name) || "";
     $("#p-phone").value = state.me && state.me.phone ? fmtPhone(state.me.phone) : "";
     $("#p-password").value = "";
+    $("#p-current").value = "";
+    $("#p-current-wrap").classList.toggle("hidden", !(state.me && state.me.hasPassword));
     // разделы кабинета — только для своего кабинета
     var ws = canEditWs();
     $$("[data-ws-section]").forEach(function (el) { el.classList.toggle("hidden", !ws); });
@@ -1120,9 +1124,16 @@
     if (pPhone && !/^\+?\d{9,15}$/.test(pPhone)) { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
     if (!pPhone && state.me.role === "buyer") { setSettingsError(t("e_phone")); $("#p-phone").focus(); return; }
     if (pPass && pPass.length < 8) { setSettingsError(t("e_password")); $("#p-password").focus(); return; }
+    // смена пароля только при вводе текущего пароля (если кто-то получит ваш открытый телефон, пароль он не сменит)
+    var pCurrent = $("#p-current").value;
+    if (pPass && state.me.hasPassword && !pCurrent) { setSettingsError(t("e_current_password")); $("#p-current").focus(); return; }
 
     btn.disabled = true;
     try {
+      if (pPass && state.me.hasPassword) {
+        var chk = await db.auth.signInWithPassword({ email: state.me.email, password: pCurrent });
+        if (chk.error) { btn.disabled = false; setSettingsError(t("e_current_wrong")); $("#p-current").focus(); return; }
+      }
       if (pName !== state.me.name || pPhone !== state.me.phone) {
         var pr = await db.from("profiles").update({ full_name: pName || null, phone: pPhone || null }).eq("user_id", state.me.id);
         if (pr.error) throw pr.error;
