@@ -255,7 +255,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261030a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261030b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -349,6 +349,18 @@
             return r.ok ? { data: d, error: null } : { data: null, error: d || { message: "HTTP " + r.status } };
           });
         });
+      },
+      // как в supabase.js: functions.invoke(имя, { body }) — нужно странице заявки, чтобы сообщить байеру в Telegram
+      functions: {
+        invoke: function (name, opts) {
+          return fetch(base + "/functions/v1/" + name, {
+            method: "POST",
+            headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json" },
+            body: JSON.stringify((opts && opts.body) || {})
+          }).then(function (r) {
+            return r.json().catch(function () { return null; }).then(function (d) { return { data: d, error: r.ok ? null : { message: "HTTP " + r.status } }; });
+          });
+        }
       },
       storage: {
         from: function (bucket) {
@@ -741,6 +753,7 @@
     ULA.analytics.bind();
     ULA.bulk.bind();
     ULA.onboarding.bind();
+    ULA.tgws.bind();
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1046,7 +1059,7 @@
     var ws = canEditWs();
     $$("[data-ws-section]").forEach(function (el) { el.classList.toggle("hidden", !ws); });
     setSettingsError("");
-    if (ws) fillWsSettings(state.ws);
+    if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); }
     openModal("modal-settings");
     var body = $("#settings-form .modal-body");
     var target = scrollTo && document.getElementById(scrollTo);
