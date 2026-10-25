@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 24 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 25 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -917,3 +917,40 @@ begin
   if n <> 1 then raise exception 'ПРОВАЛ: расход Б пропал или чужой добавился (%)', n; end if;
 end $$;
 \echo '✅ 17. Трек-номер виден клиенту; расходы видит и меняет только владелец кабинета'
+
+-- ---------- 18. Лимит распознавания фото ----------
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare left_ int; n int;
+begin
+  left_ := public.ai_photo_take(5);
+  if left_ <> 25 then raise exception 'ПРОВАЛ: после 5 фото осталось % вместо 25', left_; end if;
+  begin perform public.ai_photo_take(6); raise exception 'ПРОВАЛ: за раз приняли больше 5 фото';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.ai_photo_take(0); raise exception 'ПРОВАЛ: приняли 0 фото';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  for i in 1..5 loop perform public.ai_photo_take(5); end loop;   -- ровно 30
+  begin perform public.ai_photo_take(1); raise exception 'ПРОВАЛ: лимит 30 фото в день не сработал';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform count(*) from public.ai_photo_usage; raise exception 'ПРОВАЛ: байер видит таблицу лимитов';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- у другого байера свой лимит; аноним не может
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  if public.ai_photo_take(1) <> 29 then raise exception 'ПРОВАЛ: лимит одного байера списался у другого'; end if;
+end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$
+begin
+  begin perform public.ai_photo_take(1); raise exception 'ПРОВАЛ: аноним получил фото';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+end $$;
+reset role;
+\echo '✅ 18. Фото тетради: лимит 30 в день на человека, не больше 5 за раз, аноним и таблица закрыты'
