@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 25 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 26 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -954,3 +954,47 @@ begin
 end $$;
 reset role;
 \echo '✅ 18. Фото тетради: лимит 30 в день на человека, не больше 5 за раз, аноним и таблица закрыты'
+
+-- ---------- 19. Telegram клиента: подписки на заказ ----------
+insert into public.order_tg_subs (order_id, chat_id, lang) values ((select v::uuid from t where k = 'b_order'), '111222333', 'ru');
+insert into public.tg_updates (update_id, chat_id, text) values (1, '111222333', '/start oabc');
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.order_tg_subs; if n <> 1 then raise exception 'ПРОВАЛ: байер не видит подписку своего заказа (%)', n; end if;
+  begin insert into public.order_tg_subs (order_id, chat_id) values ((select v::uuid from t where k = 'b_order'), '999'); raise exception 'ПРОВАЛ: байер сам добавил подписку';
+  exception when insufficient_privilege then null; end;
+  begin perform count(*) from public.tg_updates; raise exception 'ПРОВАЛ: байер читает сообщения бота';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.order_tg_subs; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер видит подписки'; end if;
+end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$
+begin
+  begin perform count(*) from public.order_tg_subs; raise exception 'ПРОВАЛ: аноним видит подписки';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- новая ссылка клиента — подписка удаляется
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+select public.rotate_client_link((select v::uuid from t where k = 'b_order')) is not null as rotated \gset
+reset role;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.order_tg_subs where order_id = (select v::uuid from t where k = 'b_order');
+  if n <> 0 then raise exception 'ПРОВАЛ: после новой ссылки клиента подписка осталась'; end if;
+end $$;
+\echo '✅ 19. Telegram клиента: подписки видит только свой байер, менять может только функция, новая ссылка их сбрасывает'
