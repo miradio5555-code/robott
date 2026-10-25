@@ -2528,3 +2528,5 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .pwa-app span { color: var(--muted); font-size: 13.5px; }
 .pwa-steps { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 8px; font-size: 15px; }
 .menu-install span { font-weight: 700; }
+.seg-4 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 640px) { .seg-4 { grid-template-columns: repeat(4, 1fr); } }

@@ -3402,7 +3402,8 @@ var I18N = {
   }
 };
 
-var LANGS = ["ru", "en", "zh"];
+// vi (Tiếng Việt) выбирается только в «Настройки → Язык»; сами тексты — в i18n.vi.js
+var LANGS = ["ru", "en", "zh", "vi"];
 
 var currentLang = (function () {
   try {
@@ -3421,6 +3422,8 @@ function getLang() {
 function t(key, vars) {
   var dict = I18N[currentLang] || I18N.ru;
   var text = dict[key];
+  // чего нет в выбранном языке (например, во вьетнамском) — по-английски, потом по-русски
+  if (text === undefined && currentLang === "vi") text = I18N.en[key];
   if (text === undefined) text = I18N.ru[key];
   if (text === undefined) return key;
   if (vars) {
@@ -3440,7 +3443,7 @@ function setLang(lang) {
 
 // Переводит все элементы с data-i18n и data-i18n-placeholder
 function applyI18n() {
-  document.documentElement.lang = { ru: "ru", en: "en", zh: "zh-CN" }[currentLang];
+  document.documentElement.lang = { ru: "ru", en: "en", zh: "zh-CN", vi: "vi" }[currentLang];
   document.title = t("app_title");
   document.querySelectorAll("[data-i18n]").forEach(function (el) {
     el.textContent = t(el.getAttribute("data-i18n"));

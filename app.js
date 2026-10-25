@@ -74,7 +74,7 @@
     return isFinite(n) ? n : 0;
   }
 
-  function locale() { return { ru: "ru-RU", en: "en-GB", zh: "zh-CN" }[getLang()] || "ru-RU"; }
+  function locale() { return { ru: "ru-RU", en: "en-GB", zh: "zh-CN", vi: "vi-VN" }[getLang()] || "ru-RU"; }
 
   function money(n) {
     return num(n).toLocaleString(locale(), { maximumFractionDigits: 2 });
@@ -138,7 +138,7 @@
     var p = String(s).slice(0, 10).split("-");
     if (p.length !== 3) return esc(s);
     if (getLang() === "zh") return p[0] + "-" + p[1] + "-" + p[2];
-    if (getLang() === "en") return p[2] + "/" + p[1] + "/" + p[0];
+    if (getLang() === "en" || getLang() === "vi") return p[2] + "/" + p[1] + "/" + p[0];
     return p[2] + "." + p[1] + "." + p[0];
   }
 
@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261114b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261115a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
