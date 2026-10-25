@@ -22,7 +22,8 @@
       { id: "wh", done: !!String(ws.warehouse_address || "").trim(), text: t("ob_wh") },
       { id: "rates", done: !!ws.custom_rates && Object.keys(ws.custom_rates).length > 0, text: t("ob_rates") },
       { id: "link", done: !!ws.request_token, text: t("ob_link") },
-      { id: "order", done: (state.orders || []).length > 0, text: t("ob_order") }
+      { id: "order", done: (state.orders || []).length > 0, text: t("ob_order") },
+      { id: "import", done: (state.orders || []).length >= 5, text: t("ob_import") }
     ];
   }
 
@@ -57,6 +58,8 @@
       U.requests.openLink();
     } else if (id === "order") {
       $("#new-order").click();
+    } else if (id === "import") {
+      U.importer.open();
     }
   }
 
