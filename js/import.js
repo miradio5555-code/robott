@@ -45,7 +45,12 @@
   // В окне поля идут в понятном порядке (а не в порядке угадывания)
   var SHOW = ["client", "phone", "date", "product", "qty", "price", "paid", "status", "cost", "weight", "tracking", "number", "supplier", "currency", "comment"];
 
-  var im = { file: "", rows: [], header: [], map: {}, cur: "KGS", status: "delivered", parsed: null, inserted: [], busy: false };
+  var im = { file: "", rows: [], header: [], map: {}, cur: "KGS", status: "delivered", parsed: null, inserted: [], busy: false, photo: false, unsure: [] };
+
+  // Фото тетради: ИИ возвращает строки с этими колонками; байер правит их прямо в окне
+  var PHOTO_HEADER = ["Дата", "Клиент", "Телефон", "Товар", "Кол-во", "Сумма", "Оплачено", "Статус", "Комментарий"];
+  var PC = { date: 0, client: 1, phone: 2, product: 3, qty: 4, price: 5, paid: 6, status: 7, comment: 8 };
+  var MAX_PHOTOS = 5;
 
   // =====================================================
   //  ЧТЕНИЕ ФАЙЛА
@@ -337,9 +342,11 @@
 
   function open() {
     if (state.readOnly || !state.ws) return;
-    im.rows = []; im.header = []; im.inserted = [];
+    im.rows = []; im.header = []; im.inserted = []; im.photo = false; im.unsure = [];
     $("#im-input").value = "";
+    $("#im-photo-input").value = "";
     $("#im-error").classList.add("hidden");
+    reading(false);
     show("file");
     c.openModal("modal-import");
   }
@@ -359,6 +366,7 @@
       im.rows = all.slice(h + 1);
       if (!im.rows.some(function (r) { return (r || []).some(function (x) { return cellStr(x); }); })) throw new Error("empty");
       im.file = file.name;
+      im.photo = false; im.unsure = [];
       im.map = autoMap(im.header);
       im.cur = (state.ws && state.ws.default_client_currency) || "KGS";
       im.status = "delivered";   // старые заказы обычно уже выданы; выданные и оплаченные не мешают на главном экране
@@ -370,6 +378,97 @@
       err.textContent = t(code === "xls" ? "im_e_xls" : code === "big" ? "im_e_big" : code === "empty" ? "im_e_empty" : "im_e_read");
       err.classList.remove("hidden");
     }
+  }
+
+  // ---------- Фото тетради ----------
+  function reading(on) {
+    $("#im-reading").classList.toggle("hidden", !on);
+    $("#im-drop").classList.toggle("hidden", on);
+    $("#im-photo-box").classList.toggle("hidden", on);
+  }
+
+  // Уменьшаем фото до 1600 px по длинной стороне (почерк читается, а отправка быстрая)
+  async function photoData(file) {
+    var bmp = await createImageBitmap(file);
+    var scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    var cv = document.createElement("canvas");
+    cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+    cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+    var url = cv.toDataURL("image/jpeg", 0.85);
+    return { mime: "image/jpeg", data: url.slice(url.indexOf(",") + 1) };
+  }
+
+  async function errorCode(err) {
+    try { var body = err && err.context && (await err.context.json()); if (body && body.error) return body.error; } catch (e) { /* ignore */ }
+    return "";
+  }
+
+  async function onPhotos(list) {
+    var files = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic)$/i.test(f.name); });
+    if (!files.length) return;
+    var err = $("#im-error");
+    err.classList.add("hidden");
+    if (files.length > MAX_PHOTOS) { toast(t("im_photo_max", { n: MAX_PHOTOS }), "error"); files = files.slice(0, MAX_PHOTOS); }
+    reading(true);
+    try {
+      var images = [];
+      for (var i = 0; i < files.length; i++) images.push(await photoData(files[i]));
+      var res = await c.db().functions.invoke("photo-orders", { body: { images: images } });
+      if (res.error) throw new Error((await errorCode(res.error)) || "ai_failed");
+      var data = res.data || {};
+      if (data.error) throw new Error(data.error);
+      var rows = data.rows || [];
+      if (!rows.length) throw new Error("photo_empty");
+      im.header = PHOTO_HEADER.slice();
+      im.rows = rows.map(function (r) {
+        return [r.date || "", r.client || "", r.phone || "", r.product || "", r.qty == null ? "" : r.qty, r.price == null ? "" : r.price,
+          r.paid == null ? "" : r.paid, toStatus(r.status) || "", r.comment || ""];
+      });
+      im.unsure = rows.map(function (r) { return !!r.unsure; });
+      im.photo = true;
+      im.file = t("im_photo_file", { n: files.length });
+      im.remaining = data.remaining;
+      im.map = autoMap(im.header);
+      im.cur = (state.ws && state.ws.default_client_currency) || "KGS";
+      im.status = "delivered";
+      renderMap();
+      show("map");
+    } catch (e) {
+      console.warn("photo import", e);
+      var code = e && e.message;
+      err.textContent = t(code === "quota_exceeded" ? "im_e_quota" : code === "rate_limited" ? "im_e_busy" : code === "photo_empty" ? "im_e_photo_empty" : "im_e_photo");
+      err.classList.remove("hidden");
+    } finally {
+      reading(false);
+      $("#im-photo-input").value = "";
+    }
+  }
+
+  // Строки с фото: всё можно поправить, лишнее — удалить
+  function photoRowsHtml() {
+    var opt = '<option value="">' + esc(t("im_st_default")) + "</option>" + c.STATUSES.map(function (s) {
+      return '<option value="' + s + '">' + esc(t("status_" + s)) + "</option>";
+    }).join("");
+    return im.rows.map(function (row, r) {
+      var inp = function (col, cls, type, ph) {
+        var v = row[col] == null ? "" : String(row[col]);
+        if (type === "date") v = toDate(v) || "";
+        return '<label class="' + cls + '"><span>' + esc(ph) + '</span><input data-r="' + r + '" data-c="' + col + '" type="' + (type || "text") + '"' +
+          (type === "text" && (col === PC.qty || col === PC.price || col === PC.paid) ? ' inputmode="decimal"' : "") +
+          ' value="' + esc(v) + '"></label>';
+      };
+      return '<div class="im-edit' + (im.unsure[r] ? " unsure" : "") + (cellStr(row[PC.client]) ? "" : " bad") + '">' +
+        '<div class="im-edit-top"><b>' + (r + 1) + "</b>" + (im.unsure[r] ? '<span class="im-unsure">' + esc(t("im_unsure")) + "</span>" : "") +
+        '<button type="button" class="icon-btn im-del" data-del="' + r + '" aria-label="' + esc(t("remove")) + '">×</button></div>' +
+        '<div class="im-edit-grid">' +
+          inp(PC.client, "w2", "text", t("im_f_client")) + inp(PC.phone, "", "text", t("im_f_phone")) +
+          inp(PC.product, "w2", "text", t("im_f_product")) + inp(PC.qty, "", "text", t("im_f_qty")) +
+          inp(PC.price, "", "text", t("im_sum")) + inp(PC.paid, "", "text", t("im_f_paid")) + inp(PC.date, "", "date", t("im_f_date")) +
+          '<label class="w2"><span>' + esc(t("im_f_status")) + '</span><select data-r="' + r + '" data-c="' + PC.status + '">' +
+            opt.replace('value="' + (row[PC.status] || "") + '"', 'value="' + (row[PC.status] || "") + '" selected') + "</select></label>" +
+          inp(PC.comment, "w3", "text", t("im_f_comment")) +
+        "</div></div>";
+    }).join("");
   }
 
   // Пример из файла — уже в том виде, как его поймёт сайт (дата, телефон, статус)
@@ -391,7 +490,10 @@
         return '<option value="' + i + '"' + (i === sel ? " selected" : "") + ">" + esc(h || t("im_col", { n: i + 1 })) + "</option>";
       }).join("");
     };
-    $("#im-fname").textContent = t("im_file", { f: im.file, n: im.rows.filter(function (r) { return (r || []).some(function (x) { return cellStr(x); }); }).length });
+    $("#im-fname").textContent = im.photo
+      ? t("im_photo_found", { n: im.rows.length }) + (im.remaining != null ? " · " + t("im_photo_left", { n: im.remaining }) : "")
+      : t("im_file", { f: im.file, n: im.rows.filter(function (r) { return (r || []).some(function (x) { return cellStr(x); }); }).length });
+    $("#im-mapbox").classList.toggle("hidden", im.photo);
     var field = function (k) {
       var i = im.map[k], req = REQUIRED.indexOf(k) !== -1;
       return '<label class="im-field' + (req ? " req" : "") + (i >= 0 ? " on" : "") + '"><span>' + esc(t("im_f_" + k)) + (req ? " *" : "") +
@@ -411,6 +513,11 @@
   }
 
   function renderPreview() {
+    if (im.photo) {
+      $("#im-preview").innerHTML = '<p class="fine-print im-photo-hint">' + esc(t("im_photo_check")) + "</p>" + photoRowsHtml();
+      summary();
+      return;
+    }
     var p = im.parsed = build();
     var n = p.orders.length;
     var rows = p.orders.slice(0, 4).map(function (o) {
@@ -421,6 +528,13 @@
         '<span class="pill pill-dot st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span></div></div>";
     }).join("");
     $("#im-preview").innerHTML = n ? '<div class="im-list">' + rows + (n > 4 ? '<p class="fine-print">' + esc(t("im_more_rows", { n: n - 4 })) + "</p>" : "") + "</div>" : "";
+    summary();
+  }
+
+  // Предупреждения и кнопка «Загрузить» (без перерисовки строк — чтобы не сбивать ввод)
+  function summary() {
+    var p = im.parsed = build();
+    var n = p.orders.length;
     var notes = [];
     if (p.skipped) notes.push(t("im_skip", { n: p.skipped }));
     if (p.dups) notes.push(t("im_dups", { n: p.dups }));
@@ -524,11 +638,31 @@
     });
     $("#im-cur").addEventListener("change", function (e) { im.cur = e.target.value; renderPreview(); });
     $("#im-status").addEventListener("change", function (e) { im.status = e.target.value; renderPreview(); });
-    $("#im-back").addEventListener("click", function () { $("#im-input").value = ""; show("file"); });
+    $("#im-back").addEventListener("click", function () { $("#im-input").value = ""; im.photo = false; show("file"); });
+    // фото тетради
+    $("#im-photo-pick").addEventListener("click", function () { $("#im-photo-input").click(); });
+    $("#im-photo-input").addEventListener("change", function (e) { onPhotos(e.target.files); });
+    $("#im-preview").addEventListener("input", onEdit);
+    $("#im-preview").addEventListener("change", onEdit);
+    $("#im-preview").addEventListener("click", function (e) {
+      var d = e.target.closest("[data-del]");
+      if (!d) return;
+      var r = Number(d.getAttribute("data-del"));
+      im.rows.splice(r, 1); im.unsure.splice(r, 1);
+      renderPreview();
+    });
     $("#im-go").addEventListener("click", go);
     $("#im-undo").addEventListener("click", undo);
     $("#im-finish").addEventListener("click", function () { c.closeModal("modal-import"); });
     $$("[data-import-open]").forEach(function (b) { b.addEventListener("click", open); });
+  }
+  function onEdit(e) {
+    var el = e.target, r = el.getAttribute("data-r"), col = el.getAttribute("data-c");
+    if (r == null || col == null || !im.rows[r]) return;
+    im.rows[r][Number(col)] = el.value;
+    var card = el.closest(".im-edit");
+    if (card && Number(col) === PC.client) card.classList.toggle("bad", !el.value.trim());
+    summary();
   }
   function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
 
