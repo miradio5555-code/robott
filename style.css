@@ -2509,3 +2509,8 @@ body.readonly .ex-row { cursor: default; }
 .im-edit-grid label { display: grid; gap: 2px; min-width: 0; }
 .im-edit-grid label > span { font-size: 11px; font-weight: 700; color: var(--muted); }
 .im-edit-grid label { align-content: end; }
+
+/* простой режим: лишние разделы спрятаны */
+.section-menu .simple-hidden { display: none !important; }
+.menu-simple span { font-weight: 700; }
+body.simple-mode .menu-simple { color: var(--green); }

@@ -271,7 +271,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261113c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261114a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -477,6 +477,7 @@
       ULA.shop.renderPublic();
       return;
     }
+    applySimpleMode();
     if (!$("#view-admin").classList.contains("hidden")) {
       updateSectionMenuLabel();
       renderAll();
@@ -751,6 +752,8 @@
     renderWarehouse();
     switchTab("orders");
     await Promise.all([loadOrders(), loadSuppliers()]);
+    decideSimple();
+    applySimpleMode();
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
   }
 
@@ -892,6 +895,16 @@
     // пустой кабинет: кнопка «Загрузить из Excel» прямо в подсказке
     $("#empty").addEventListener("click", function (e) { if (e.target.closest("[data-import-open]")) ULA.importer.open(); });
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
+    $("#simple-btn").addEventListener("click", function (e) {
+      e.stopPropagation();   // меню не закрываем: пусть сразу видно, что появилось
+      setSimple(!isSimple());
+      toast(t(isSimple() ? "sm_on" : "sm_off"), "ok");
+    });
+    $("#s-simple").addEventListener("change", function (e) { setSimple(e.target.checked); });
+    // видео-инструкция: ссылка из config.js (VIDEO_URL); нет ссылки — нет пункта
+    var video = safeUrl((window.CARGO_CONFIG || {}).VIDEO_URL || "");
+    if (video) { $("#video-btn").href = video; $("#video-btn").classList.remove("hidden"); }
+    $("#video-btn").addEventListener("click", closeSectionMenu);
 
     // ↻ обновить данные открытой вкладки
     $("#refresh-btn").addEventListener("click", refreshData);
@@ -1206,6 +1219,7 @@
     // разделы меню
     var ot = optionalTabs();
     $("#s-show-shipments").checked = ot.shipments;
+    $("#s-simple").checked = isSimple();
     $("#s-show-suppliers").checked = ot.suppliers;
     // внешний вид
     $$('input[name="theme"]').forEach(function (r) { r.checked = r.value === getTheme(); });
@@ -1700,6 +1714,50 @@
     var sh = stored("ula_show_shipments");
     return { shipments: sh === "1" || (sh === null && hasShipments), suppliers: stored("ula_show_suppliers") !== "0" };
   }
+  // ---------- Простой режим ----------
+  // Новичку в меню только главное: Заказы, Клиенты, Долги. Остальное — кнопкой «Показать все разделы»
+  // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
+  // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
+  var SIMPLE_TABS = ["orders", "clients", "debts"];
+  function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
+  function isSimple() {
+    if (!state.me || state.me.role === "admin") return false;
+    try { return localStorage.getItem(simpleKey()) === "1"; } catch (e) { return false; }
+  }
+  function setSimple(on) {
+    try { localStorage.setItem(simpleKey(), on ? "1" : "0"); } catch (e) { /* без хранилища — не страшно */ }
+    applySimpleMode();
+  }
+  function decideSimple() {
+    if (!state.me || state.me.role === "admin" || state.readOnly) return;
+    try {
+      if (localStorage.getItem(simpleKey()) === null) localStorage.setItem(simpleKey(), state.orders.length < 15 ? "1" : "0");
+    } catch (e) { /* ignore */ }
+  }
+  function applySimpleMode() {
+    var on = isSimple();
+    document.body.classList.toggle("simple-mode", on);
+    $$(".section-menu .tab").forEach(function (b) {
+      b.classList.toggle("simple-hidden", on && SIMPLE_TABS.indexOf(b.getAttribute("data-tab")) === -1);
+    });
+    // заголовок группы прячем, если в ней не осталось видимых разделов
+    $$("[data-group-toggle]").forEach(function (g) {
+      var k = g.getAttribute("data-group-toggle");
+      var any = $$('.section-menu .tab[data-group="' + k + '"]').some(function (b) {
+        return !b.classList.contains("simple-hidden") && !b.classList.contains("hidden") && getComputedStyle(b).display !== "none";
+      });
+      g.classList.toggle("simple-hidden", on && !any);
+    });
+    var btn = $("#simple-btn");
+    if (btn) {
+      btn.classList.toggle("hidden", !state.me || state.me.role === "admin");
+      btn.querySelector("span").textContent = t(on ? "sm_show_all" : "sm_simple");
+    }
+    var cb = $("#s-simple");
+    if (cb) cb.checked = on;
+    if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report") switchTab("orders");
+  }
+
   function applyOptionalTabs() {
     var o = optionalTabs();
     var a = $('.section-menu .tab[data-tab="shipments"]'), b = $('.section-menu .tab[data-tab="suppliers"]');
