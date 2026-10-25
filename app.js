@@ -267,7 +267,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261112c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261113a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -882,7 +882,11 @@
     ULA.broadcast.bind();
     ULA.tools.bind();
     ULA.expenses.bind();
+    ULA.importer.bind();
     $("#vol-menu").addEventListener("click", closeSectionMenu);
+    $("#import-menu").addEventListener("click", closeSectionMenu);
+    // пустой кабинет: кнопка «Загрузить из Excel» прямо в подсказке
+    $("#empty").addEventListener("click", function (e) { if (e.target.closest("[data-import-open]")) ULA.importer.open(); });
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
     // ↻ обновить данные открытой вкладки
@@ -1421,7 +1425,8 @@
 
     if (!state.orders.length) {
       box.innerHTML = "";
-      empty.innerHTML = "<strong>" + esc(t("empty_title")) + "</strong><br>" + esc(t("empty_text"));
+      empty.innerHTML = "<strong>" + esc(t("empty_title")) + "</strong><br>" + esc(t("empty_text")) +
+        (state.readOnly ? "" : '<br><button type="button" class="btn empty-import" data-import-open>' + esc(t("im_empty_btn")) + "</button>");
       empty.classList.remove("hidden");
       return;
     }

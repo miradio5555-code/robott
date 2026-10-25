@@ -2432,3 +2432,54 @@ body.readonly .ex-row { cursor: default; }
 .done-link span { flex: 1; }
 .done-link b { color: var(--ink); }
 .done-link:hover { background: var(--hover); color: var(--ink); }
+
+/* =====================================================
+   ЗАГРУЗКА ЗАКАЗОВ ИЗ EXCEL
+   ===================================================== */
+.im-drop { display: grid; justify-items: center; gap: 10px; margin: 14px 0; padding: 26px 16px; border: 2px dashed var(--line-strong); border-radius: var(--r-lg); background: var(--soft); text-align: center; transition: border-color .15s, background .15s; }
+.im-drop .ico { color: var(--green); }
+.im-drop b { font-size: 16px; }
+.im-drop small { color: var(--muted); }
+.im-drop.over { border-color: var(--green); background: var(--green-tint); }
+.im-error { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--red-tint); color: var(--red); font-weight: 600; font-size: 14px; }
+.im-tips { display: grid; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.im-tips p { margin: 0; }
+.im-tips .mini-link { justify-self: start; margin-top: 2px; }
+.im-filename { margin: 0 0 4px; font-weight: 700; overflow-wrap: anywhere; }
+.im-fields { margin: 10px 0 14px; }
+.im-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.im-more { margin-top: 10px; }
+.im-more summary { cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--muted); padding: 6px 0; }
+.im-more .im-grid { margin-top: 6px; }
+.im-field { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); min-width: 0; }
+.im-field.on { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); background: color-mix(in srgb, var(--green-tint) 55%, var(--surface)); }
+.im-field.req:not(.on) { border-color: var(--red); }
+.im-field > span { font-size: 12.5px; font-weight: 800; }
+#modal-import .im-field select { width: 100%; min-width: 0; min-height: 0; height: 36px; padding: 4px 26px 4px 8px; font-size: 13.5px; }
+.im-field small { min-height: 1.2em; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.im-table { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+.im-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.im-table th { padding: 8px; text-align: left; font-size: 11.5px; color: var(--muted); background: var(--soft); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.im-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.im-table tr:last-child td { border-bottom: 0; }
+.im-table td small { display: block; color: var(--muted); font-size: 11.5px; }
+.im-table .r { text-align: right; white-space: nowrap; }
+.im-notes { display: grid; gap: 6px; margin: 12px 0; }
+.im-notes p { margin: 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--warn-tint); color: var(--warn); font-size: 13.5px; font-weight: 600; }
+.im-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.im-actions #im-go { flex: 1 1 auto; max-width: 320px; }
+.im-done { display: grid; justify-items: center; gap: 12px; padding: 10px 0; text-align: center; }
+.im-done p { margin: 0; font-size: 16px; font-weight: 600; }
+.im-done-ico { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--green-tint); color: var(--green); }
+.empty-import { margin-top: 14px; }
+@media (max-width: 520px) { .im-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.im-list { display: grid; gap: 8px; }
+.im-row { display: flex; gap: 10px; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.im-row-main { min-width: 0; display: grid; gap: 2px; }
+.im-row-main b { overflow-wrap: anywhere; }
+.im-row-main span { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.im-row-side { display: grid; justify-items: end; gap: 3px; text-align: right; flex: none; }
+.im-row-side b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.im-row-side small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.im-actions #im-back { flex: none; white-space: nowrap; }
+.im-actions .btn { white-space: nowrap; }

@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261112c">
+  <link rel="stylesheet" href="style.css?v=20261113a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -215,6 +215,7 @@
             <button type="button" class="menu-group mg-more" data-group-toggle="more" aria-expanded="true"><i></i><span data-i18n="menu_more"></span><b class="mg-caret">▾</b></button>
             <button type="button" class="tab" data-group="more" data-tab="quote" data-i18n="nav_quote"></button>
             <button id="vol-menu" type="button" class="tab" data-group="more" data-i18n="nav_volume" aria-haspopup="dialog"></button>
+            <button id="import-menu" type="button" class="tab" data-group="more" data-i18n="im_menu" data-import-open data-write aria-haspopup="dialog"></button>
             <button type="button" class="tab" data-group="more" data-tab="suppliers" data-i18n="nav_suppliers"></button>
             <button type="button" class="tab" data-group="more" data-tab="shipments" data-i18n="nav_shipments"></button>
             <button type="button" class="tab admin-only" data-group="more" data-tab="buyers" data-i18n="nav_buyers"></button>
@@ -566,6 +567,7 @@
         <div class="head-actions">
           <button id="req-link-btn" class="btn btn-sm btn-pill owner-only" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span data-i18n="rl_btn"></span></button>
           <button id="bulk-btn" class="btn btn-sm btn-pill" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg><span id="bulk-btn-text" data-i18n="bulk_select"></span></button>
+          <button id="import-btn" class="btn btn-sm btn-pill" type="button" data-import-open data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span data-i18n="im_btn"></span></button>
           <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
         </div>
       </div>
@@ -1228,6 +1230,62 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ЗАГРУЗКА ЗАКАЗОВ ИЗ EXCEL (js/import.js) ============ -->
+  <div id="modal-import" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="im_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- шаг 1: файл -->
+        <div id="im-file">
+          <p class="muted" data-i18n="im_hint"></p>
+          <div id="im-drop" class="im-drop">
+            <svg class="ico" viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M8 9h2"/></svg>
+            <b data-i18n="im_drop"></b>
+            <button id="im-pick" class="btn btn-primary" type="button" data-i18n="im_pick"></button>
+            <small data-i18n="im_formats"></small>
+            <input id="im-input" type="file" accept=".xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="hidden">
+          </div>
+          <p id="im-error" class="im-error hidden" role="alert"></p>
+          <div class="im-tips">
+            <p data-i18n="im_tip1"></p>
+            <p data-i18n="im_tip2"></p>
+            <button id="im-template" class="mini-link" type="button" data-i18n="im_template"></button>
+          </div>
+        </div>
+        <!-- шаг 2: какие колонки куда -->
+        <div id="im-map" class="hidden">
+          <p id="im-fname" class="im-filename"></p>
+          <h4 class="money-sub" data-i18n="im_cols"></h4>
+          <p class="fine-print" data-i18n="im_cols_hint"></p>
+          <div id="im-fields" class="im-fields"></div>
+          <div class="grid-2">
+            <label class="field"><span data-i18n="im_cur"></span><select id="im-cur" class="currency-select"></select></label>
+            <label class="field"><span data-i18n="im_status_def"></span><select id="im-status"></select>
+              <p class="field-hint" data-i18n="im_status_hint"></p></label>
+          </div>
+          <h4 class="money-sub" data-i18n="im_preview"></h4>
+          <div id="im-preview"></div>
+          <div id="im-notes" class="im-notes"></div>
+          <div class="im-actions">
+            <button id="im-back" class="btn" type="button" data-i18n="im_back"></button>
+            <button id="im-go" class="btn btn-primary" type="button"></button>
+          </div>
+        </div>
+        <!-- шаг 3: готово -->
+        <div id="im-done" class="hidden im-done">
+          <div class="im-done-ico"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <p id="im-done-text"></p>
+          <button id="im-finish" class="btn btn-primary btn-block" type="button" data-i18n="im_finish"></button>
+          <button id="im-undo" class="btn btn-ghost btn-block" type="button" data-i18n="im_undo"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ ОКНО: ОБЪЁМНЫЙ ВЕС (js/tools.js) ============ -->
   <div id="modal-volume" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1544,33 +1602,34 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261112c"></script>
+  <script src="i18n.js?v=20261113a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261112c"></script>
+  <script src="app.js?v=20261113a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261112c"></script>
-  <script src="js/support.js?v=20261112c"></script>
-  <script src="js/notify.js?v=20261112c"></script>
-  <script src="js/icons.js?v=20261112c"></script>
-  <script src="js/xlsx.js?v=20261112c"></script>
-  <script src="js/analytics.js?v=20261112c"></script>
-  <script src="js/bulk.js?v=20261112c"></script>
-  <script src="js/onboarding.js?v=20261112c"></script>
-  <script src="js/tgws.js?v=20261112c"></script>
-  <script src="js/mfa.js?v=20261112c"></script>
-  <script src="js/captcha.js?v=20261112c"></script>
-  <script src="js/tour.js?v=20261112c"></script>
-  <script src="js/recovery.js?v=20261112c"></script>
-  <script src="js/shop.js?v=20261112c"></script>
-  <script src="js/broadcast.js?v=20261112c"></script>
-  <script src="js/tools.js?v=20261112c"></script>
-  <script src="js/expenses.js?v=20261112c"></script>
-  <script src="js/requests.js?v=20261112c"></script>
-  <script src="js/team.js?v=20261112c"></script>
-  <script src="js/shipments.js?v=20261112c"></script>
-  <script src="js/report.js?v=20261112c"></script>
-  <script src="js/debts.js?v=20261112c"></script>
-  <script src="js/quote.js?v=20261112c"></script>
-  <script src="js/client.js?v=20261112c"></script>
+  <script src="js/fx.js?v=20261113a"></script>
+  <script src="js/support.js?v=20261113a"></script>
+  <script src="js/notify.js?v=20261113a"></script>
+  <script src="js/icons.js?v=20261113a"></script>
+  <script src="js/xlsx.js?v=20261113a"></script>
+  <script src="js/analytics.js?v=20261113a"></script>
+  <script src="js/bulk.js?v=20261113a"></script>
+  <script src="js/onboarding.js?v=20261113a"></script>
+  <script src="js/tgws.js?v=20261113a"></script>
+  <script src="js/mfa.js?v=20261113a"></script>
+  <script src="js/captcha.js?v=20261113a"></script>
+  <script src="js/tour.js?v=20261113a"></script>
+  <script src="js/recovery.js?v=20261113a"></script>
+  <script src="js/shop.js?v=20261113a"></script>
+  <script src="js/broadcast.js?v=20261113a"></script>
+  <script src="js/tools.js?v=20261113a"></script>
+  <script src="js/expenses.js?v=20261113a"></script>
+  <script src="js/import.js?v=20261113a"></script>
+  <script src="js/requests.js?v=20261113a"></script>
+  <script src="js/team.js?v=20261113a"></script>
+  <script src="js/shipments.js?v=20261113a"></script>
+  <script src="js/report.js?v=20261113a"></script>
+  <script src="js/debts.js?v=20261113a"></script>
+  <script src="js/quote.js?v=20261113a"></script>
+  <script src="js/client.js?v=20261113a"></script>
 </body>
 </html>
