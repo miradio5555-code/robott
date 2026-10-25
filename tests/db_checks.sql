@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 23 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 24 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -830,3 +830,90 @@ begin
 end $$;
 reset role;
 \echo '✅ 16. Витрина: показывает только видимые товары, цена берётся из базы, чужие и отключённые ссылки закрыты'
+
+-- ---------- 17. Трек-номер и расходы ----------
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  update public.orders set tracking_number = 'YT1234567890' where id = (select v::uuid from t where k = 'b_order');
+  insert into public.expenses (workspace_id, category, amount, currency, note) values (public.my_workspace_id(), 'rent', 15000, 'KGS', 'Склад');
+  begin
+    insert into public.expenses (workspace_id, amount) values (public.my_workspace_id(), -5);
+    raise exception 'ПРОВАЛ: принят отрицательный расход';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+
+-- клиент по ссылке видит трек-номер
+do $$
+declare tok text; j json;
+begin
+  select public_token into tok from public.orders where id = (select v::uuid from t where k = 'b_order');
+  if tok is null then
+    update public.orders set public_token = 'tok_track_0123456789abcdef0123' where id = (select v::uuid from t where k = 'b_order');
+    tok := 'tok_track_0123456789abcdef0123';
+  end if;
+  insert into t values ('trk_tok', tok) on conflict (k) do update set v = excluded.v;
+end $$;
+set role anon;
+do $$
+declare j json;
+begin
+  j := public.get_client_order((select v from t where k = 'trk_tok'));
+  if (j ->> 'tracking_number') is distinct from 'YT1234567890' then raise exception 'ПРОВАЛ: клиент не видит трек-номер'; end if;
+  if (j::jsonb) ? 'admin_comment' or (j::jsonb) ? 'supplier' then raise exception 'ПРОВАЛ: страница клиента показывает внутренние поля'; end if;
+  begin perform count(*) from public.expenses; raise exception 'ПРОВАЛ: аноним читает расходы';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- чужой байер расходы не видит и не меняет
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.expenses; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер видит расходы'; end if;
+  update public.expenses set amount = 1; get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер изменил расход'; end if;
+  begin
+    insert into public.expenses (workspace_id, amount) select id, 1 from public.workspaces where name = 'Б-карго';
+  exception when others then null; end;
+end $$;
+reset role;
+
+-- помощник кабинета Б расходы не видит и не добавляет (снова добавляем его в команду Б)
+insert into public.workspace_members (workspace_id, user_id, role)
+values ((select v::uuid from t where k = 'tm_ws'), '00000000-0000-0000-0000-0000000000a5', 'staff') on conflict do nothing;
+set request.uid = '00000000-0000-0000-0000-0000000000a5';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.expenses; if n <> 0 then raise exception 'ПРОВАЛ: помощник видит расходы'; end if;
+  begin
+    insert into public.expenses (workspace_id, amount) values ((select v::uuid from t where k = 'tm_ws'), 1);
+    raise exception 'ПРОВАЛ: помощник добавил расход';
+  exception when insufficient_privilege then null; end;
+  select count(*) into n from public.orders where client_name = 'Клиент Б'; if n <> 1 then raise exception 'ПРОВАЛ: помощник не в команде Б — проверка расходов ничего не значит'; end if;
+end $$;
+reset role;
+delete from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000a5' and workspace_id = (select v::uuid from t where k = 'tm_ws');
+
+-- админ видит, но не меняет
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.expenses; if n <> 1 then raise exception 'ПРОВАЛ: админ не видит расходы (%)', n; end if;
+  delete from public.expenses; get diagnostics n = row_count; if n <> 0 then raise exception 'ПРОВАЛ: админ удалил расход'; end if;
+end $$;
+reset role;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.expenses where workspace_id = (select v::uuid from t where k = 'tm_ws');
+  if n <> 1 then raise exception 'ПРОВАЛ: расход Б пропал или чужой добавился (%)', n; end if;
+end $$;
+\echo '✅ 17. Трек-номер виден клиенту; расходы видит и меняет только владелец кабинета'
