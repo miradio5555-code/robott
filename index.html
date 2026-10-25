@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261111a">
+  <link rel="stylesheet" href="style.css?v=20261112b">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -211,8 +211,10 @@
             <button type="button" class="tab" data-group="main" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
             <button type="button" class="menu-group mg-money owner-only" data-group-toggle="money" aria-expanded="true"><i></i><span data-i18n="menu_money"></span><b class="mg-caret">▾</b></button>
             <button type="button" class="tab owner-only" data-group="money" data-tab="analytics" data-i18n="nav_analytics"></button>
+            <button type="button" class="tab owner-only" data-group="money" data-tab="expenses" data-i18n="nav_expenses"></button>
             <button type="button" class="menu-group mg-more" data-group-toggle="more" aria-expanded="true"><i></i><span data-i18n="menu_more"></span><b class="mg-caret">▾</b></button>
             <button type="button" class="tab" data-group="more" data-tab="quote" data-i18n="nav_quote"></button>
+            <button id="vol-menu" type="button" class="tab" data-group="more" data-i18n="nav_volume" aria-haspopup="dialog"></button>
             <button type="button" class="tab" data-group="more" data-tab="suppliers" data-i18n="nav_suppliers"></button>
             <button type="button" class="tab" data-group="more" data-tab="shipments" data-i18n="nav_shipments"></button>
             <button type="button" class="tab admin-only" data-group="more" data-tab="buyers" data-i18n="nav_buyers"></button>
@@ -344,6 +346,20 @@
       <div id="an-empty" class="state-box hidden"></div>
     </main>
 
+    <!-- ============ РАЗДЕЛ: РАСХОДЫ (js/expenses.js) ============ -->
+    <main id="tab-expenses" class="container hidden">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="nav_expenses"></h1>
+          <p class="page-sub" data-i18n="ex_hint"></p>
+        </div>
+        <div class="head-actions"><button id="ex-add" class="btn btn-primary" type="button" data-write>+ <span data-i18n="ex_add"></span></button></div>
+      </div>
+      <div id="ex-periods" class="chips" role="tablist"></div>
+      <div id="ex-curs" class="chips hidden" role="tablist"></div>
+      <div id="ex-body" class="ex-grid"></div>
+    </main>
+
     <!-- ============ РАЗДЕЛ: ОТЧЁТ (прибыль) ============ -->
     <main id="tab-report" class="container container-narrow hidden">
       <button id="r-back" class="btn btn-ghost btn-sm r-back" type="button" data-i18n="r_back"></button>
@@ -430,6 +446,7 @@
             <div id="q-wmodes" class="quote-modes" role="group">
               <button type="button" class="notify-lang" data-wm="total" aria-pressed="false" data-i18n="q_wm_total"></button>
               <button type="button" class="notify-lang" data-wm="unit" aria-pressed="false" data-i18n="q_wm_unit"></button>
+              <button id="q-weight-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button>
             </div></div>
           <label class="field"><span data-i18n="f_delivery_currency"></span>
             <select id="q-dcur" class="currency-select"></select></label>
@@ -641,6 +658,8 @@
       <span id="bulk-count"></span>
       <button id="bulk-all" class="btn btn-sm" type="button"></button>
       <button id="bulk-status" class="btn btn-primary btn-sm" type="button" data-i18n="bulk_status"></button>
+      <button id="bulk-invoice" class="btn btn-sm" type="button" data-i18n="inv_btn_short"></button>
+      <button id="bulk-labels" class="btn btn-sm" type="button" data-i18n="lb_btn_short"></button>
       <button id="bulk-cancel" class="btn btn-ghost btn-sm" type="button" data-i18n="bulk_cancel"></button>
     </div>
 
@@ -779,7 +798,8 @@
           <p id="f-ship-note" class="fine-print flag-missing hidden"></p>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_weight"></span>
-              <input id="f-weight_kg" type="text" inputmode="decimal"></label>
+              <input id="f-weight_kg" type="text" inputmode="decimal">
+              <button id="f-weight-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button></label>
             <label class="field"><span data-i18n="f_delivery_currency"></span>
               <select id="f-delivery_currency" class="currency-select"></select></label>
             <label class="field"><span id="lbl-tariff"></span>
@@ -827,6 +847,9 @@
 
         <fieldset>
           <legend data-i18n="sec_comments"></legend>
+          <label class="field"><span data-i18n="f_tracking"></span>
+            <input id="f-tracking_number" type="text" maxlength="100" autocapitalize="characters" autocomplete="off" spellcheck="false">
+            <p class="field-hint" data-i18n="f_tracking_hint"></p></label>
           <label class="field"><span data-i18n="f_delivery_info"></span>
             <textarea id="f-delivery_info" rows="2"></textarea></label>
           <label class="field"><span data-i18n="f_comment_client"></span>
@@ -1205,6 +1228,103 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ОБЪЁМНЫЙ ВЕС (js/tools.js) ============ -->
+  <div id="modal-volume" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="vol_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="vol_hint"></p>
+        <h4 class="money-sub" data-i18n="vol_box"></h4>
+        <div class="grid-3 vol-dims">
+          <label class="field"><span data-i18n="vol_l"></span><input id="vol-l" type="text" inputmode="decimal" placeholder="60"></label>
+          <label class="field"><span data-i18n="vol_w"></span><input id="vol-w" type="text" inputmode="decimal" placeholder="40"></label>
+          <label class="field"><span data-i18n="vol_h"></span><input id="vol-h" type="text" inputmode="decimal" placeholder="40"></label>
+        </div>
+        <div class="grid-3">
+          <label class="field"><span data-i18n="vol_n"></span><input id="vol-n" type="text" inputmode="numeric" value="1"></label>
+          <label class="field"><span data-i18n="vol_kg"></span><input id="vol-kg" type="text" inputmode="decimal" data-i18n-placeholder="vol_kg_ph"></label>
+          <label class="field"><span data-i18n="vol_kg_mode"></span>
+            <select id="vol-kg-mode"><option value="total" data-i18n="vol_kg_total"></option><option value="box" data-i18n="vol_kg_box"></option></select></label>
+        </div>
+        <h4 class="money-sub" data-i18n="vol_how"></h4>
+        <div id="vol-divs" class="chips"></div>
+        <div id="vol-out" class="vol-out" aria-live="polite"></div>
+        <button id="vol-apply" class="btn btn-primary btn-block hidden" type="button"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: PDF-СЧЁТ (js/tools.js) ============ -->
+  <div id="modal-invoice" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="inv_title_modal"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="inv-sum" class="muted"></p>
+        <p id="inv-warn" class="fine-print flag-missing hidden"></p>
+        <label class="field"><span data-i18n="inv_pay_label"></span>
+          <textarea id="inv-pay" rows="3" maxlength="600" data-i18n-placeholder="inv_pay_ph"></textarea>
+          <p class="field-hint" data-i18n="inv_pay_hint"></p></label>
+        <button id="inv-print" class="btn btn-primary btn-block" type="button" data-i18n="inv_make"></button>
+        <p class="fine-print" data-i18n="pr_how"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: ЭТИКЕТКИ С QR (js/tools.js) ============ -->
+  <div id="modal-labels" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 data-i18n="lb_title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" data-i18n="lb_hint"></p>
+        <h4 class="money-sub" data-i18n="lb_size"></h4>
+        <div id="lb-sizes" class="chips"></div>
+        <label class="field"><span data-i18n="lb_places"></span>
+          <input id="lb-n" type="text" inputmode="numeric" value="1">
+          <p class="field-hint" data-i18n="lb_places_hint"></p></label>
+        <p id="lb-sum" class="fine-print"></p>
+        <button id="lb-print" class="btn btn-primary btn-block" type="button" data-i18n="lb_make"></button>
+        <p class="fine-print" data-i18n="pr_how"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: РАСХОД (js/expenses.js) ============ -->
+  <div id="modal-expense" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="expense-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 id="ex-form-title"></h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span data-i18n="ex_f_cat"></span><select id="ex-cat"></select></label>
+        <div class="grid-2">
+          <label class="field"><span data-i18n="ex_f_amount"></span><input id="ex-amount" type="text" inputmode="decimal" required></label>
+          <label class="field"><span data-i18n="ex_f_cur"></span><select id="ex-cur" class="currency-select"></select></label>
+        </div>
+        <label class="field"><span data-i18n="ex_f_date"></span><input id="ex-date" type="date"></label>
+        <label class="field"><span data-i18n="ex_f_note"></span><input id="ex-note" type="text" maxlength="300" data-i18n-placeholder="ex_f_note_ph"></label>
+      </div>
+      <div class="modal-foot">
+        <button id="ex-delete" class="btn btn-danger hidden" type="button" data-i18n="remove"></button>
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="ex-save" class="btn btn-primary" type="submit" data-i18n="save"></button>
+      </div>
+    </form>
+  </div>
+
   <!-- ============ ОКНО: ТОВАР ВИТРИНЫ ============ -->
   <div id="modal-product" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -1424,31 +1544,33 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261111a"></script>
+  <script src="i18n.js?v=20261112b"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261111a"></script>
+  <script src="app.js?v=20261112b"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261111a"></script>
-  <script src="js/support.js?v=20261111a"></script>
-  <script src="js/notify.js?v=20261111a"></script>
-  <script src="js/icons.js?v=20261111a"></script>
-  <script src="js/xlsx.js?v=20261111a"></script>
-  <script src="js/analytics.js?v=20261111a"></script>
-  <script src="js/bulk.js?v=20261111a"></script>
-  <script src="js/onboarding.js?v=20261111a"></script>
-  <script src="js/tgws.js?v=20261111a"></script>
-  <script src="js/mfa.js?v=20261111a"></script>
-  <script src="js/captcha.js?v=20261111a"></script>
-  <script src="js/tour.js?v=20261111a"></script>
-  <script src="js/recovery.js?v=20261111a"></script>
-  <script src="js/shop.js?v=20261111a"></script>
-  <script src="js/broadcast.js?v=20261111a"></script>
-  <script src="js/requests.js?v=20261111a"></script>
-  <script src="js/team.js?v=20261111a"></script>
-  <script src="js/shipments.js?v=20261111a"></script>
-  <script src="js/report.js?v=20261111a"></script>
-  <script src="js/debts.js?v=20261111a"></script>
-  <script src="js/quote.js?v=20261111a"></script>
-  <script src="js/client.js?v=20261111a"></script>
+  <script src="js/fx.js?v=20261112b"></script>
+  <script src="js/support.js?v=20261112b"></script>
+  <script src="js/notify.js?v=20261112b"></script>
+  <script src="js/icons.js?v=20261112b"></script>
+  <script src="js/xlsx.js?v=20261112b"></script>
+  <script src="js/analytics.js?v=20261112b"></script>
+  <script src="js/bulk.js?v=20261112b"></script>
+  <script src="js/onboarding.js?v=20261112b"></script>
+  <script src="js/tgws.js?v=20261112b"></script>
+  <script src="js/mfa.js?v=20261112b"></script>
+  <script src="js/captcha.js?v=20261112b"></script>
+  <script src="js/tour.js?v=20261112b"></script>
+  <script src="js/recovery.js?v=20261112b"></script>
+  <script src="js/shop.js?v=20261112b"></script>
+  <script src="js/broadcast.js?v=20261112b"></script>
+  <script src="js/tools.js?v=20261112b"></script>
+  <script src="js/expenses.js?v=20261112b"></script>
+  <script src="js/requests.js?v=20261112b"></script>
+  <script src="js/team.js?v=20261112b"></script>
+  <script src="js/shipments.js?v=20261112b"></script>
+  <script src="js/report.js?v=20261112b"></script>
+  <script src="js/debts.js?v=20261112b"></script>
+  <script src="js/quote.js?v=20261112b"></script>
+  <script src="js/client.js?v=20261112b"></script>
 </body>
 </html>

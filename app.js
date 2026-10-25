@@ -267,7 +267,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261111a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261112b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -880,6 +880,9 @@
     ULA.tour.bind();
     ULA.shop.bind();
     ULA.broadcast.bind();
+    ULA.tools.bind();
+    ULA.expenses.bind();
+    $("#vol-menu").addEventListener("click", closeSectionMenu);
     $("#refresh-menu-btn").addEventListener("click", function () { closeSectionMenu(); $("#refresh-btn").click(); });
 
     // ↻ обновить данные открытой вкладки
@@ -992,7 +995,7 @@
     });
 
     // Разделы кабинета
-    $$(".tab").forEach(function (b) {
+    $$(".tab[data-tab]").forEach(function (b) {
       b.addEventListener("click", function () { switchTab(b.getAttribute("data-tab")); });
     });
 
@@ -1360,16 +1363,29 @@
     $("#sum-profit").innerHTML = lines(profit);
   }
 
+  // Заказ закрыт: выдан клиенту и долга нет. На главном экране («В работе») его не показываем,
+  // он лежит в «Выданы». Выданный, но не оплаченный заказ остаётся на виду — чтобы не забыть про деньги.
+  function isDone(o) {
+    return o.status === "delivered" && !(num(o.total_som) > 0 && num(o.balance_som) > 0);
+  }
+  // Прятать закрытые, только когда байер ничего не ищет и не фильтрует
+  function hidesDone() {
+    return state.status === "all" && !state.q.trim() && !state.hintFilter && !state.from && !state.to;
+  }
+
   function renderChips() {
-    var counts = {};
+    var counts = {}, active = 0;
     STATUSES.forEach(function (s) { counts[s] = 0; });
-    state.orders.forEach(function (o) { if (counts[o.status] !== undefined) counts[o.status]++; });
-    var items = [["all", state.orders.length]].concat(STATUSES.map(function (s) { return [s, counts[s]]; }));
+    state.orders.forEach(function (o) {
+      if (counts[o.status] !== undefined) counts[o.status]++;
+      if (!isDone(o)) active++;
+    });
+    var items = [["all", active]].concat(STATUSES.map(function (s) { return [s, counts[s]]; }));
     $("#chips").innerHTML = items.map(function (it) {
       var key = it[0];
       return '<button type="button" class="chip chip-' + key + (state.status === key ? " active" : "") +
         '" data-status="' + key + '" role="tab" aria-selected="' + (state.status === key) + '">' +
-        "<span>" + esc(t("filter_" + key)) + "</span><b>" + it[1] + "</b></button>";
+        "<span>" + esc(t(key === "all" ? "filter_active" : "filter_" + key)) + "</span><b>" + it[1] + "</b></button>";
     }).join("");
   }
 
@@ -1377,14 +1393,16 @@
     var q = state.q.trim().toLowerCase();
     var qDigits = q.replace(/\D/g, "");
     var hint = state.hintFilter && HINT_FILTERS[state.hintFilter];
+    var hideDone = hidesDone();
     return state.orders.filter(function (o) {
+      if (hideDone && isDone(o)) return false;
       if (hint && !hint(o)) return false;
       if (state.status !== "all" && o.status !== state.status) return false;
       if (state.from && o.order_date < state.from) return false;
       if (state.to && o.order_date > state.to) return false;
       if (!q) return true;
       var c = o.client || {};
-      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat,
+      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat, o.tracking_number,
         c.name, c.phone, c.telegram, c.city]
         .filter(Boolean).join(" ").toLowerCase();
       if (hay.indexOf(q) !== -1) return true;
@@ -1408,9 +1426,13 @@
       return;
     }
     var list = filtered();
+    // сколько выданных и оплаченных убрано с главного экрана — ссылка, чтобы их открыть
+    var done = hidesDone() ? state.orders.filter(isDone).length : 0;
+    var doneLink = done ? '<button type="button" class="done-link" data-act="show-done">' + ULA.icon("check", 16) +
+      "<span>" + esc(t("done_hidden", { n: done })) + "</span><b>→</b></button>" : "";
     if (!list.length) {
-      box.innerHTML = "";
-      empty.textContent = t("nothing_found");
+      box.innerHTML = done ? doneLink : "";
+      empty.innerHTML = done ? "<strong>" + esc(t("done_all_title")) + "</strong><br>" + esc(t("done_all_text")) : esc(t("nothing_found"));
       empty.classList.remove("hidden");
       return;
     }
@@ -1419,7 +1441,7 @@
     box.innerHTML = shown.map(cardHtml).join("") +
       (list.length > shown.length
         ? '<button type="button" class="btn btn-block more" data-act="more">' + esc(t("show_more")) + " (" + (list.length - shown.length) + ")</button>"
-        : "");
+        : "") + doneLink;
   }
 
   function specsHtml(o) {
@@ -1479,12 +1501,13 @@
         '<div class="card-top">' +
           '<label class="sel-box"><input type="checkbox" data-sel="' + esc(o.id) + '"' + (ULA.bulk && ULA.bulk.has(o.id) ? " checked" : "") + '><span></span></label>' +
           '<span class="order-no">№ ' + esc(o.order_number) + "</span>" +
-          '<span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
+          '<span class="pill pill-dot st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
+        progressHtml(o) +
         '<div class="card-main" data-act="open">' + photo +
           '<div class="card-info">' +
             "<h3>" + esc(o.product_ru) + "</h3>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) + trackTag(o) +
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
@@ -1501,6 +1524,8 @@
             '<summary class="btn card-more-btn" aria-label="' + esc(t("more_actions")) + '">⋯</summary>' +
             '<div class="card-more-menu">' +
               '<button type="button" class="menu-action" data-act="link">' + t("client_link") + "</button>" +
+              '<button type="button" class="menu-action" data-act="invoice">' + t("inv_btn") + "</button>" +
+              '<button type="button" class="menu-action" data-act="labels">' + t("lb_btn") + "</button>" +
               '<button type="button" class="menu-action" data-act="edit" data-write>' + t("edit") + "</button>" +
               '<button type="button" class="menu-action" data-act="status" data-write>' + t("change_status") + "</button>" +
               '<button type="button" class="menu-action menu-logout owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
@@ -1539,6 +1564,20 @@
   }
 
   // Метка «📦 Партия» на карточке заказа
+  // Полоска-шкала: на каком шаге заказ (Новый → … → Выдан). У отменённого шкалы нет.
+  function progressHtml(o) {
+    var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
+    var i = flow.indexOf(o.status);
+    if (i === -1) return "";
+    return '<div class="card-progress st-' + o.status + '" role="img" aria-label="' + esc(t("progress_step", { a: i + 1, b: flow.length })) + '">' +
+      flow.map(function (s, k) { return '<i class="' + (k < i ? "done" : k === i ? "now" : "") + '"></i>'; }).join("") +
+      '<span>' + esc(t("progress_step", { a: i + 1, b: flow.length })) + "</span></div>";
+  }
+
+  function trackTag(o) {
+    return o.tracking_number ? '<span class="batch-tag track-tag">' + ULA.icon("truck", 13) + esc(t("trk_short")) + "</span>" : "";
+  }
+
   function shipTag(o) {
     if (!o.shipment_id) return "";
     var n = ULA.shipments ? ULA.shipments.name(o.shipment_id) : "";
@@ -1590,7 +1629,7 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shop" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
@@ -1599,6 +1638,7 @@
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-report").classList.toggle("hidden", state.tab !== "report");
     $("#tab-analytics").classList.toggle("hidden", state.tab !== "analytics");
+    $("#tab-expenses").classList.toggle("hidden", state.tab !== "expenses");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
@@ -1622,6 +1662,7 @@
     if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "report") ULA.report.open();
     if (state.tab === "analytics") ULA.analytics.open();
+    if (state.tab === "expenses" && db && state.ws) ULA.expenses.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
   }
@@ -1636,7 +1677,7 @@
     var ico = $("#section-menu-ico");
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
-      var ICONS = { orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", quote: "calc",
+      var ICONS = { orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
         suppliers: "factory", shipments: "truck", buyers: "users", support: "message" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
@@ -2068,6 +2109,7 @@
       else if (state.tab === "support") { await ULA.support.loadThreads(); await ULA.support.checkUnread(); }
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
+      else if (state.tab === "expenses") { await loadOrders(); await ULA.expenses.reload(); }
       else await loadOrders();
       // открытая карточка заказа — перерисовать со свежими данными
       if ($("#modal-detail").classList.contains("open")) renderDetail();
@@ -2338,6 +2380,14 @@
       renderOrders();
       return;
     }
+    if (act === "show-done") {
+      state.status = "delivered";
+      state.limit = PAGE_SIZE;
+      renderChips();
+      renderOrders();
+      window.scrollTo(0, $("#chips").getBoundingClientRect().top + window.scrollY - 80);
+      return;
+    }
     var holder = btn.closest("[data-id]");
     var o = holder && state.orders.filter(function (x) { return x.id === holder.getAttribute("data-id"); })[0];
     if (!o) return;
@@ -2349,13 +2399,15 @@
   }
 
   function runAction(act, o) {
-    if (state.readOnly && act !== "open" && act !== "link") return;
+    if (state.readOnly && act !== "open" && act !== "link" && act !== "invoice" && act !== "labels") return;
     if (act === "open") openDetail(o.id);
     else if (act === "edit") { closeModal("modal-detail"); openOrderForm(o); }
     else if (act === "status") openStatus(o);
     else if (act === "link") openLink(o);
     else if (act === "quote") ULA.quote.forOrder(o);
     else if (act === "notify") ULA.notify.open(o);
+    else if (act === "invoice") ULA.tools.invoice([o]);
+    else if (act === "labels") ULA.tools.labels([o]);
     else if (act === "delete") deleteOrder(o);
   }
 
@@ -2392,6 +2444,7 @@
           "<div><dt>" + t("l_supplier") + "</dt><dd>" + esc(o.supplier || "—") + "</dd></div>" +
           (o.supplier_wechat ? "<div><dt>" + t("l_supplier_wechat") + "</dt><dd>" + esc(o.supplier_wechat) + "</dd></div>" : "") +
           (link ? "<div><dt>" + t("l_link") + '</dt><dd><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(link) + "</a></dd></div>" : "") +
+          (o.tracking_number ? "<div><dt>" + t("trk_title") + '</dt><dd class="trk-dd">' + esc(o.tracking_number) + "</dd></div>" : "") +
           (o.delivery_info ? "<div><dt>" + t("l_delivery_info") + "</dt><dd>" + esc(o.delivery_info) + "</dd></div>" : "") +
           (o.client_comment ? "<div><dt>" + t("l_comment_client") + "</dt><dd>" + esc(o.client_comment) + "</dd></div>" : "") +
           (o.admin_comment ? "<div><dt>" + t("l_comment_admin") + "</dt><dd>" + esc(o.admin_comment) + "</dd></div>" : "") +
@@ -2402,6 +2455,8 @@
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
           '<button type="button" class="btn" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
+          '<button type="button" class="btn" data-act="invoice">' + t("inv_btn") + "</button>" +
+          '<button type="button" class="btn" data-act="labels">' + t("lb_btn") + "</button>" +
           '<button type="button" class="btn btn-danger owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
         "</div>" +
       "</div>";
@@ -2619,6 +2674,7 @@
       set("client_price", o.client_price == null ? "" : String(num(o.client_price)));
       set("markup", o.client_price != null && num(o.cost_som) > 0
         ? String(Math.round((num(o.client_price) / num(o.cost_som) - 1) * 1000) / 10) : "");
+      set("tracking_number", o.tracking_number);
       set("delivery_info", o.delivery_info);
       set("client_comment", o.client_comment);
       set("admin_comment", o.admin_comment);
@@ -2632,7 +2688,7 @@
       set("order_number", ""); // номер выдаст база после сохранения
       set("order_date", todayISO());
       ["client_name", "client_phone", "client_wechat", "product_ru", "product_zh", "supplier",
-        "supplier_link", "supplier_wechat", "unit_price_cny", "weight_kg", "delivery_info", "client_comment", "admin_comment"
+        "supplier_link", "supplier_wechat", "unit_price_cny", "weight_kg", "tracking_number", "delivery_info", "client_comment", "admin_comment"
       ].forEach(function (id) { set(id, ""); });
       set("quantity", "1");
       set("exchange_rate", lastRateFor($("#f-purchase_currency").value, $("#f-client_currency").value));
@@ -2826,6 +2882,7 @@
       delivery_rate: parseNum(val("delivery_rate")),
       client_price: val("client_price") ? parseNum(val("client_price")) : null,
       paid_amount: parseNum(val("paid_amount")),
+      tracking_number: val("tracking_number").replace(/\s+/g, " ").slice(0, 100) || null,
       delivery_info: val("delivery_info") || null,
       client_comment: val("client_comment") || null,
       admin_comment: val("admin_comment") || null
