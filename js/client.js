@@ -21,6 +21,9 @@
     saving: false
   };
 
+  // Telegram-уведомления клиенту по этому заказу
+  var tgc = { loaded: false, bot: null, subscribed: false, opened: false, busy: false, error: "" };
+
   // =====================================================
   //  СТРАНИЦА КЛИЕНТА (по ссылке ?order=токен)
   // =====================================================
@@ -47,6 +50,7 @@
       state.clientState = "error";
     }
     renderClient();
+    if (state.clientState === "ok") tgLoad();
   }
 
   function isClosed() {
@@ -80,6 +84,14 @@
       var ph = e.target.closest("[data-photo]");
       if (ph && state.client) {
         openLightbox(clientPhotoUrls(), Number(ph.getAttribute("data-photo")) || 0);
+        return;
+      }
+      var tb = e.target.closest("[data-tgc]");
+      if (tb) {
+        var act = tb.getAttribute("data-tgc");
+        if (act === "open") { tgc.opened = true; tgc.error = ""; setTimeout(renderClient, 300); }   // ссылка открывает Telegram сама
+        else if (act === "check") tgCall("client_connect");
+        else if (act === "off" && window.confirm(t("tgc_off_confirm"))) tgCall("client_disconnect");
         return;
       }
       if (e.target.closest("[data-track-copy]") && state.client) {
@@ -330,6 +342,56 @@
       '<p class="fine-print">' + esc(t("trk_hint")) + "</p></section>";
   }
 
+  async function tgLoad() {
+    if (tgc.loaded || !cd.token) return;
+    tgc.loaded = true;
+    try {
+      var res = await c.db().functions.invoke("telegram-notify", { body: { action: "client_info", token: cd.token } });
+      var d = (res && res.data) || {};
+      tgc.bot = d.ok ? d.bot : null;
+      tgc.subscribed = !!d.subscribed;
+    } catch (e) { tgc.bot = null; }
+    renderClient();
+  }
+
+  async function tgCall(action) {
+    if (tgc.busy) return;
+    tgc.busy = true; tgc.error = "";
+    renderClient();
+    try {
+      var res = await c.db().functions.invoke("telegram-notify", { body: { action: action, token: cd.token } });
+      var d = (res && res.data) || {};
+      if (d.ok) { tgc.subscribed = !!d.subscribed; tgc.opened = false; toast(t(tgc.subscribed ? "tgc_done" : "tgc_off_done"), "ok"); }
+      else tgc.error = d.error === "no_start" ? "tgc_e_start" : "tgc_e";
+    } catch (e) { tgc.error = "tgc_e"; }
+    tgc.busy = false;
+    renderClient();
+  }
+
+  // Вернулись из Telegram после «Start» — проверяем сами, без лишней кнопки
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && tgc.opened && !tgc.subscribed && !tgc.busy) tgCall("client_connect");
+  });
+
+  function tgHtml(o) {
+    if (!tgc.bot || CLOSED.indexOf(o.status) !== -1) return "";
+    var body;
+    if (tgc.subscribed) {
+      body = '<p class="tgc-on">' + U.icon("check", 16) + esc(t("tgc_on")) + "</p>" +
+        '<button type="button" class="mini-link" data-tgc="off"' + (tgc.busy ? " disabled" : "") + ">" + esc(t("tgc_off")) + "</button>";
+    } else {
+      var link = "https://t.me/" + encodeURIComponent(tgc.bot) + "?start=o" + encodeURIComponent(cd.token);
+      body = '<p class="muted">' + esc(t("tgc_text")) + "</p>" +
+        '<div class="track-actions"><a class="btn btn-primary tgc-btn" target="_blank" rel="noopener" data-tgc="open" href="' + esc(link) + '">' +
+          esc(t("tgc_btn")) + "</a>" +
+        (tgc.opened ? '<button type="button" class="btn" data-tgc="check"' + (tgc.busy ? " disabled" : "") + ">" + esc(t(tgc.busy ? "tgc_checking" : "tgc_check")) + "</button>" : "") +
+        "</div>" +
+        (tgc.opened ? '<p class="fine-print">' + esc(t("tgc_hint")) + "</p>" : "") +
+        (tgc.error ? '<p class="im-error">' + esc(t(tgc.error)) + "</p>" : "");
+    }
+    return '<section class="client-block tgc-block"><h2>🔔 ' + esc(t("tgc_title")) + "</h2>" + body + "</section>";
+  }
+
   function clientPhotoUrls() {
     return ((state.client && state.client.photos) || []).map(photoUrl);
   }
@@ -387,6 +449,7 @@
       "</section>" +
 
       trackHtml(o) +
+      tgHtml(o) +
       (deliveryFirst ? delivery : "") +
 
       '<section class="client-block">' +

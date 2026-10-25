@@ -296,6 +296,8 @@
       if (res.error) throw res.error;
       await c.reloadOrders();
       toast(t("sh_status_done", { n: res.data }), "ok");
+      // клиентам партии, подписанным в Telegram, — новый статус сами
+      c.tgNotify(state.orders.filter(function (o) { return o.shipment_id === cd.id; }).map(function (o) { return o.id; }));
       renderNotify();
       renderModal();
     } catch (err) { handleError(err); }

@@ -99,6 +99,7 @@
     var changedIds = changed.map(function (o) { return o.id; });
     setMode(false);
     toast(t("bulk_changed", { n: changedIds.length }), "ok");
+    c.tgNotify(changedIds);   // подписанным клиентам — в Telegram сами
     if (U.notify && U.notify.autoEnabled()) openQueue(changedIds);
   }
 
