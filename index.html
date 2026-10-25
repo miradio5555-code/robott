@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261113a">
+  <link rel="stylesheet" href="style.css?v=20261113b">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -1249,6 +1249,21 @@
             <small data-i18n="im_formats"></small>
             <input id="im-input" type="file" accept=".xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="hidden">
           </div>
+          <div id="im-photo-box" class="im-photo-box">
+            <svg class="ico" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <div>
+              <b data-i18n="im_photo_title"></b>
+              <p data-i18n="im_photo_text"></p>
+              <button id="im-photo-pick" class="btn" type="button" data-i18n="im_photo_btn"></button>
+              <small data-i18n="im_photo_privacy"></small>
+            </div>
+            <input id="im-photo-input" type="file" accept="image/*" multiple class="hidden">
+          </div>
+          <div id="im-reading" class="im-reading hidden" aria-live="polite">
+            <span class="im-spinner" aria-hidden="true"></span>
+            <b data-i18n="im_reading"></b>
+            <small data-i18n="im_reading_hint"></small>
+          </div>
           <p id="im-error" class="im-error hidden" role="alert"></p>
           <div class="im-tips">
             <p data-i18n="im_tip1"></p>
@@ -1259,9 +1274,11 @@
         <!-- шаг 2: какие колонки куда -->
         <div id="im-map" class="hidden">
           <p id="im-fname" class="im-filename"></p>
-          <h4 class="money-sub" data-i18n="im_cols"></h4>
-          <p class="fine-print" data-i18n="im_cols_hint"></p>
-          <div id="im-fields" class="im-fields"></div>
+          <div id="im-mapbox">
+            <h4 class="money-sub" data-i18n="im_cols"></h4>
+            <p class="fine-print" data-i18n="im_cols_hint"></p>
+            <div id="im-fields" class="im-fields"></div>
+          </div>
           <div class="grid-2">
             <label class="field"><span data-i18n="im_cur"></span><select id="im-cur" class="currency-select"></select></label>
             <label class="field"><span data-i18n="im_status_def"></span><select id="im-status"></select>
@@ -1602,34 +1619,34 @@
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261007m"></script>
-  <script src="i18n.js?v=20261113a"></script>
+  <script src="i18n.js?v=20261113b"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261113a"></script>
+  <script src="app.js?v=20261113b"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261113a"></script>
-  <script src="js/support.js?v=20261113a"></script>
-  <script src="js/notify.js?v=20261113a"></script>
-  <script src="js/icons.js?v=20261113a"></script>
-  <script src="js/xlsx.js?v=20261113a"></script>
-  <script src="js/analytics.js?v=20261113a"></script>
-  <script src="js/bulk.js?v=20261113a"></script>
-  <script src="js/onboarding.js?v=20261113a"></script>
-  <script src="js/tgws.js?v=20261113a"></script>
-  <script src="js/mfa.js?v=20261113a"></script>
-  <script src="js/captcha.js?v=20261113a"></script>
-  <script src="js/tour.js?v=20261113a"></script>
-  <script src="js/recovery.js?v=20261113a"></script>
-  <script src="js/shop.js?v=20261113a"></script>
-  <script src="js/broadcast.js?v=20261113a"></script>
-  <script src="js/tools.js?v=20261113a"></script>
-  <script src="js/expenses.js?v=20261113a"></script>
-  <script src="js/import.js?v=20261113a"></script>
-  <script src="js/requests.js?v=20261113a"></script>
-  <script src="js/team.js?v=20261113a"></script>
-  <script src="js/shipments.js?v=20261113a"></script>
-  <script src="js/report.js?v=20261113a"></script>
-  <script src="js/debts.js?v=20261113a"></script>
-  <script src="js/quote.js?v=20261113a"></script>
-  <script src="js/client.js?v=20261113a"></script>
+  <script src="js/fx.js?v=20261113b"></script>
+  <script src="js/support.js?v=20261113b"></script>
+  <script src="js/notify.js?v=20261113b"></script>
+  <script src="js/icons.js?v=20261113b"></script>
+  <script src="js/xlsx.js?v=20261113b"></script>
+  <script src="js/analytics.js?v=20261113b"></script>
+  <script src="js/bulk.js?v=20261113b"></script>
+  <script src="js/onboarding.js?v=20261113b"></script>
+  <script src="js/tgws.js?v=20261113b"></script>
+  <script src="js/mfa.js?v=20261113b"></script>
+  <script src="js/captcha.js?v=20261113b"></script>
+  <script src="js/tour.js?v=20261113b"></script>
+  <script src="js/recovery.js?v=20261113b"></script>
+  <script src="js/shop.js?v=20261113b"></script>
+  <script src="js/broadcast.js?v=20261113b"></script>
+  <script src="js/tools.js?v=20261113b"></script>
+  <script src="js/expenses.js?v=20261113b"></script>
+  <script src="js/import.js?v=20261113b"></script>
+  <script src="js/requests.js?v=20261113b"></script>
+  <script src="js/team.js?v=20261113b"></script>
+  <script src="js/shipments.js?v=20261113b"></script>
+  <script src="js/report.js?v=20261113b"></script>
+  <script src="js/debts.js?v=20261113b"></script>
+  <script src="js/quote.js?v=20261113b"></script>
+  <script src="js/client.js?v=20261113b"></script>
 </body>
 </html>

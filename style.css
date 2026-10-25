@@ -2483,3 +2483,29 @@ body.readonly .ex-row { cursor: default; }
 .im-row-side small { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .im-actions #im-back { flex: none; white-space: nowrap; }
 .im-actions .btn { white-space: nowrap; }
+
+/* фото тетради */
+.im-photo-box { display: flex; gap: 14px; align-items: flex-start; margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.im-photo-box > .ico { flex: none; color: #7A4FD6; margin-top: 2px; }
+.im-photo-box b { display: block; font-size: 15px; }
+.im-photo-box p { margin: 4px 0 10px; color: var(--muted); font-size: 13.5px; }
+.im-photo-box small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+.im-reading { display: grid; justify-items: center; gap: 8px; margin: 14px 0; padding: 30px 16px; border-radius: var(--r-lg); background: var(--soft); text-align: center; }
+.im-reading small { color: var(--muted); }
+.im-spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: #7A4FD6; animation: ula-spin .9s linear infinite; }
+@keyframes ula-spin { to { transform: rotate(360deg); } }
+.im-photo-hint { margin: 0 0 8px; }
+.im-edit { padding: 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); margin-bottom: 8px; }
+.im-edit.unsure { border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); background: color-mix(in srgb, var(--warn-tint) 45%, var(--surface)); }
+.im-edit.bad { border-color: var(--red); }
+.im-edit-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.im-edit-top b { font-size: 12px; color: var(--muted); }
+.im-unsure { font-size: 12px; font-weight: 700; color: var(--warn); }
+.im-del { margin-left: auto; width: 28px; height: 28px; font-size: 18px; }
+.im-edit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.im-edit-grid .w2 { grid-column: span 2; }
+.im-edit-grid .w3 { grid-column: 1 / -1; }
+#modal-import .im-edit-grid input, #modal-import .im-edit-grid select { width: 100%; min-width: 0; height: 36px; min-height: 0; padding: 4px 8px; font-size: 13.5px; }
+.im-edit-grid label { display: grid; gap: 2px; min-width: 0; }
+.im-edit-grid label > span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.im-edit-grid label { align-content: end; }
