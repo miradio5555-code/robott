@@ -18,64 +18,105 @@
   var AUTO_KEY = "cc_notify_auto";   // "0" — не открывать окно после смены статуса
 
   // ---------- Тексты сообщений: по языкам ----------
-  // {order} — «заказ № CN-000007 («Кроссовки»)», остальное подставляет код ниже
+  // Пишем как живой человек: приветствие по времени суток, что с заказом, что будет дальше, подпись байера.
+  // {order} — «заказ «Кроссовки» (№ CN-000007)», остальное подставляет код ниже.
+  // Глаголы без рода («принят», «закупаем»), чтобы текст подходил и байеру, и байерше.
   var TXT = {
     ru: {
-      hello: function (n) { return n ? "Здравствуйте, " + n + "!" : "Здравствуйте!"; },
-      order: function (num_, prod) { return "заказ № " + num_ + (prod ? " («" + prod + "»)" : ""); },
-      status: {
-        "new":              "Ваш {order} принят в работу.",
-        awaiting_payment:   "Ваш {order} ждёт оплаты.",
-        purchasing:         "Ваш {order}: оплата получена, закупаем товар у поставщика.",
-        china_warehouse:    "Ваш {order} пришёл на наш склад в Китае. Скоро отправим.",
-        in_transit:         "Ваш {order} отправлен и уже в пути.",
-        arrived:            "Ваш {order} прибыл! 🎉",
-        delivered:          "Ваш {order} выдан. Спасибо, что выбрали нас!",
-        cancelled:          "Ваш {order} отменён. Если это ошибка — напишите мне."
+      hello: function (n, h) {
+        var g = h >= 5 && h < 12 ? "Доброе утро" : h >= 12 && h < 18 ? "Добрый день" : h >= 18 && h < 23 ? "Добрый вечер" : "Здравствуйте";
+        return n ? g + ", " + n + "!" : g + "!";
       },
-      pay: function (total, paid, left) { return "К оплате: " + total + ". Оплачено: " + paid + ". Осталось: " + left + "."; },
-      paidFull: "Оплата получена полностью ✅",
-      addr: "Пожалуйста, укажите данные для доставки по ссылке ниже.",
-      link: "Следить за заказом:",
-      track: "Трек-номер: "
+      order: function (num_, prod) { return prod ? "заказ «" + prod + "» (№ " + num_ + ")" : "заказ № " + num_; },
+      status: {
+        "new":              "Ваш {order} принят — уже занимаемся им 👍\nУточним цену и сроки и сразу напишем вам.",
+        awaiting_payment:   "Ваш {order} готов к оплате.",
+        purchasing:         "Спасибо за оплату! 🙏\nВаш {order} уже закупаем у поставщика. Как только товар придёт на наш склад в Китае — сообщим.",
+        china_warehouse:    "Хорошая новость: ваш {order} уже на нашем складе в Китае 📦\nГотовим к отправке — скоро он поедет к вам.",
+        in_transit:         "Ваш {order} уже в пути 🚚\nКак только прибудет — сразу дадим знать.",
+        arrived:            "Ваш {order} прибыл! 🎉",
+        delivered:          "Ваш {order} у вас — спасибо, что выбрали нас! 🙏\nЕсли будут вопросы или захотите заказать что-то ещё — мы всегда на связи.",
+        cancelled:          "Ваш {order} отменён.\nЕсли это ошибка или хотите заказать что-то другое — просто напишите, всё решим."
+      },
+      next: {
+        awaiting_payment: "Как оплатите — сразу закажем товар у поставщика 🙌",
+        awaiting_rest:    "Как доплатите — сразу закажем товар у поставщика 🙌",
+        arrived:          "Напишите, когда вам удобно забрать, или куда привезти."
+      },
+      pay: function (total, paid, left, paidSome) {
+        return paidSome
+          ? "Сумма заказа — " + total + ", вы уже оплатили " + paid + ". Осталось доплатить " + left + "."
+          : "К оплате — " + total + ".";
+      },
+      paidFull: "Заказ оплачен полностью — спасибо! ✅",
+      addr: "Чтобы доставить без задержек, укажите, пожалуйста, адрес или пункт выдачи по ссылке ниже 👇",
+      link: "Всё о заказе — по этой ссылке:",
+      track: "Трек-номер для отслеживания: ",
+      sign: function (who) { return "— " + who; }
     },
     en: {
-      hello: function (n) { return n ? "Hello, " + n + "!" : "Hello!"; },
-      order: function (num_, prod) { return "order " + num_ + (prod ? " (\"" + prod + "\")" : ""); },
-      status: {
-        "new":              "Your {order} has been accepted.",
-        awaiting_payment:   "Your {order} is waiting for payment.",
-        purchasing:         "Your {order}: payment received, we are buying the goods from the supplier.",
-        china_warehouse:    "Your {order} has arrived at our warehouse in China. We will ship it soon.",
-        in_transit:         "Your {order} has been shipped and is on its way.",
-        arrived:            "Your {order} has arrived! 🎉",
-        delivered:          "Your {order} has been handed over. Thank you for choosing us!",
-        cancelled:          "Your {order} has been cancelled. If this is a mistake, please message me."
+      hello: function (n, h) {
+        var g = h >= 5 && h < 12 ? "Good morning" : h >= 12 && h < 18 ? "Good afternoon" : h >= 18 && h < 23 ? "Good evening" : "Hello";
+        return n ? g + ", " + n + "!" : g + "!";
       },
-      pay: function (total, paid, left) { return "Total: " + total + ". Paid: " + paid + ". Remaining: " + left + "."; },
-      paidFull: "Fully paid ✅",
-      addr: "Please enter your delivery details using the link below.",
-      link: "Track your order:",
-      track: "Tracking number: "
+      order: function (num_, prod) { return prod ? "order \u201c" + prod + "\u201d (No. " + num_ + ")" : "order No. " + num_; },
+      status: {
+        "new":              "We've got your {order} and we're already on it 👍\nWe'll check the price and timing and get back to you shortly.",
+        awaiting_payment:   "Your {order} is ready for payment.",
+        purchasing:         "Thank you for your payment! 🙏\nWe're now buying your {order} from the supplier. We'll let you know as soon as it reaches our warehouse in China.",
+        china_warehouse:    "Good news: your {order} is already at our warehouse in China 📦\nWe're getting it ready — it will be on its way to you soon.",
+        in_transit:         "Your {order} is on its way 🚚\nWe'll message you as soon as it arrives.",
+        arrived:            "Your {order} has arrived! 🎉",
+        delivered:          "Your {order} is with you — thank you for choosing us! 🙏\nIf you have any questions or want to order something else, we're always here.",
+        cancelled:          "Your {order} has been cancelled.\nIf this is a mistake or you'd like something else, just message us and we'll sort it out."
+      },
+      next: {
+        awaiting_payment: "As soon as you pay, we'll order the goods from the supplier 🙌",
+        awaiting_rest:    "As soon as you pay the rest, we'll order the goods from the supplier 🙌",
+        arrived:          "Let us know when it suits you to pick it up, or where to deliver it."
+      },
+      pay: function (total, paid, left, paidSome) {
+        return paidSome
+          ? "The order total is " + total + ", you've already paid " + paid + ". " + left + " is left to pay."
+          : "Amount to pay: " + total + ".";
+      },
+      paidFull: "Your order is fully paid — thank you! ✅",
+      addr: "To deliver without delays, please add your address or pickup point using the link below 👇",
+      link: "Everything about your order is here:",
+      track: "Tracking number: ",
+      sign: function (who) { return "— " + who; }
     },
     zh: {
-      hello: function (n) { return n ? "您好，" + n + "！" : "您好！"; },
-      order: function (num_, prod) { return "订单 " + num_ + (prod ? "（" + prod + "）" : ""); },
-      status: {
-        "new":              "您的{order}已受理。",
-        awaiting_payment:   "您的{order}正在等待付款。",
-        purchasing:         "您的{order}已收到付款，正在向供应商采购。",
-        china_warehouse:    "您的{order}已到达我们在中国的仓库，即将发出。",
-        in_transit:         "您的{order}已发出，正在运输途中。",
-        arrived:            "您的{order}已到货！🎉",
-        delivered:          "您的{order}已交付，感谢您的信任！",
-        cancelled:          "您的{order}已取消。如有疑问请联系我。"
+      hello: function (n, h) {
+        var g = h >= 5 && h < 12 ? "早上好" : h >= 12 && h < 18 ? "下午好" : h >= 18 && h < 23 ? "晚上好" : "您好";
+        return n ? n + "，" + g + "！" : g + "！";
       },
-      pay: function (total, paid, left) { return "应付：" + total + "。已付：" + paid + "。待付：" + left + "。"; },
-      paidFull: "已全额付款 ✅",
-      addr: "请通过下方链接填写收货信息。",
-      link: "查看订单进度：",
-      track: "物流单号："
+      order: function (num_, prod) { return prod ? "订单「" + prod + "」（编号 " + num_ + "）" : "订单 " + num_; },
+      status: {
+        "new":              "您的{order}已收到，我们正在处理 👍\n确认好价格和时间后会马上联系您。",
+        awaiting_payment:   "您的{order}可以付款了。",
+        purchasing:         "感谢您的付款！🙏\n我们正在向供应商采购您的{order}，货到我们中国仓库后会第一时间通知您。",
+        china_warehouse:    "好消息：您的{order}已经到达我们的中国仓库 📦\n正在准备发货，很快就会寄给您。",
+        in_transit:         "您的{order}已经在路上了 🚚\n到货后我们会马上通知您。",
+        arrived:            "您的{order}到货了！🎉",
+        delivered:          "您的{order}已交付，感谢您选择我们！🙏\n如有任何问题或想再下单，随时联系我们。",
+        cancelled:          "您的{order}已取消。\n如果是误操作或想换别的商品，直接告诉我们就好。"
+      },
+      next: {
+        awaiting_payment: "付款后我们会立即向供应商下单 🙌",
+        awaiting_rest:    "付清余款后我们会立即向供应商下单 🙌",
+        arrived:          "请告诉我们您方便取货的时间，或需要送到哪里。"
+      },
+      pay: function (total, paid, left, paidSome) {
+        return paidSome
+          ? "订单金额 " + total + "，您已支付 " + paid + "，还需支付 " + left + "。"
+          : "应付金额：" + total + "。";
+      },
+      paidFull: "订单已全部付清，谢谢！✅",
+      addr: "为了顺利送达，请通过下方链接填写收货地址或自提点 👇",
+      link: "订单详情请看这里：",
+      track: "物流单号：",
+      sign: function (who) { return "—— " + who; }
     }
   };
 
@@ -94,34 +135,50 @@
   // Деньги: убираем «неразрывные» пробелы, чтобы текст в мессенджере был обычным
   function money(n, code) { return cur(n, code).replace(/[  ]/g, " "); }
 
+  // В приветствии — только имя (первое слово): «Азамат», а не «Азамат Касымов уулу»
   function shortName(name) {
-    name = String(name || "").trim();
-    return name && name.length <= 30 ? name : "";
+    name = String(name || "").trim().split(/\s+/)[0] || "";
+    return name && name.length <= 20 && !/\d/.test(name) ? name : "";
+  }
+
+  // Подпись: имя байера и название кабинета — «— Айгерим, Б-Карго»
+  function signature() {
+    var me = (state.me && String(state.me.name || "").trim().split(/\s+/)[0]) || "";
+    var ws = (state.ws && String(state.ws.name || "").trim()) || "";
+    if (me && ws && ws.toLowerCase().indexOf(me.toLowerCase()) === -1) return me + ", " + ws;
+    return ws || me;
   }
 
   function buildText(o, lang, link) {
     var T = TXT[lang] || TXT.ru;
     var prod = String(lang === "zh" ? (o.product_zh || o.product_ru) : o.product_ru || "").trim();
-    if (prod.length > 60) prod = prod.slice(0, 57) + "…";
+    if (prod.length > 50) prod = prod.slice(0, 47) + "…";
     var orderPhrase = T.order(o.order_number, prod);
-    var lines = [T.hello(shortName(o.client_name)), ""];
+    var lines = [T.hello(shortName(o.client_name), new Date().getHours()), ""];
     lines.push((T.status[o.status] || T.status["new"]).replace("{order}", orderPhrase));
 
     // Суммы — только если байер указал цену для клиента (иначе «к оплате» = себестоимость)
     var showMoney = o.profit_som != null && num(o.total_som) > 0 && (o.status === "awaiting_payment" || o.status === "arrived");
+    var left = num(o.balance_som);
     if (showMoney) {
-      var left = num(o.balance_som);
       lines.push(left > 0
-        ? T.pay(money(o.total_som, o.client_currency), money(o.paid_amount, o.client_currency), money(left, o.client_currency))
+        ? T.pay(money(o.total_som, o.client_currency), money(o.paid_amount, o.client_currency), money(left, o.client_currency), num(o.paid_amount) > 0)
         : T.paidFull);
     }
-    // Нет данных доставки — просим заполнить по ссылке
+    // что делать клиенту дальше (за оплату не просим, если уже всё оплачено)
+    var needAddr = !o.client && link && ["china_warehouse", "in_transit", "arrived"].indexOf(o.status) !== -1;
+    var next = o.status === "awaiting_payment" && showMoney && num(o.paid_amount) > 0 ? T.next.awaiting_rest : T.next[o.status];
+    if (o.status === "awaiting_payment" && showMoney && left <= 0) next = "";
+    if (o.status === "arrived" && needAddr) next = "";   // про адрес и так спросим ниже
+    if (next) lines.push(next);
     // трек-номер — когда посылка уже отправлена
     var trk = String(o.tracking_number || "").trim();
-    if (trk && ["in_transit", "arrived"].indexOf(o.status) !== -1) lines.push(T.track + trk);
-    var needAddr = !o.client && link && ["china_warehouse", "in_transit", "arrived"].indexOf(o.status) !== -1;
-    if (needAddr) lines.push(T.addr);
-    if (link) { lines.push(""); lines.push(T.link); lines.push(link); }
+    if (trk && ["in_transit", "arrived"].indexOf(o.status) !== -1) { lines.push(""); lines.push(T.track + trk); }
+    // нет данных доставки — просим заполнить по ссылке
+    if (needAddr) { lines.push(""); lines.push(T.addr); }
+    if (link) { if (!needAddr) lines.push(""); lines.push(T.link); lines.push(link); }
+    var who = signature();
+    if (who) { lines.push(""); lines.push(T.sign(who)); }
     return lines.join("\n");
   }
 
