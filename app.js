@@ -213,6 +213,10 @@
   function photoUrls(o) {
     return sortedPhotos(o).map(function (p) { return photoUrl(p.storage_path); });
   }
+  // маленькие копии для карточек и превью (у старых фото — само фото)
+  function photoThumbs(o) {
+    return sortedPhotos(o).map(function (p) { return thumbUrl(p.storage_path); });
+  }
 
   function clientUrl(o) {
     if (!o || !o.public_token) return "";
@@ -267,7 +271,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261113b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261113c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1478,10 +1482,10 @@
       "</dl>";
   }
 
-  function thumbsHtml(urls, max) {
+  function thumbsHtml(urls, max, smalls) {
     var shown = max ? urls.slice(0, max) : urls;
     var html = shown.map(function (u, i) {
-      return '<button type="button" class="thumb" data-act="photo" data-i="' + i + '"><img src="' + esc(u) + '" loading="lazy" alt=""></button>';
+      return '<button type="button" class="thumb" data-act="photo" data-i="' + i + '"><img src="' + esc((smalls && smalls[i]) || u) + '" loading="lazy" alt=""></button>';
     }).join("");
     if (max && urls.length > max) {
       html += '<button type="button" class="thumb thumb-more" data-act="open">+' + (urls.length - max) + "</button>";
@@ -1492,7 +1496,7 @@
   // Короткая карточка заказа: фото, товар, клиент, деньги и 2 кнопки.
   // Всё остальное (характеристики, поставщик, история) — в «Открыть».
   function cardHtml(o) {
-    var urls = photoUrls(o);
+    var urls = photoThumbs(o);
     var c = o.client_currency;
     var bal = num(o.balance_som);
     var hasPrice = o.profit_som != null;
@@ -2437,7 +2441,7 @@
           '<span class="muted">' + fmtDate(o.order_date) + "</span></div>" +
         '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
-        (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0) + "</div>" : "") +
+        (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0, photoThumbs(o)) + "</div>" : "") +
         clientBoxHtml(o.client) +
         specsHtml(o) +
         moneyHtml(o, true) +
@@ -2613,7 +2617,7 @@
     if (!window.confirm(t("confirm_delete", { n: o.order_number }))) return;
     try {
       var paths = (o.order_photos || []).map(function (p) { return p.storage_path; });
-      if (paths.length) await db.storage.from(BUCKET).remove(paths);
+      if (paths.length) await db.storage.from(BUCKET).remove(withThumbs(paths));
       var res = await db.from("orders").delete().eq("id", o.id);
       if (res.error) throw res.error;
       closeModal("modal-detail");
@@ -2849,7 +2853,7 @@
   function renderPhotoPreviews() {
     var html = "";
     form.existing.forEach(function (p) {
-      html += '<div class="pv"><img src="' + esc(photoUrl(p.storage_path)) + '" alt="">' +
+      html += '<div class="pv"><img src="' + esc(thumbUrl(p.storage_path)) + '" alt="">' +
         '<button type="button" class="pv-x" data-rm-existing="' + esc(p.id) + '" aria-label="×">×</button></div>';
     });
     form.pending.forEach(function (p, i) {
@@ -2894,35 +2898,73 @@
     };
   }
 
-  async function compressImage(file) {
+  // ---------- Сжатие фото ----------
+  // Фото с телефона (3–8 МБ) уменьшаем прямо в браузере, до загрузки:
+  //   • заказ: до 1280 px и ~250 КБ, в WebP (если браузер умеет) — иначе JPEG;
+  //   • маленькая копия для списков: 360 px, ~30 КБ, всегда JPEG («…_t.jpg» рядом с основным файлом).
+  // Качество снижается по шагам, пока файл не станет меньше нужного размера. Данные о месте съёмки (EXIF) не сохраняются.
+  var WEBP = (function () {
+    try { return document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp") === 0; } catch (e) { return false; }
+  })();
+
+  async function shrinkImage(file, maxSide, maxBytes, forceJpeg) {
+    var QUALITY = [0.82, 0.74, 0.66, 0.58, 0.5];
+    var best = null;
     try {
       var bmp = await createImageBitmap(file);
-      var maxSide = 1600;
-      var scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
-      var w = Math.round(bmp.width * scale);
-      var h = Math.round(bmp.height * scale);
-      var canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
-      var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", 0.82); });
-      if (blob) return blob;
+      var type = WEBP && !forceJpeg ? "image/webp" : "image/jpeg";
+      var side = Math.min(maxSide, Math.max(bmp.width, bmp.height));
+      for (var round = 0; round < 4; round++) {
+        var scale = side / Math.max(bmp.width, bmp.height);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(bmp.width * scale));
+        canvas.height = Math.max(1, Math.round(bmp.height * scale));
+        var g = canvas.getContext("2d");
+        g.fillStyle = "#fff";                        // прозрачный PNG → белый фон, а не чёрный
+        g.fillRect(0, 0, canvas.width, canvas.height);
+        g.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        for (var i = 0; i < QUALITY.length; i++) {
+          var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, type, QUALITY[i]); });
+          if (!blob) continue;
+          if (!best || blob.size < best.size) best = blob;
+          if (blob.size <= maxBytes) return blob;
+        }
+        side = Math.round(side * 0.8);                // всё ещё большой — уменьшаем размер
+      }
     } catch (e) {
       console.warn("Не удалось сжать фото, загружаем как есть", e);
     }
-    return file;
+    return best && best.size < file.size ? best : (best || file);
+  }
+
+  // Маленькая копия есть только у фото, загруженных после сжатия (имя «…_m.webp/jpg»)
+  function thumbPath(path) {
+    return /_m\.(webp|jpg)$/.test(path || "") ? path.replace(/_m\.(webp|jpg)$/, "_t.jpg") : "";
+  }
+  function thumbUrl(path) { return photoUrl(thumbPath(path) || path); }
+  function withThumbs(paths) {
+    var all = [];
+    paths.forEach(function (p) { all.push(p); var t = thumbPath(p); if (t) all.push(t); });
+    return all;
   }
 
   async function uploadPhoto(orderId, file) {
-    var blob = await compressImage(file);
+    var blob = await shrinkImage(file, 1280, 260 * 1024);
+    var small = await shrinkImage(file, 360, 32 * 1024, true);
     var type = blob.type || "image/jpeg";
-    var ext = type === "image/jpeg" ? "jpg" : (type.split("/")[1] || "jpg");
-    var path = orderId + "/" + uid() + "." + ext;
+    var name = orderId + "/" + uid();
+    var path = name + "_m." + (type === "image/webp" ? "webp" : "jpg");
+    if (type !== "image/webp" && type !== "image/jpeg") path = name + "." + (type.split("/")[1] || "jpg");   // не получилось сжать
     var up = await db.storage.from(BUCKET).upload(path, blob, { contentType: type, upsert: false });
     if (up.error) throw up.error;
+    var tp = thumbPath(path);
+    if (tp && small && small.type === "image/jpeg") {
+      var upT = await db.storage.from(BUCKET).upload(tp, small, { contentType: "image/jpeg", upsert: false });
+      if (upT.error) console.warn("thumb", upT.error);   // без маленькой копии фото всё равно работает
+    }
     var ins = await db.from("order_photos").insert({ order_id: orderId, storage_path: path });
     if (ins.error) {
-      await db.storage.from(BUCKET).remove([path]);
+      await db.storage.from(BUCKET).remove(withThumbs([path]));
       throw ins.error;
     }
   }
@@ -2960,7 +3002,7 @@
       }
 
       if (form.removed.length) {
-        await db.storage.from(BUCKET).remove(form.removed.map(function (p) { return p.storage_path; }));
+        await db.storage.from(BUCKET).remove(withThumbs(form.removed.map(function (p) { return p.storage_path; })));
         await db.from("order_photos").delete().in("id", form.removed.map(function (p) { return p.id; }));
       }
 
@@ -3000,7 +3042,7 @@
     curName: curName, fillCurrencySelect: fillCurrencySelect, openModal: openModal,
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
-    photoUrl: photoUrl, openLightbox: openLightbox, showView: showView,
+    photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
     clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
     switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
