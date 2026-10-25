@@ -36,6 +36,8 @@
     $("#bulk-bar").classList.toggle("hidden", !on);
     $("#bulk-count").textContent = t("bulk_n", { n: n });
     $("#bulk-status").disabled = !n;
+    $("#bulk-invoice").disabled = !n;
+    $("#bulk-labels").disabled = !n;
     var total = c.filteredOrders().length;
     $("#bulk-all").textContent = n && n >= total ? t("bulk_none") : t("bulk_all", { n: total });
   }
@@ -134,6 +136,10 @@
     $("#bulk-cancel").addEventListener("click", function () { setMode(false); });
     $("#bulk-all").addEventListener("click", selectAll);
     $("#bulk-status").addEventListener("click", openStatus);
+    // счёт и этикетки сразу на все выбранные заказы
+    function picked() { return state.orders.filter(function (o) { return sel[o.id]; }); }
+    $("#bulk-invoice").addEventListener("click", function () { if (ids().length) U.tools.invoice(picked()); });
+    $("#bulk-labels").addEventListener("click", function () { if (ids().length) U.tools.labels(picked()); });
     $("#bulk-status-list").addEventListener("click", function (e) {
       var b = e.target.closest("[data-bstatus]");
       if (b) apply(b.getAttribute("data-bstatus"));

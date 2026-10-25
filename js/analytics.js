@@ -108,7 +108,7 @@
     var list = pr.filter(function (o) { return o.client_currency === ui.cur; });
     var prevList = rPrev ? (state.orders || []).filter(function (o) { return priced(o) && o.client_currency === ui.cur && inRange(o, rPrev); }) : null;
     var prev = prevList && prevList.length >= 3 ? sums(prevList) : null;   // с 1–2 заказами сравнивать нечего
-    return { all: all, list: list, now: sums(list), prev: prev, curs: curs };
+    return { all: all, list: list, now: sums(list), prev: prev, curs: curs, range: rNow };
   }
 
   // ---------- Показ ----------
@@ -141,11 +141,22 @@
     return '<div class="an-kpi ' + (cls || "") + '"><span>' + esc(label) + "</span><b>" + value + "</b>" + (extra || "") + "</div>";
   }
 
+  // Чистая прибыль = прибыль с заказов − расходы (раздел «Расходы»); без расходов — приглашение их записать
+  function netHtml(d) {
+    if (!U.expenses || !U.expenses.ready()) return "";
+    var spent = U.expenses.sumFor(ui.cur, d.range) || 0;
+    if (!spent) return '<button type="button" class="an-net empty" data-expenses>' + esc(t("an_net_add")) + " →</button>";
+    var net = d.now.profit - spent;
+    return '<button type="button" class="an-net' + (net < 0 ? " neg" : "") + '" data-expenses><span>' + esc(t("an_net", { s: cur(spent, ui.cur) })) +
+      "</span><b>" + esc(cur(net, ui.cur)) + "</b></button>";
+  }
+
   // Одна главная цифра (прибыль) + три маленьких; остальное — в «Подробнее»
   function kpisHtml(d) {
     var N = d.now, P = d.prev, code = ui.cur;
     return '<div class="an-hero ' + (N.profit < 0 ? "neg" : "") + '"><span>' + esc(t("r_profit")) + "</span><b>" + esc(cur(N.profit, code)) + "</b>" +
         '<small>' + esc(t("r_orders", { n: N.n })) + " · " + esc(t("r_markup", { n: money(N.markup) })) + "</small>" + delta(N.profit, P && P.profit, true) + "</div>" +
+      netHtml(d) +
       '<div class="an-kpis3">' +
         kpi(t("r_revenue"), esc(short(N.rev)) + " <small>" + esc(code) + "</small>", delta(N.rev, P && P.rev, true)) +
         kpi(t("an_orders"), money(N.n), delta(N.n, P && P.n, true)) +
@@ -370,6 +381,7 @@
 
   function render() {
     if ($("#tab-analytics").classList.contains("hidden")) return;
+    if (U.expenses && !U.expenses.ready()) U.expenses.ensure().then(function () { if (U.expenses.ready()) render(); });
     var d = build();
     chips("#an-periods", PERIODS, ui.period, function (p) { return t("r_p_" + p); }, "period");
     chips("#an-curs", d.curs, ui.cur, function (x) { return x; }, "cur");
@@ -436,6 +448,7 @@
         return;
       }
       if (e.target.closest("[data-detail]")) { c.switchTab("report"); return; }
+      if (e.target.closest("[data-expenses]")) { c.switchTab("expenses"); return; }
       var g = e.target.closest("[data-goal]");
       if (g) {
         var act = g.getAttribute("data-goal");

@@ -82,6 +82,10 @@
         openLightbox(clientPhotoUrls(), Number(ph.getAttribute("data-photo")) || 0);
         return;
       }
+      if (e.target.closest("[data-track-copy]") && state.client) {
+        c.copyText(state.client.tracking_number).then(function (ok) { if (ok) toast(t("copied_track"), "ok"); });
+        return;
+      }
       var b = e.target.closest("[data-cd]");
       if (!b) return;
       if (b.getAttribute("data-cd") === "edit") {
@@ -313,6 +317,19 @@
     "</section>";
   }
 
+  // Трек-номер: крупно, кнопка «Скопировать» и «Где посылка» (сайт 17track сам определяет перевозчика)
+  function trackHtml(o) {
+    var n = String(o.tracking_number || "").trim();
+    if (!n) return "";
+    var lang = { ru: "ru", en: "en", zh: "zh-cn" }[typeof getLang === "function" ? getLang() : "ru"] || "ru";
+    return '<section class="client-block track-block"><h2>' + esc(t("trk_title")) + "</h2>" +
+      '<p class="track-num">' + esc(n) + "</p>" +
+      '<div class="track-actions"><button type="button" class="btn" data-track-copy>' + esc(t("copy")) + "</button>" +
+      '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://t.17track.net/' + lang + "#nums=" + encodeURIComponent(n) + '">' +
+      esc(t("trk_where")) + "</a></div>" +
+      '<p class="fine-print">' + esc(t("trk_hint")) + "</p></section>";
+  }
+
   function clientPhotoUrls() {
     return ((state.client && state.client.photos) || []).map(photoUrl);
   }
@@ -369,6 +386,7 @@
         steps + clientHistory +
       "</section>" +
 
+      trackHtml(o) +
       (deliveryFirst ? delivery : "") +
 
       '<section class="client-block">' +

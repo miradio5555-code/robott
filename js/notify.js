@@ -36,7 +36,8 @@
       pay: function (total, paid, left) { return "К оплате: " + total + ". Оплачено: " + paid + ". Осталось: " + left + "."; },
       paidFull: "Оплата получена полностью ✅",
       addr: "Пожалуйста, укажите данные для доставки по ссылке ниже.",
-      link: "Следить за заказом:"
+      link: "Следить за заказом:",
+      track: "Трек-номер: "
     },
     en: {
       hello: function (n) { return n ? "Hello, " + n + "!" : "Hello!"; },
@@ -54,7 +55,8 @@
       pay: function (total, paid, left) { return "Total: " + total + ". Paid: " + paid + ". Remaining: " + left + "."; },
       paidFull: "Fully paid ✅",
       addr: "Please enter your delivery details using the link below.",
-      link: "Track your order:"
+      link: "Track your order:",
+      track: "Tracking number: "
     },
     zh: {
       hello: function (n) { return n ? "您好，" + n + "！" : "您好！"; },
@@ -72,7 +74,8 @@
       pay: function (total, paid, left) { return "应付：" + total + "。已付：" + paid + "。待付：" + left + "。"; },
       paidFull: "已全额付款 ✅",
       addr: "请通过下方链接填写收货信息。",
-      link: "查看订单进度："
+      link: "查看订单进度：",
+      track: "物流单号："
     }
   };
 
@@ -113,6 +116,9 @@
         : T.paidFull);
     }
     // Нет данных доставки — просим заполнить по ссылке
+    // трек-номер — когда посылка уже отправлена
+    var trk = String(o.tracking_number || "").trim();
+    if (trk && ["in_transit", "arrived"].indexOf(o.status) !== -1) lines.push(T.track + trk);
     var needAddr = !o.client && link && ["china_warehouse", "in_transit", "arrived"].indexOf(o.status) !== -1;
     if (needAddr) lines.push(T.addr);
     if (link) { lines.push(""); lines.push(T.link); lines.push(link); }
