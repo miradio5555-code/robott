@@ -247,18 +247,8 @@
     $("#pr-photo-del").classList.toggle("hidden", !url);
   }
 
-  async function compress(file) {
-    try {
-      var bmp = await createImageBitmap(file);
-      var scale = Math.min(1, 1000 / Math.max(bmp.width, bmp.height));
-      var cv = document.createElement("canvas");
-      cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
-      cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
-      var blob = await new Promise(function (r) { cv.toBlob(r, "image/jpeg", 0.8); });
-      if (blob) return blob;
-    } catch (e) { console.warn(e); }
-    return file;
-  }
+  // Фото товара: до 1000 px и ~150 КБ (WebP, если браузер умеет) — сжатие общее с фото заказов
+  function compress(file) { return c.shrinkImage(file, 1000, 150 * 1024); }
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -275,8 +265,9 @@
     try {
       if (sh.file) {
         var blob = await compress(sh.file);
-        uploaded = state.ws.id + "/" + uid() + ".jpg";
-        var up = await db.storage.from(BUCKET).upload(uploaded, blob, { contentType: "image/jpeg", upsert: false });
+        var type = blob.type === "image/webp" || blob.type === "image/png" ? blob.type : "image/jpeg";
+        uploaded = state.ws.id + "/" + uid() + "." + (type === "image/webp" ? "webp" : type === "image/png" ? "png" : "jpg");
+        var up = await db.storage.from(BUCKET).upload(uploaded, blob, { contentType: type, upsert: false });
         if (up.error) throw up.error;
         newPath = uploaded;
       } else if (sh.removePhoto) {

@@ -394,7 +394,7 @@
         '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
         (urls.length ? '<div class="thumbs thumbs-large">' + urls.map(function (u, i) {
-          return '<button type="button" class="thumb" data-photo="' + i + '"><img src="' + esc(u) + '" loading="lazy" alt=""></button>';
+          return '<button type="button" class="thumb" data-photo="' + i + '"><img src="' + esc(c.thumbUrl(state.client.photos[i])) + '" loading="lazy" alt=""></button>';
         }).join("") + "</div>" : "") +
         '<dl class="specs specs-2">' +
           "<div><dt>" + t("l_qty") + "</dt><dd>" + money(o.quantity) + " " + t("pcs") + "</dd></div>" +
