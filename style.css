@@ -2514,3 +2514,17 @@ body.readonly .ex-row { cursor: default; }
 .section-menu .simple-hidden { display: none !important; }
 .menu-simple span { font-weight: 700; }
 body.simple-mode .menu-simple { color: var(--green); }
+
+/* Telegram клиента */
+.tgc-block .muted { margin: 0 0 12px; }
+.tgc-on { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-weight: 700; color: var(--green); }
+.tgc-btn { background: #229ED9 !important; border-color: #229ED9 !important; color: #fff !important; }
+.tg-tag { background: color-mix(in srgb, #229ED9 14%, transparent); border-color: transparent; color: #1a87bb; }
+html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
+/* установка на телефон */
+.pwa-app { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+.pwa-app img { border-radius: 14px; }
+.pwa-app div { display: grid; }
+.pwa-app span { color: var(--muted); font-size: 13.5px; }
+.pwa-steps { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 8px; font-size: 15px; }
+.menu-install span { font-weight: 700; }

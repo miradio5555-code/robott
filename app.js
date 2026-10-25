@@ -213,6 +213,20 @@
   function photoUrls(o) {
     return sortedPhotos(o).map(function (p) { return photoUrl(p.storage_path); });
   }
+  // Клиенты, подписанные на заказ в Telegram, получают новый статус сами (функция telegram-notify).
+  // Зовём только для заказов, где кто-то подписан; ответ — сколько сообщений ушло.
+  function tgNotify(ids) {
+    var list = (ids || []).filter(function (id) {
+      var o = state.orders.filter(function (x) { return x.id === id; })[0];
+      return o && o.tg_subs && o.tg_subs.length;
+    });
+    if (!list.length || !db || state.readOnly) return;
+    db.functions.invoke("telegram-notify", { body: { action: "order_status", ids: list } }).then(function (res) {
+      var n = res && res.data && res.data.sent;
+      if (n > 0) toast(t("tgc_sent", { n: n }), "ok");
+    }).catch(function () { /* не получилось — байер всё равно может написать вручную */ });
+  }
+
   // маленькие копии для карточек и превью (у старых фото — само фото)
   function photoThumbs(o) {
     return sortedPhotos(o).map(function (p) { return thumbUrl(p.storage_path); });
@@ -271,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261114a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261114b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -901,6 +915,7 @@
       toast(t(isSimple() ? "sm_on" : "sm_off"), "ok");
     });
     $("#s-simple").addEventListener("change", function (e) { setSimple(e.target.checked); });
+    bindInstall();
     // видео-инструкция: ссылка из config.js (VIDEO_URL); нет ссылки — нет пункта
     var video = safeUrl((window.CARGO_CONFIG || {}).VIDEO_URL || "");
     if (video) { $("#video-btn").href = video; $("#video-btn").classList.remove("hidden"); }
@@ -1148,7 +1163,7 @@
     try {
       for (var from = 0; ; from += 1000) {
         var res = await db.from("orders")
-          .select("*, order_photos(id, storage_path, created_at), status_history:order_status_history(event_type, new_status, paid_total, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point)")
+          .select("*, order_photos(id, storage_path, created_at), status_history:order_status_history(event_type, new_status, paid_total, created_at), client:clients(id, name, phone, telegram, city, address, pickup_point), tg_subs:order_tg_subs(chat_id)")
           .eq("workspace_id", state.ws.id)
           .order("order_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -1530,7 +1545,7 @@
         '<div class="card-main" data-act="open">' + photo +
           '<div class="card-info">' +
             "<h3>" + esc(o.product_ru) + "</h3>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) + trackTag(o) +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) + trackTag(o) + tgTag(o) +
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
@@ -1595,6 +1610,11 @@
     return '<div class="card-progress st-' + o.status + '" role="img" aria-label="' + esc(t("progress_step", { a: i + 1, b: flow.length })) + '">' +
       flow.map(function (s, k) { return '<i class="' + (k < i ? "done" : k === i ? "now" : "") + '"></i>'; }).join("") +
       '<span>' + esc(t("progress_step", { a: i + 1, b: flow.length })) + "</span></div>";
+  }
+
+  // клиент подписан на этот заказ в Telegram — статусы он получает сам
+  function tgTag(o) {
+    return o.tg_subs && o.tg_subs.length ? '<span class="batch-tag tg-tag" title="' + esc(t("tgc_tag_title")) + '">✈ Telegram</span>' : "";
   }
 
   function trackTag(o) {
@@ -1714,6 +1734,42 @@
     var sh = stored("ula_show_shipments");
     return { shipments: sh === "1" || (sh === null && hasShipments), suppliers: stored("ula_show_suppliers") !== "0" };
   }
+  // ---------- Установить на телефон (как приложение) ----------
+  // Android/Chrome: браузер сам предлагает установку — показываем его окно по нашей кнопке.
+  // iPhone: такого окна нет — показываем, куда нажать («Поделиться» → «На экран Домой»).
+  // Уже установлено (открыто с иконки) — кнопки нет.
+  var installEvt = null;
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); installEvt = e; updateInstallBtn(); });
+  window.addEventListener("appinstalled", function () { installEvt = null; updateInstallBtn(); toast(t("pwa_done"), "ok"); });
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  }
+  function isIOS() {
+    var ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+  function isPhone() { return (navigator.maxTouchPoints || 0) > 0 || /Android|iPhone|iPad/.test(navigator.userAgent || ""); }
+  function updateInstallBtn() {
+    var b = $("#install-btn");
+    if (b) b.classList.toggle("hidden", isStandalone() || !(installEvt || isPhone()));
+  }
+  function bindInstall() {
+    updateInstallBtn();
+    $("#install-btn").addEventListener("click", async function () {
+      closeSectionMenu();
+      if (installEvt) {
+        installEvt.prompt();
+        try { await installEvt.userChoice; } catch (e) { /* ignore */ }
+        installEvt = null;
+        updateInstallBtn();
+        return;
+      }
+      var steps = isIOS() ? ["pwa_ios1", "pwa_ios2", "pwa_ios3"] : ["pwa_and1", "pwa_and2", "pwa_and3"];
+      $("#pwa-steps").innerHTML = steps.map(function (k) { return "<li>" + esc(t(k)) + "</li>"; }).join("");
+      openModal("modal-install");
+    });
+  }
+
   // ---------- Простой режим ----------
   // Новичку в меню только главное: Заказы, Клиенты, Долги. Остальное — кнопкой «Показать все разделы»
   // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
@@ -2597,6 +2653,7 @@
     renderAll();
     if ($("#modal-detail").classList.contains("open")) renderDetail();
     toast(t("status_changed"), "ok");
+    if (prev !== status) tgNotify([id]);
     // отменённый заказ не участвует в делёже партии: пересчитываем
     if (o && o.shipment_id && (status === "cancelled" || prev === "cancelled")) {
       await db.rpc("shipment_recalc", { p_shipment: o.shipment_id });
@@ -3041,11 +3098,12 @@
     btn.textContent = t("saving");
 
     try {
-      var orderId;
+      var orderId, statusChanged = false;
       if (form.editing) {
         var upd = await db.from("orders").update(v).eq("id", form.editing.id);
         if (upd.error) throw upd.error;
         orderId = form.editing.id;
+        statusChanged = form.editing.status !== v.status;
       } else {
         v.workspace_id = state.ws.id;
         var ins = await db.from("orders").insert(v).select("id, order_number").single();
@@ -3078,6 +3136,7 @@
       if (failed) toast(t("photo_failed", { n: failed }), "error");
       else toast(form.editing ? t("saved") : t("saved") + ": № " + ins.data.order_number, "ok");
       await loadOrders();
+      if (statusChanged) tgNotify([orderId]);   // клиенту в Telegram — новый статус
     } catch (err) {
       handleError(err);
     } finally {
@@ -3105,6 +3164,7 @@
     switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
     filteredOrders: function () { return filtered(); },
+    tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
     csvCell: csvCell, todayISO: todayISO, reloadOrders: loadOrders, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
