@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 30 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 31 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -1127,6 +1127,10 @@ reset request.uid;
 
 -- ===== 22. Обмен сом → юань =====
 reset role;
+-- байер Б прошёл проверку личности (файл 30) — иначе обмен не включить
+insert into public.fx_kyc (user_id, workspace_id, full_name, doc_number, front_path, selfie_path, status, consent_at)
+select '00000000-0000-0000-0000-0000000000b1', v::uuid, 'Байер Б Тестов', 'AN1234567', 'x/f.jpg', 'x/s.jpg', 'approved', now()
+  from t where k = 'b_ws_id';
 insert into t select 'cur_tok2', public_token from public.orders where id = (select v::uuid from t where k = 'b_order');
 set role anon;
 do $$
@@ -1301,3 +1305,115 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 23. Статус обмена: клиент видит статус, время ожидания и сообщение только своей заявки; менять может только свой байер'
+
+-- ===== 24. Проверка личности обменника =====
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare me text := '00000000-0000-0000-0000-0000000000c1';
+begin
+  -- без проверки обмен не включить
+  begin update public.workspaces set fx_on = true where owner_id = me::uuid; raise exception 'ПРОВАЛ: обмен включён без проверки';
+  exception when others then if sqlerrm <> 'kyc_required' then raise; end if; end;
+  -- в чужую папку не загрузить, странное имя — нет
+  begin insert into storage.objects (bucket_id, name) values ('kyc', '00000000-0000-0000-0000-0000000000b1/f.jpg');
+    raise exception 'ПРОВАЛ: загрузка в чужую папку';
+  exception when insufficient_privilege then null; end;
+  begin insert into storage.objects (bucket_id, name) values ('kyc', me || '/../x.svg');
+    raise exception 'ПРОВАЛ: принято странное имя';
+  exception when insufficient_privilege then null; end;
+  insert into storage.objects (bucket_id, name) values ('kyc', me || '/front1.jpg'), ('kyc', me || '/selfie1.jpg');
+  begin perform public.kyc_submit('Байер Втор', 'ID1234567', me || '/front1.jpg', null, me || '/selfie1.jpg', false);
+    raise exception 'ПРОВАЛ: принято без согласия';
+  exception when others then if sqlerrm <> 'kyc_consent' then raise; end if; end;
+  begin perform public.kyc_submit('Байер Втор', '№!', me || '/front1.jpg', null, me || '/selfie1.jpg', true);
+    raise exception 'ПРОВАЛ: принят странный номер паспорта';
+  exception when others then if sqlerrm <> 'invalid_doc' then raise; end if; end;
+  begin perform public.kyc_submit('Байер Втор', 'ID1234567', 'x/f.jpg', null, me || '/selfie1.jpg', true);
+    raise exception 'ПРОВАЛ: принят чужой файл';
+  exception when others then if sqlerrm <> 'file_not_found' then raise; end if; end;
+  if public.kyc_submit(' Байер   Втор ', 'id 123-4567', me || '/front1.jpg', null, me || '/selfie1.jpg', true) <> 'pending' then
+    raise exception 'ПРОВАЛ: документы не отправились'; end if;
+  if (select doc_number from public.fx_kyc where user_id = me::uuid) <> 'ID1234567'
+     or (select full_name from public.fx_kyc where user_id = me::uuid) <> 'Байер Втор' then
+    raise exception 'ПРОВАЛ: номер/ФИО записаны неверно'; end if;
+  if (select email from public.fx_kyc where user_id = me::uuid) <> 'c@test.kg' then raise exception 'ПРОВАЛ: не сохранилась почта'; end if;
+  -- пока проверка идёт, обмен не включить; самому себе статус не поставить
+  begin update public.workspaces set fx_on = true where owner_id = me::uuid; raise exception 'ПРОВАЛ: обмен включён до проверки';
+  exception when others then if sqlerrm <> 'kyc_required' then raise; end if; end;
+  begin update public.fx_kyc set status = 'approved' where user_id = me::uuid; raise exception 'ПРОВАЛ: байер сам себя проверил';
+  exception when insufficient_privilege then null; end;
+  begin perform public.admin_kyc_decide(me::uuid, true, null); raise exception 'ПРОВАЛ: байер вызвал решение администратора';
+  exception when insufficient_privilege then null; end;
+  begin perform public.admin_kyc_list(); raise exception 'ПРОВАЛ: байер видит список проверок';
+  exception when insufficient_privilege then null; end;
+  if (select count(*) from public.fx_kyc) <> 1 then raise exception 'ПРОВАЛ: байер видит чужие проверки'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  if exists (select 1 from public.fx_kyc where user_id <> auth.uid()) then raise exception 'ПРОВАЛ: чужой байер видит паспорт'; end if;
+  if exists (select 1 from storage.objects where bucket_id = 'kyc') then raise exception 'ПРОВАЛ: чужой байер видит фото паспорта'; end if;
+end $$;
+reset role;
+set role anon;
+do $$
+begin
+  begin perform count(*) from public.fx_kyc; raise exception 'ПРОВАЛ: аноним читает проверки';
+  exception when insufficient_privilege then null; end;
+  begin insert into storage.objects (bucket_id, name) values ('kyc', '00000000-0000-0000-0000-0000000000c1/a.jpg');
+    raise exception 'ПРОВАЛ: аноним загрузил в kyc';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare u uuid := '00000000-0000-0000-0000-0000000000c1'; l json;
+begin
+  l := public.admin_kyc_list();
+  if l->0->>'status' <> 'pending' or l->0->>'ws_name' <> 'В-карго' then raise exception 'ПРОВАЛ: админ не видит заявку на проверку (%)', l; end if;
+  if (select count(*) from storage.objects where bucket_id = 'kyc') <> 2 then raise exception 'ПРОВАЛ: админ не видит фото'; end if;
+  begin perform public.admin_kyc_decide(u, false, ''); raise exception 'ПРОВАЛ: отказ без причины';
+  exception when others then if sqlerrm <> 'reason_required' then raise; end if; end;
+  if public.admin_kyc_decide(u, true, null) <> 'approved' then raise exception 'ПРОВАЛ: не одобрилось'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare me text := '00000000-0000-0000-0000-0000000000c1';
+begin
+  update public.workspaces set fx_on = true where owner_id = me::uuid;
+  if not (select fx_on from public.workspaces where owner_id = me::uuid) then raise exception 'ПРОВАЛ: после проверки обмен не включился'; end if;
+  begin insert into storage.objects (bucket_id, name) values ('kyc', me || '/front2.jpg');
+    raise exception 'ПРОВАЛ: после проверки можно подменить фото';
+  exception when insufficient_privilege then null; end;
+  begin perform public.kyc_submit('Другой Человек', 'ID7654321', me || '/front1.jpg', null, me || '/selfie1.jpg', true);
+    raise exception 'ПРОВАЛ: после проверки можно подменить данные';
+  exception when others then if sqlerrm <> 'kyc_done' then raise; end if; end;
+  delete from storage.objects where bucket_id = 'kyc';
+end $$;
+reset role;
+do $$
+begin
+  if (select count(*) from storage.objects where bucket_id = 'kyc') <> 2 then raise exception 'ПРОВАЛ: байер удалил фото паспорта'; end if;
+end $$;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+begin
+  if public.admin_kyc_decide('00000000-0000-0000-0000-0000000000c1', false, 'Жалобы клиентов') <> 'revoked' then
+    raise exception 'ПРОВАЛ: проверка не снялась'; end if;
+end $$;
+reset role;
+do $$
+begin
+  if (select fx_on from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000c1') then
+    raise exception 'ПРОВАЛ: после снятия проверки обмен остался включён'; end if;
+end $$;
+reset request.uid;
+\echo '✅ 24. Проверка личности: без неё обмен не включить; паспорт видят только сам байер и админ; после проверки данные не подменить; снятие выключает обмен'
