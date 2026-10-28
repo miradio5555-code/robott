@@ -102,6 +102,8 @@
     // красная цифра у пункта меню — сколько клиентов просрочили оплату
     var badge = $("#debts-badge");
     if (badge) { badge.textContent = String(overdueN); badge.classList.toggle("hidden", overdueN === 0); }
+    var bnBadge = $("#bn-debts-badge");
+    if (bnBadge) { bnBadge.textContent = String(overdueN); bnBadge.classList.toggle("hidden", overdueN === 0); }
 
     if ($("#tab-debts").classList.contains("hidden")) return;
 
