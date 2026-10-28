@@ -13,5 +13,10 @@
   try {
     var th = localStorage.getItem("cc_theme");
     if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
+    // внешний вид из «Профиля»: цвет кнопок, размер текста, стиль углов
+    [["ula_accent", "data-accent", "ula"], ["ula_tsize", "data-tsize", "m"], ["ula_ui", "data-ui", "rounded"]].forEach(function (x) {
+      var v = localStorage.getItem(x[0]);
+      if (v && v !== x[2] && /^[a-z]{1,10}$/.test(v)) document.documentElement.setAttribute(x[1], v);
+    });
   } catch (e) { /* ignore */ }
 })();
