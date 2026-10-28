@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118l"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118m"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -900,6 +900,7 @@
     // 💡 помощник: свернуть / развернуть, кнопки в подсказках
     // значки у разделов меню (группы «Главное», «Деньги», «Инструменты» всегда раскрыты)
     $$(".section-menu .tab-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 19); });
+    $$("#bottom-nav .bn-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 24); });
 
     // склад: на телефоне свёрнут в одну строку, нажатие на заголовок раскрывает контакты
     $("#wh-title").addEventListener("click", function () { $("#tab-orders .warehouse").classList.toggle("open"); });
@@ -1085,6 +1086,12 @@
     // Разделы кабинета
     $$(".tab[data-tab]").forEach(function (b) {
       b.addEventListener("click", function () { switchTab(b.getAttribute("data-tab")); });
+    });
+    // «Ещё» в нижнем меню открывает полный список разделов
+    $("#bn-more").addEventListener("click", function (e) {
+      e.stopPropagation();
+      window.scrollTo(0, 0);
+      $("#section-menu-btn").click();
     });
 
     // клиенты: поиск, выгрузка, клик по номеру заказа
@@ -1837,6 +1844,7 @@
     $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
+    $("#bottom-nav").classList.toggle("hidden", isAdmin);
     $$(".tab").forEach(function (b) {
       // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
       var on = b.getAttribute("data-tab") === (state.tab === "report" ? "analytics" : state.tab);

@@ -1350,6 +1350,7 @@ I18N.vi = {
   q_s3_sub: "Bạn muốn lãi bao nhiêu",
   q_more_item: "+ Tên và link (không bắt buộc)",
   q_more_rates: "⚙ Tiền tệ và tỷ giá",
+  bn_more: "Thêm",
   logo_title: "Logo",
   logo_hint: "Khách hàng sẽ thấy logo này thay cho \"ULA Factory\" trên trang đơn hàng, liên kết chung và cửa hàng. Nên dùng png/jpg vuông hoặc ngang.",
   logo_upload: "Tải logo lên",
