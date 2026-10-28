@@ -252,6 +252,7 @@
       html += '<form id="fxa-form" class="fx-form" novalidate><h4>' + esc(t("fx_admin_set")) + "</h4>" +
         editorHtml("fxa", tiers, false) +
         '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxa-note" rows="2" maxlength="500">' + esc(p.note || "") + "</textarea></label>" +
+        '<label class="check-line"><input id="fxa-news" type="checkbox" checked> <span>' + esc(t("fx_notify_label")) + "</span></label>" +
         '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button></form>";
     }
     return html + "</section>";
@@ -651,10 +652,12 @@
     if (!box) return;
     // набранный текст в спорах не теряется при перерисовке
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { fx.keep[ta.getAttribute("data-fx-dmsg")] = ta.value; });
+    var keepCny = $("#fxp-cny") ? $("#fxp-cny").value : "";
     box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' +
       (isAdmin() ? disputesAdminHtml() : "") +
       (state.ws ? requestsHtml() + (isAdmin() ? "" : myHtml()) : "") + (isAdmin() ? kycAdminHtml() : "") + (kgBuyer() ? platformHtml() : "");
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
+    if (keepCny && $("#fxp-cny")) $("#fxp-cny").value = keepCny;   // набранная сумма не теряется при перерисовке
     updateCalc();
   }
 
@@ -672,6 +675,10 @@
     await Promise.all([loadPlatform(), state.ws ? loadRequests() : Promise.resolve(), loadKyc(),
       isAdmin() ? loadKycList() : Promise.resolve(), isAdmin() ? loadDisputes() : Promise.resolve()]);
     render();
+    // пришли с главной: подставить сумму из калькулятора или показать форму курса
+    if (fx.prefill && $("#fxp-cny")) { $("#fxp-cny").value = String(fx.prefill); updateCalc(); $("#fxp-cny").scrollIntoView({ block: "center" }); }
+    if (fx.focusAdmin && $("#fxa-form")) $("#fxa-form").scrollIntoView({ block: "start" });
+    fx.prefill = 0; fx.focusAdmin = false;
   }
 
   // ---------- Действия ----------
@@ -697,14 +704,41 @@
     }
   }
 
+  // курс сильно отличается от прежнего (больше 10%) — спросить, не опечатка ли
+  function bigJump(tiers) {
+    var was = {}, s = sortTiers(fx.platform && fx.platform.tiers);
+    s.forEach(function (x) { was[num(x.from)] = num(x.rate); });
+    var base = s.length ? num(s[0].rate) : null;
+    for (var i = 0; i < tiers.length; i++) {
+      var x = tiers[i], o = was[num(x.from)] != null ? was[num(x.from)] : base, r = num(x.rate);
+      if (o && Math.abs(r - o) / o > 0.1) return { from: money(x.from), a: rateStr(o), b: rateStr(r), p: Math.round((r - o) / o * 100) };
+    }
+    return null;
+  }
+
+  function sameTiers(a, b) {
+    var k = function (l) { return JSON.stringify(sortTiers(l).map(function (x) { return [num(x.from), num(x.rate)]; })); };
+    return k(a) === k(b);
+  }
+
   async function saveAdmin(e) {
     e.preventDefault();
     var tiers = readEditor("fxa");
     if (!tiers) return;
-    var res = await c.db().rpc("admin_set_platform_fx", { p_tiers: tiers.length ? tiers : null, p_note: $("#fxa-note").value.trim() || null });
+    var jump = bigJump(tiers);
+    if (jump && !window.confirm(t("fx_big_change", jump))) return;
+    var changed = !sameTiers(tiers, fx.platform && fx.platform.tiers), tell = $("#fxa-news") && $("#fxa-news").checked;
+    var note = $("#fxa-note").value.trim();
+    var res = await c.db().rpc("admin_set_platform_fx", { p_tiers: tiers.length ? tiers : null, p_note: note || null });
     if (res.error) { c.handleError(res.error); return; }
-    toast(t("fx_saved"), "ok");
     await loadPlatform();
+    if (U.board) U.board.load();
+    if (!(changed && tell && tiers.length)) { toast(t("fx_saved"), "ok"); render(); return; }
+    // новость «Новый курс» на сайте и в Telegram
+    var lines = sortTiers(tiers).map(function (x) { return t("fx_from", { n: money(x.from) }) + " — " + rateStr(x.rate) + " " + t("fx_som_short"); });
+    var text = t("fx_news_text", { lines: lines.join("\n") }) + (note ? "\n\n" + note : "");
+    if (U.board) await U.board.publish(text, true);
+    toast(t("fx_saved_news"), "ok");
     render();
   }
 
@@ -1253,18 +1287,119 @@
     mountPublic($("#fx-pub-slot-page"), d.fx, "shop", page.token);
   }
 
-  // Курс ULA для главной страницы (карточка «Курс на сегодня»): пустая строка, если курса нет или человеку он не нужен
-  async function homeRate() {
-    if (!kgBuyer()) return "";
-    await loadPlatform();
-    var p = fx.platform;
-    if (!p || !sortTiers(p.tiers).length) return "";
-    return '<div class="bd-rate"><div class="bd-head"><h3>' + esc(t("board_rate_title")) + '</h3><span class="fx-date ' + (isToday(p.updated_at) ? "" : "old") + '">' +
-      esc(dateLine(p.updated_at)) + "</span></div>" + tiersHtml(p.tiers, 0) +
-      (p.note ? '<p class="fx-note">' + esc(p.note) + "</p>" : "") +
-      '<button type="button" class="btn btn-sm" data-board="fx">' + esc(t("nav_fx")) + "</button></div>";
+  // ---------- Карточка «Курс юаня» на главной странице ----------
+  // Ступени курса (старый курс зачёркнут, если поменялся сегодня), график за 7 / 30 дней,
+  // калькулятор «сколько юаней → сколько сомов» и кнопка «Обменять». Админу — напоминание обновить курс.
+  var home = { hist: [], days: 7 };
+
+  async function loadHistory() {
+    var since = new Date(Date.now() - 31 * 864e5).toISOString();
+    var res = await c.db().from("platform_fx_history").select("tiers, created_at").gte("created_at", since)
+      .order("created_at", { ascending: true }).limit(500);
+    home.hist = res.error ? [] : (res.data || []);
   }
 
-  U.exchange = { homeRate: homeRate, bind: bind, open: open, render: render, loadCount: loadCount, mountPublic: mountPublic,
+  // курс первой ступени — по нему рисуется график
+  function mainRate(tiers) { var s = sortTiers(tiers); return s.length ? num(s[0].rate) : null; }
+
+  // прошлый курс для ступени «от …», если курс менялся сегодня
+  function prevTiers() {
+    var h = home.hist;
+    if (h.length < 2 || !isToday(h[h.length - 1].created_at)) return null;
+    return h[h.length - 2].tiers;
+  }
+
+  function chartHtml() {
+    var now = Date.now(), from = now - home.days * 864e5, pts = [];
+    home.hist.forEach(function (x) {
+      var r = mainRate(x.tiers), at = new Date(x.created_at).getTime();
+      if (r == null) return;
+      if (at < from) pts = [{ at: from, r: r }];   // курс на начало периода
+      else pts.push({ at: at, r: r });
+    });
+    var cur = fx.platform && mainRate(fx.platform.tiers);
+    if (cur != null) pts.push({ at: now, r: cur });
+    var tabs = '<div class="rc-tabs">' + [7, 30].map(function (d) {
+      return '<button type="button" data-rc-days="' + d + '"' + (home.days === d ? ' class="on"' : "") + ">" + esc(t("rc_days", { n: d })) + "</button>";
+    }).join("") + "</div>";
+    var changes = pts.filter(function (p, i) { return i > 0 && p.r !== pts[i - 1].r; }).length;
+    if (pts.length < 2 || !changes) return '<div class="rc-chart">' + tabs + '<p class="rc-empty">' + esc(t("rc_chart_none")) + "</p></div>";
+    var rs = pts.map(function (p) { return p.r; }), lo = Math.min.apply(null, rs), hi = Math.max.apply(null, rs);
+    var W = 300, H = 64, pad = 4, span = (hi - lo) || 1;
+    var X = function (at) { return pad + (at - from) / (now - from) * (W - pad * 2); };
+    var Y = function (r) { return pad + (hi - r) / span * (H - pad * 2); };
+    // ступеньками: курс держится до следующего изменения
+    var d = "M" + X(pts[0].at).toFixed(1) + " " + Y(pts[0].r).toFixed(1);
+    for (var i = 1; i < pts.length; i++) d += " H" + X(pts[i].at).toFixed(1) + " V" + Y(pts[i].r).toFixed(1);
+    var last = pts[pts.length - 1];
+    return '<div class="rc-chart">' + tabs +
+      '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+        '<path d="' + d + " V" + H + " H" + X(pts[0].at).toFixed(1) + ' Z" class="rc-area"/>' +
+        '<path d="' + d + '" class="rc-line" vector-effect="non-scaling-stroke"/>' +
+        '<circle cx="' + X(last.at).toFixed(1) + '" cy="' + Y(last.r).toFixed(1) + '" r="3" class="rc-dot"/></svg>' +
+      '<div class="rc-range"><span>' + esc(t("rc_min", { n: rateStr(lo) })) + "</span><span>" +
+        esc(t("rc_main", { n: money(minOf(fx.platform.tiers)) })) + "</span><span>" + esc(t("rc_max", { n: rateStr(hi) })) + "</span></div></div>";
+  }
+
+  function homeHtml() {
+    var p = fx.platform || {}, tiers = sortTiers(p.tiers), admin = isAdmin();
+    var fresh = tiers.length && isToday(p.updated_at);
+    var warn = admin && !fresh ? '<div class="rc-warn">' + U.icon("alert", 16) + "<span>" + esc(t(tiers.length ? "rc_warn_old" : "rc_warn_none")) + "</span></div>" : "";
+    if (!tiers.length) {
+      return admin ? '<section class="rate-card">' + warn + '<button type="button" class="btn btn-primary btn-block" data-rc="edit">' + esc(t("rc_edit")) + "</button></section>" : "";
+    }
+    var prev = prevTiers(), old = {};
+    sortTiers(prev).forEach(function (x) { old[num(x.from)] = num(x.rate); });
+    var rows = tiers.map(function (x) {
+      var r = num(x.rate), o = old[num(x.from)], moved = o != null && o !== r;
+      return '<div class="rc-tr"><span>' + esc(t("fx_from", { n: money(x.from) })) + '</span><span class="rc-val">' +
+        (moved ? "<s>" + esc(rateStr(o)) + "</s>" : "") +
+        '<b class="' + (moved ? (r < o ? "down" : "up") : "") + '">' + esc(rateStr(r)) + "</b></span></div>";
+    }).join("");
+    return '<section class="rate-card">' +
+      '<div class="rc-head"><h3>' + esc(t("rc_title")) + '</h3><span class="rc-date' + (fresh ? "" : " old") + '">' + esc(dateLine(p.updated_at)) + "</span></div>" +
+      warn +
+      '<div class="rc-table"><div class="rc-th"><span>' + esc(t("rc_sum")) + "</span><span>" + esc(t("rc_rate")) + "</span></div>" + rows + "</div>" +
+      (p.note ? '<p class="rc-note">' + esc(p.note) + "</p>" : "") +
+      chartHtml() +
+      '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
+        '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
+      '<button type="button" class="btn btn-primary btn-block" data-rc="' + (admin ? "edit" : "go") + '">' + esc(t(admin ? "rc_edit" : "rc_go")) + "</button>" +
+    "</section>";
+  }
+
+  // Для главной: пустая строка, если курса нет или человеку обмен не нужен
+  async function homeRate() {
+    if (!kgBuyer()) return "";
+    await Promise.all([loadPlatform(), loadHistory()]);
+    return homeHtml();
+  }
+
+  function homeCalc() {
+    var inp = $("#rc-cny"), out = $("#rc-som");
+    if (!inp || !out) return;
+    var cny = parseNum(inp.value) || 0, tiers = fx.platform && fx.platform.tiers;
+    if (!(cny > 0)) { out.textContent = "—"; return; }
+    var som = somFor(tiers, cny);
+    out.textContent = som == null ? t("fx_e_min", { n: money(minOf(tiers)) }) : money(som) + " " + t("fx_som_short");
+  }
+
+  // щелчок в карточке курса; true — щелчок обработан
+  function homeClick(e) {
+    var b = e.target.closest("[data-rc-days], [data-rc]");
+    if (!b) return false;
+    if (b.hasAttribute("data-rc-days")) {
+      home.days = Number(b.getAttribute("data-rc-days"));
+      var ch = b.closest(".rc-chart");
+      ch.outerHTML = chartHtml();
+    } else {
+      fx.prefill = b.getAttribute("data-rc") === "go" ? (parseNum(($("#rc-cny") || {}).value) || 0) : 0;
+      fx.focusAdmin = b.getAttribute("data-rc") === "edit";
+      c.switchTab("exchange");
+    }
+    return true;
+  }
+
+  U.exchange = { homeRate: homeRate, homeCalc: homeCalc, homeClick: homeClick, bind: bind, open: open, render: render, loadCount: loadCount, mountPublic: mountPublic,
     initPage: initPage, initStatus: initStatus, renderPage: renderPage, bestRate: bestRate };
 })(window.ULA);
