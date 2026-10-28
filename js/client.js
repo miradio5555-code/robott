@@ -130,7 +130,15 @@
       (orders.length ? "" : '<section class="client-block"><p class="muted">' + esc(t("cab_empty")) + "</p></section>") +
       (live.length ? '<section class="client-block"><h2>' + esc(t("cab_active")) + " · " + live.length + '</h2><div class="cab-list">' + live.map(cabCardHtml).join("") + "</div></section>" : "") +
       (done.length ? '<section class="client-block"><details class="cab-done"><summary><h2>' + esc(t("cab_done")) + " · " + done.length +
-        '</h2></summary><div class="cab-list">' + done.map(cabCardHtml).join("") + "</div></details></section>" : "");
+        '</h2></summary><div class="cab-list">' + done.map(cabCardHtml).join("") + "</div></details></section>" : "") +
+      '<div id="fx-pub-slot"></div>';
+    mountFx(d.brand);
+  }
+
+  // Обмен сом → юань (если байер включил): курс, калькулятор и заявка
+  function mountFx(brand) {
+    if (!U.exchange) return;
+    U.exchange.mountPublic($("#fx-pub-slot"), brand && brand.fx, cab.token ? "cab" : "order", cab.token || cd.token);
   }
 
   function isClosed() {
@@ -590,8 +598,11 @@
       (o.delivery_info ? '<section class="client-block"><h2>' + esc(t("cl_delivery_info")) + '</h2><p class="pre">' + esc(o.delivery_info) + "</p></section>" : "") +
       (o.client_comment ? '<section class="client-block"><h2>' + esc(t("cl_comment")) + '</h2><p class="pre">' + esc(o.client_comment) + "</p></section>" : "") +
 
+      '<div id="fx-pub-slot"></div>' +
+
       '<p class="fine-print">' + esc(t("cl_updated")) + ": " +
         esc(new Date(o.updated_at).toLocaleDateString(locale())) + "</p>";
+    mountFx(o.brand);
 
     if (activeId) {
       var el = document.getElementById(activeId);

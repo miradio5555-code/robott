@@ -44,7 +44,7 @@
       var res = await c.db().rpc("get_shop", { p_token: sp.token });
       if (res.error) throw res.error;
       if (!res.data) { sp.step = "notfound"; }
-      else { sp.name = res.data.name || ""; sp.logo = res.data.logo || ""; sp.items = res.data.products || []; sp.step = "list"; }
+      else { sp.name = res.data.name || ""; sp.logo = res.data.logo || ""; sp.fx = res.data.fx || null; sp.items = res.data.products || []; sp.step = "list"; }
     } catch (err) {
       console.error(err);
       sp.step = "error";
@@ -113,7 +113,10 @@
             return '<button type="button" class="sp-card" data-sp-i="' + i + '">' + photoBox(p) +
               '<span class="sp-card-title">' + esc(p.title) + '</span><b class="sp-card-price">' + esc(priceText(p)) + "</b></button>";
           }).join("") + "</div>"
-        : '<div id="sp-empty" class="state-box">' + esc(t("sh2_empty")) + "</div>");
+        : '<div id="sp-empty" class="state-box">' + esc(t("sh2_empty")) + "</div>") +
+      '<div id="fx-pub-slot-shop"></div>';
+    // обмен сом → юань (если байер включил)
+    if (U.exchange) U.exchange.mountPublic($("#fx-pub-slot-shop"), sp.fx, "shop", sp.token);
   }
 
   async function sendOrder() {
