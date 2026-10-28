@@ -75,7 +75,7 @@
 
   function clientKey(o) {
     var phone = String((o.client && o.client.phone) || o.client_phone || "").replace(/\D/g, "");
-    return phone.length >= 9 ? "p" + phone : "n" + String(o.client_name || "").trim().toLowerCase();
+    return phone.length >= 9 ? "p" + phone.slice(-9) : "n" + String(o.client_name || "").trim().toLowerCase();
   }
   function clientName(o) { return (o.client && o.client.name) || o.client_name || "—"; }
   function productKey(o) { return String(o.product_ru || "").trim().toLowerCase().replace(/\s+/g, " "); }

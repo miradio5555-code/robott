@@ -133,7 +133,7 @@
 
   function clientKey(o) {
     var p = String((o.client && o.client.phone) || o.client_phone || "").replace(/\D/g, "");
-    return p.length >= 9 ? "p" + p : "n" + String(o.client_name || "").trim().toLowerCase();
+    return p.length >= 9 ? "p" + p.slice(-9) : "n" + String(o.client_name || "").trim().toLowerCase();
   }
   function clientName(o) { return (o.client && o.client.name) || o.client_name || "—"; }
   function clientPhone(o) { var p = (o.client && o.client.phone) || o.client_phone; return p ? c.fmtPhone(p) : ""; }

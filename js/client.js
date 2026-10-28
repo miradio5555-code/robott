@@ -21,6 +21,9 @@
     saving: false
   };
 
+  // Общая ссылка клиента (?c=токен): список всех его заказов, по нажатию — страница заказа
+  var cab = { token: "", data: null, open: false, busy: false };
+
   // Telegram-уведомления клиенту по этому заказу
   var tgc = { loaded: false, bot: null, subscribed: false, opened: false, busy: false, error: "" };
 
@@ -53,6 +56,83 @@
     if (state.clientState === "ok") tgLoad();
   }
 
+  async function initCabinet(token) {
+    showView("client");
+    cab.token = token;
+    renderClient();
+    bindClientUI();
+    if (!/^[a-f0-9]{32}$/i.test(token)) { state.clientState = "notfound"; renderClient(); return; }
+    try {
+      var res = await c.db().rpc("get_client_cabinet", { p_token: token });
+      if (res.error) throw res.error;
+      cab.data = res.data || null;
+      state.clientState = res.data ? "ok" : "notfound";
+    } catch (err) {
+      console.error(err);
+      state.clientState = "error";
+    }
+    renderClient();
+  }
+
+  // Открыть один заказ из списка / вернуться к списку
+  async function openCabOrder(number) {
+    if (cab.busy) return;
+    cab.busy = true;
+    try {
+      var res = await c.db().rpc("get_cabinet_order", { p_token: cab.token, p_order_number: number });
+      if (res.error) throw res.error;
+      if (!res.data) { toast(t("error_generic"), "error"); cab.busy = false; return; }
+      state.client = res.data;
+      cab.open = true;
+      cd.editing = false;
+      renderClient();
+      window.scrollTo(0, 0);
+    } catch (err) {
+      console.error(err);
+      toast(t("error_generic"), "error");
+    }
+    cab.busy = false;
+  }
+
+  function cabCardHtml(o) {
+    var cc = o.client_currency || "KGS";
+    var bal = num(o.balance_som);
+    var priced = num(o.total_som) > 0 || num(o.paid_amount) > 0;
+    var money_line = !priced ? "" : bal > 0
+      ? '<span class="cab-owe">' + esc(t("cl_left")) + ": " + cur(bal, cc) + "</span>"
+      : '<span class="cab-paid">' + esc(t("cl_paid_full")) + "</span>";
+    return '<button type="button" class="cab-card" data-cab-open="' + esc(o.order_number) + '">' +
+      (o.photo ? '<img class="cab-thumb" src="' + esc(c.thumbUrl(o.photo)) + '" loading="lazy" alt="">'
+               : '<span class="cab-thumb cab-nophoto" aria-hidden="true"></span>') +
+      '<span class="cab-main">' +
+        '<span class="cab-product">' + esc(o.product_ru) + "</span>" +
+        '<span class="cab-meta">№ ' + esc(o.order_number) + " · " + esc(fmtDate(o.order_date)) + "</span>" +
+        '<span class="cab-status s-' + esc(o.status) + '">' + esc(t("status_" + o.status)) + "</span>" +
+        (o.tracking_number ? '<span class="cab-meta">' + esc(t("trk_title")) + ": " + esc(o.tracking_number) + "</span>" : "") +
+        money_line +
+      "</span></button>";
+  }
+
+  function renderCabinetList(box) {
+    var d = cab.data || {}, orders = d.orders || [];
+    var live = orders.filter(function (o) { return CLOSED.indexOf(o.status) === -1; });
+    var done = orders.filter(function (o) { return CLOSED.indexOf(o.status) !== -1; });
+    var debt = d.debt || [];
+    box.innerHTML =
+      '<section class="client-hero cab-hero"><h1>' + esc(t("cab_title")) + "</h1>" +
+        (d.name ? '<p class="client-hero-date">' + esc(d.name) + "</p>" : "") +
+      "</section>" +
+      '<section class="client-block cab-debt ' + (debt.length ? "owe" : "clear") + '">' +
+        (debt.length
+          ? "<h2>" + esc(t("cab_debt")) + "</h2>" + debt.map(function (x) { return '<p class="cab-debt-sum">' + cur(x.amount, x.currency) + "</p>"; }).join("")
+          : "<h2>" + esc(t("cab_no_debt")) + "</h2>") +
+      "</section>" +
+      (orders.length ? "" : '<section class="client-block"><p class="muted">' + esc(t("cab_empty")) + "</p></section>") +
+      (live.length ? '<section class="client-block"><h2>' + esc(t("cab_active")) + " · " + live.length + '</h2><div class="cab-list">' + live.map(cabCardHtml).join("") + "</div></section>" : "") +
+      (done.length ? '<section class="client-block"><details class="cab-done"><summary><h2>' + esc(t("cab_done")) + " · " + done.length +
+        '</h2></summary><div class="cab-list">' + done.map(cabCardHtml).join("") + "</div></details></section>" : "");
+  }
+
   function isClosed() {
     return !!state.client && CLOSED.indexOf(state.client.status) !== -1;
   }
@@ -65,9 +145,18 @@
     btn.disabled = true;
     btn.classList.add("spinning");
     try {
-      var res = await c.db().rpc("get_client_order", { p_token: cd.token });
-      if (res.error) throw res.error;
-      if (res.data) { state.client = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+      var res;
+      if (cab.token && !cab.open) {
+        res = await c.db().rpc("get_client_cabinet", { p_token: cab.token });
+        if (res.error) throw res.error;
+        if (res.data) { cab.data = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+      } else {
+        res = cab.token
+          ? await c.db().rpc("get_cabinet_order", { p_token: cab.token, p_order_number: state.client.order_number })
+          : await c.db().rpc("get_client_order", { p_token: cd.token });
+        if (res.error) throw res.error;
+        if (res.data) { state.client = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+      }
     } catch (err) {
       console.error(err);
       toast(t("error_generic"), "error");
@@ -81,6 +170,9 @@
     $("#client-refresh").addEventListener("click", refreshClient);
 
     box.addEventListener("click", function (e) {
+      var co = e.target.closest("[data-cab-open]");
+      if (co) { openCabOrder(co.getAttribute("data-cab-open")); return; }
+      if (e.target.closest("[data-cab-back]")) { cab.open = false; renderClient(); window.scrollTo(0, 0); return; }
       var ph = e.target.closest("[data-photo]");
       if (ph && state.client) {
         openLightbox(clientPhotoUrls(), Number(ph.getAttribute("data-photo")) || 0);
@@ -273,7 +365,7 @@
     if (c && !cd.editing) {
       return '<section class="client-block delivery-block filled" aria-labelledby="cd-title">' +
         '<div class="delivery-head"><h2 id="cd-title">' + esc(t("cd_title")) + "</h2>" +
-          (isClosed() ? "" : '<button type="button" class="btn" data-cd="edit">' + esc(t("cd_edit")) + "</button>") +
+          (isClosed() || cab.token ? "" : '<button type="button" class="btn" data-cd="edit">' + esc(t("cd_edit")) + "</button>") +
         "</div>" +
         '<dl class="delivery-view">' +
           "<div><dt>" + esc(t("l_name")) + "</dt><dd>" + esc(c.name) + "</dd></div>" +
@@ -287,8 +379,8 @@
       "</section>";
     }
 
-    // 2) Заказ завершён, а данных нет — форму не показываем
-    if (isClosed()) return "";
+    // 2) Заказ завершён, а данных нет — форму не показываем (в общем списке данные не вводят — только по ссылке заказа)
+    if (isClosed() || cab.token) return "";
 
     // 3) Форма
     var d = getDraft();
@@ -413,6 +505,8 @@
       return;
     }
 
+    if (cab.token && !cab.open) { renderCabinetList(box); return; }
+
     var o = state.client;
     var urls = clientPhotoUrls();
     var bal = num(o.balance_som);
@@ -440,6 +534,7 @@
     var activeId = active && box.contains(active) && active.id && active.tagName !== "BUTTON" ? active.id : "";
 
     box.innerHTML =
+      (cab.token ? '<button type="button" class="btn cab-back" data-cab-back>← ' + esc(t("cab_back")) + "</button>" : "") +
       '<section class="client-hero">' +
         // номер заказа не переносим посередине
         "<h1>" + esc(t("cl_order", { n: "\u0000" })).replace("\u0000", '<span class="num">' + esc(o.order_number) + "</span>") + "</h1>" +
@@ -490,5 +585,5 @@
     }
   }
 
-  U.client = { init: initClient, render: renderClient };
+  U.client = { init: initClient, initCabinet: initCabinet, render: renderClient };
 })(window.ULA);
