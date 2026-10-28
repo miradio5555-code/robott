@@ -23,6 +23,7 @@
     { id: "card", sel: ["#orders .card"] },
     { id: "bulk", sel: ["#bulk-btn"] },
     { id: "menu2", sel: ["#section-menu .section-menu-list"], menu: true },
+    { id: "fx", sel: ["#section-menu [data-tab=\"exchange\"]"], menu: true },
     { id: "settings", sel: ["#settings-btn"], menu: true },
     { id: "support", sel: ["#support-btn"] },
     { id: "done" }
