@@ -1624,5 +1624,13 @@ begin
    where s.nspname = 'public' and p.prosecdef
      and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) x where x like 'search_path=%');
   if n <> 0 then raise exception 'ПРОВАЛ: % функций с правами владельца без search_path', n; end if;
+  select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and p.prokind = 'f'
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) x where x like 'search_path=%');
+  if n <> 0 then raise exception 'ПРОВАЛ: % функций без search_path', n; end if;
+  select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
+     and (p.prorettype = 'trigger'::regtype or p.proname in ('is_admin', 'is_member', 'is_owner', 'can_read_ws', 'my_workspace_id'));
+  if n <> 0 then raise exception 'ПРОВАЛ: аноним может вызвать % служебных функций', n; end if;
 end $$;
-\echo '✅ 26. Безопасность: у анонима нет прямого доступа к таблицам, у всех таблиц есть RLS, у всех функций владельца задан search_path'
+\echo '✅ 26. Безопасность: у анонима нет прямого доступа к таблицам, у всех таблиц есть RLS, у всех функций задан search_path, служебные функции анониму недоступны'
