@@ -2677,3 +2677,37 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .kyc-plus { font-size: 26px; line-height: 1; color: var(--muted); }
 .kyc-st-approved .fx-st { color: var(--green); }
 .kyc-st-rejected .fx-st, .kyc-st-revoked .fx-st { color: var(--red); }
+
+/* Обмен как P2P: отправка, подтверждение, спор (файл 31) */
+.fx-flag { display: inline-block; margin: 4px 0; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: #B42318; background: rgba(217, 45, 32, .1); }
+.st-dispute .fx-st, .fx-row.st-dispute .fx-st { color: #B42318; }
+.fx-row.st-dispute { border-color: rgba(217, 45, 32, .45); }
+.fx-dispute { display: grid; gap: 8px; margin: 10px 0; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--soft); }
+.fx-dispute.open { border-color: rgba(217, 45, 32, .45); }
+.fx-dispute textarea { width: 100%; }
+.fx-d-res { margin: 0; font-weight: 600; }
+.fx-d-form { display: grid; gap: 6px; }
+.fx-thread { display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+.fx-msg-row { display: grid; gap: 4px; max-width: 92%; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.fx-msg-row.mine { justify-self: end; background: var(--hover); }
+.fx-msg-row.admin { border-color: var(--primary); }
+.fx-msg-who { font-size: 11px; color: var(--muted); }
+.fx-msg-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.fx-msg-img { padding: 0; border: 0; background: none; cursor: zoom-in; justify-self: start; }
+.fx-msg-img img { display: block; max-width: 220px; max-height: 260px; border-radius: 8px; object-fit: cover; }
+.fx-sent-box { display: grid; gap: 6px; margin: 10px 0; }
+.fx-sent-box small { color: var(--muted); }
+.fx-recv { display: grid; gap: 8px; margin: 10px 0; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--green); }
+.fx-stars { display: flex; gap: 4px; }
+.fx-stars button { width: 44px; height: 44px; border: 0; border-radius: 10px; background: var(--soft); color: var(--line-strong); font-size: 24px; cursor: pointer; }
+.fx-stars button.on { color: #F5A524; }
+.fx-stars-line { color: #F5A524; letter-spacing: 2px; }
+.fx-stars-line.big { font-size: 22px; margin: 6px 0; }
+.fx-stars-line .off { color: var(--line-strong); }
+.fx-d-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 6px 0; }
+.fx-d-sides > div { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--soft); font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.fx-d-sides small { color: var(--muted); }
+.fx-protect { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.fx-d-btn { margin-top: 8px; }
+@media (max-width: 420px) { .fx-d-sides { grid-template-columns: 1fr; } }
