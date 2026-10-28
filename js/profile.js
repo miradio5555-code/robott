@@ -36,9 +36,26 @@
     var p = String(name || "").trim().split(/\s+/).filter(Boolean);
     return ((p[0] || "U").charAt(0) + (p[1] ? p[1].charAt(0) : "")).toUpperCase();
   }
+  // Личное фото (profiles.avatar_path, файл 36). Грузим отдельно: если файл 36 не запущен — просто нет фото.
+  var me = { avatar: null, loadedFor: null, canPhoto: false, edit: false, busy: false };
+  async function loadAvatar() {
+    var db = c.db();
+    if (!db || !state.me || me.loadedFor === state.me.id) return;
+    me.loadedFor = state.me.id;
+    var r;
+    try { r = await db.from("profiles").select("avatar_path").eq("user_id", state.me.id).maybeSingle(); }
+    catch (e) { me.loadedFor = null; return; }   // нет связи — попробуем в следующий раз
+    me.canPhoto = !r.error;
+    me.avatar = r.data && r.data.avatar_path || null;
+    refreshCard();
+    if (state.tab === "profile") render();
+  }
+  function photoUrl(path) { return c.db().storage.from("avatars").getPublicUrl(path).data.publicUrl; }
+  function logoUrl(path) { return c.db().storage.from("logos").getPublicUrl(path).data.publicUrl; }
   function avatarHtml() {
     var path = state.ws && state.ws.logo_path, db = c.db();
-    if (path && db) return '<img src="' + esc(db.storage.from("logos").getPublicUrl(path).data.publicUrl) + '" alt="">';
+    if (me.avatar && db) return '<img src="' + esc(photoUrl(me.avatar)) + '" alt="">';
+    if (path && db) return '<img src="' + esc(logoUrl(path)) + '" alt="">';
     return "<span>" + esc(initials(state.me && state.me.name || state.me && state.me.email)) + "</span>";
   }
   function roleLabel() {
@@ -86,9 +103,87 @@
     return '<button type="button" class="pf-chip ' + (cls || "") + '"' + (attrs || "") + ">" + text + "</button>";
   }
 
+  // Карточка «Изменить профиль»: фото, имя, а владельцу — название и логотип компании
+  function editHtml(owner) {
+    var logo = state.ws && state.ws.logo_path;
+    var h = '<div class="pf-card pf-edit">';
+    if (me.canPhoto) {
+      h += '<div class="pf-pic"><span class="pf-pic-img round">' + (me.avatar ? '<img src="' + esc(photoUrl(me.avatar)) + '" alt="">' : U.icon("camera", 22)) + "</span>" +
+        '<span class="pf-pic-t"><b>' + esc(t("pf_photo")) + "</b><small>" + esc(t("pf_photo_hint")) + "</small>" +
+        '<span class="pf-pic-btns"><button type="button" class="btn btn-sm btn-primary" data-pf-photo' + (me.busy ? " disabled" : "") + ">" + esc(t(me.avatar ? "pf_photo_change" : "pf_photo_up")) + "</button>" +
+        (me.avatar ? '<button type="button" class="btn btn-sm btn-ghost" data-pf-photo-del>' + esc(t("pf_remove")) + "</button>" : "") + "</span></span></div>" +
+        '<input type="file" id="pf-photo-file" accept="image/png,image/jpeg,image/webp" hidden>';
+    }
+    h += '<label class="field"><span>' + esc(t("pf_name")) + '</span><input id="pf-name" type="text" maxlength="120" autocomplete="name" value="' + esc(state.me.name || "") + '"></label>';
+    if (owner) {
+      h += '<label class="field"><span>' + esc(t("pf_company")) + '</span><input id="pf-company" type="text" maxlength="120" value="' + esc(state.ws.name || "") + '"></label>' +
+        '<div class="pf-pic"><span class="pf-pic-img">' + (logo ? '<img src="' + esc(logoUrl(logo)) + '" alt="">' : U.icon("store", 22)) + "</span>" +
+        '<span class="pf-pic-t"><b>' + esc(t("pf_logo")) + "</b><small>" + esc(t("pf_logo_hint")) + "</small>" +
+        '<span class="pf-pic-btns"><button type="button" class="btn btn-sm" data-pf-logo>' + esc(t(logo ? "pf_logo_change" : "pf_logo_up")) + "</button>" +
+        (logo ? '<button type="button" class="btn btn-sm btn-ghost" data-pf-logo-del>' + esc(t("pf_remove")) + "</button>" : "") + "</span></span></div>";
+    }
+    h += '<div class="pf-edit-actions"><button type="button" class="btn btn-ghost" data-pf-cancel>' + esc(t("pf_cancel")) + "</button>" +
+      '<button type="button" class="btn btn-primary" data-pf-save' + (me.busy ? " disabled" : "") + ">" + esc(t("pf_save")) + "</button></div></div>";
+    return h;
+  }
+
+  async function uploadPhoto(file) {
+    var db = c.db();
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) { c.toast(t("logo_err_type"), "error"); return; }
+    me.busy = true; render();
+    try {
+      var blob = await c.shrinkImage(file, 400, 120 * 1024);
+      if (blob.size > 1024 * 1024) { c.toast(t("logo_err_size"), "error"); return; }
+      var ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
+      var path = state.me.id + "/" + c.uid() + "." + ext;
+      var up = await db.storage.from("avatars").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+      if (up.error) throw up.error;
+      await savePhotoPath(path);
+      c.toast(t("s_saved"), "ok");
+    } catch (err) {
+      console.error(err);
+      c.toast(t("error_generic"), "error");
+    } finally {
+      me.busy = false; render(); refreshCard();
+    }
+  }
+  async function savePhotoPath(path) {
+    var db = c.db(), old = me.avatar;
+    var r = await db.from("profiles").update({ avatar_path: path }).eq("user_id", state.me.id);
+    if (r.error) { if (path) db.storage.from("avatars").remove([path]); throw r.error; }
+    me.avatar = path;
+    if (old && old !== path) db.storage.from("avatars").remove([old]);   // старый файл больше не нужен
+  }
+
+  async function saveEdit() {
+    var db = c.db(), name = ($("#pf-name").value || "").trim(), comp = $("#pf-company") ? $("#pf-company").value.trim() : null;
+    me.busy = true;
+    try {
+      if (name !== (state.me.name || "")) {
+        var r = await db.from("profiles").update({ full_name: name || null }).eq("user_id", state.me.id);
+        if (r.error) throw r.error;
+        state.me.name = name;
+      }
+      if (comp && state.ws && comp !== state.ws.name) {
+        var w = await db.from("workspaces").update({ name: comp }).eq("id", state.ws.id).select(c.WS_FIELDS).single();
+        if (w.error) throw w.error;
+        state.ws = w.data;
+        if (state.myWs && state.myWs.id === w.data.id) state.myWs = w.data;
+      }
+      me.edit = false;
+      c.toast(t("s_saved"), "ok");
+    } catch (err) {
+      console.error(err);
+      c.toast(t("error_generic"), "error");
+    } finally {
+      me.busy = false; render(); refreshCard();
+    }
+  }
+
   function render() {
     var box = $("#profile-body");
     if (!box || !state.me) return;
+    loadAvatar();
     var orders = state.orders || [], clients = {}, active = 0;
     orders.forEach(function (o) {
       var k = o.client_id || o.client_name;
@@ -99,11 +194,13 @@
     var h = "";
 
     h += '<div class="pf-head">' +
-      '<div class="pf-ava-wrap"><div class="pf-ava">' + avatarHtml() + '</div><span class="pf-badge">' + U.icon(owner ? "shield" : "users", 14) + "</span></div>" +
+      '<button type="button" class="pf-ava-wrap" data-pf-edit aria-label="' + esc(t("pf_edit")) + '"><span class="pf-ava">' + avatarHtml() + '</span><span class="pf-badge">' + U.icon("camera", 15) + "</span></button>" +
       '<h1 class="pf-name">' + esc(state.me.name || state.me.email || "") + "</h1>" +
       '<p class="pf-sub">' + esc([state.ws && state.ws.name, roleLabel()].filter(Boolean).join(" · ")) + "</p>" +
       (state.me.email ? '<p class="pf-mail">' + esc(state.me.email) + "</p>" : "") +
+      (me.edit ? "" : '<button type="button" class="btn btn-sm pf-edit-btn" data-pf-edit>' + esc(t("pf_edit")) + "</button>") +
       "</div>";
+    if (me.edit) h += editHtml(owner);
 
     if (state.ws) {
       h += '<div class="pf-stats">' +
@@ -168,7 +265,21 @@
       if ((b = e.target.closest("[data-pf-ui]"))) { setLook("ui", b.getAttribute("data-pf-ui")); render(); return; }
       if ((b = e.target.closest("[data-pf-tab]"))) { c.switchTab(b.getAttribute("data-pf-tab")); return; }
       if ((b = e.target.closest("[data-pf-go]"))) { c.openSettings(b.getAttribute("data-pf-go") || null); return; }
-      if (e.target.closest("#pf-settings")) c.openSettings();
+      if (e.target.closest("#pf-settings")) { c.openSettings(); return; }
+      if (e.target.closest("[data-pf-edit]")) { me.edit = true; render(); var n = $("#pf-name"); if (n) n.focus(); return; }
+      if (e.target.closest("[data-pf-cancel]")) { me.edit = false; render(); return; }
+      if (e.target.closest("[data-pf-save]")) { saveEdit(); return; }
+      if (e.target.closest("[data-pf-photo]")) { $("#pf-photo-file").click(); return; }
+      if (e.target.closest("[data-pf-photo-del]")) {
+        savePhotoPath(null).then(function () { c.toast(t("s_saved"), "ok"); }, function (err) { console.error(err); c.toast(t("error_generic"), "error"); })
+          .then(function () { render(); refreshCard(); });
+        return;
+      }
+      if (e.target.closest("[data-pf-logo]")) { $("#logo-file").click(); return; }
+      if (e.target.closest("[data-pf-logo-del]")) { $("#logo-remove").click(); return; }
+    });
+    box.addEventListener("change", function (e) {
+      if (e.target.id === "pf-photo-file") uploadPhoto(e.target.files && e.target.files[0]);
     });
     var tp = $("#top-profile");
     if (tp) tp.addEventListener("click", function () { c.switchTab("profile"); });
@@ -176,6 +287,9 @@
     if (mb) mb.addEventListener("click", refreshCard);
   }
 
-  U.profile = { open: render, refreshCard: refreshCard };
+  // после смены логотипа в настройках — обновить аватар и профиль
+  function changed() { refreshCard(); if (state.tab === "profile") render(); }
+
+  U.profile = { open: render, refreshCard: function () { refreshCard(); loadAvatar(); }, changed: changed };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind); else bind();
 })(window.ULA);
