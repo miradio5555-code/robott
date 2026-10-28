@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118o"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118p"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1364,6 +1364,7 @@
     if (state.myWs && state.myWs.id === res.data.id) state.myWs = res.data;
     if (old && old !== path) db.storage.from("logos").remove([old]);   // старый файл больше не нужен
     renderLogo();
+    if (ULA.profile) ULA.profile.changed();
   }
 
   async function uploadLogo(file) {
@@ -3398,7 +3399,7 @@
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
-    clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
+    clientUrl: clientUrl, copyText: copyText, closeModal: closeModal, uid: uid,
     switchTab: switchTab, openSettings: openSettings, getTheme: getTheme, applyTheme: applyTheme, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
     filteredOrders: function () { return filtered(); },

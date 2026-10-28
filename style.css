@@ -3104,3 +3104,21 @@ html[data-ui="crisp"] { --r-xl: 8px; --r-lg: 6px; --r-md: 5px; --r-sm: 4px; }
   .top-profile.active { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent); }
   .section-menu-wrap { order: 3; }
 }
+
+/* Профиль: редактирование фото, имени, компании */
+button.pf-ava-wrap { border: 0; cursor: pointer; display: block; transition: transform .15s; }
+button.pf-ava-wrap:active { transform: scale(.96); }
+.pf-ava-wrap .pf-badge { width: 34px; height: 34px; }
+.pf-edit-btn { margin-top: 12px; min-height: 36px; padding: 0 16px; border-radius: 999px; }
+.pf-edit { display: grid; gap: 14px; margin-bottom: 8px; animation: q-in .3s var(--ease) backwards; }
+.pf-edit .field { margin: 0; }
+.pf-pic { display: flex; gap: 14px; align-items: center; }
+.pf-pic-img { flex: none; width: 72px; height: 72px; border-radius: 16px; overflow: hidden; display: grid; place-items: center;
+  background: var(--paper); border: 1px dashed var(--line-strong); color: var(--muted); }
+.pf-pic-img.round { border-radius: 50%; }
+.pf-pic-img img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+.pf-pic-t { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.pf-pic-t small { color: var(--muted); font-size: 12.5px; }
+.pf-pic-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.pf-pic-btns .btn { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.pf-edit-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
