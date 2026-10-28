@@ -11,7 +11,11 @@
 //   "connect_ws"     — (владелец кабинета) проверить, что он нажал Start с его кодом, и запомнить чат.
 //   Для страницы заявки клиента (без входа):
 //   "request_notify" — клиент только что оставил заявку → прислать байеру сообщение в Telegram.
+//   "exchange_notify" — то же для заявки на обмен сом → юань (по секретному номеру заявки);
+//   "exchange_paid"   — клиент загрузил скриншот оплаты → прислать байеру фото.
 //                      Принимает только секретный номер новой заявки; про каждую заявку сообщает один раз.
+//   "exchange_event"  — в сделке обмена что-то случилось (клиент подтвердил получение, спор, сообщение, решение):
+//                      байеру и (для споров) администратору. Каждое событие отправляется один раз.
 //   Для страницы заказа клиента (без входа, по секретной ссылке заказа):
 //   "client_info"       — как зовут бота и подписан ли уже кто-то на этот заказ.
 //   "client_connect"    — клиент нажал Start со ссылкой «o<токен>» → запомнить его чат для заказа.
@@ -133,6 +137,90 @@ Deno.serve(async (req) => {
       ].join("\n").slice(0, 3900);
       const sent = await tg("sendMessage", { chat_id: link.chat_id, text, disable_web_page_preview: true });
       return json({ ok: true, sent: sent.ok ? 1 : 0 });
+    }
+
+    // ---------- заявка клиента на обмен сом → юань (без входа) ----------
+    //   exchange_notify — новая заявка; exchange_paid — клиент загрузил скриншот оплаты (присылаем фото)
+    if (action === "exchange_notify" || action === "exchange_paid") {
+      const id = String(body.id ?? "");
+      if (!/^[0-9a-f-]{36}$/.test(id)) return json({ ok: false });
+      const paid = action === "exchange_paid";
+      const since = new Date(Date.now() - (paid ? 24 * 60 : 15) * 60 * 1000).toISOString();
+      // «забираем» событие одним действием: второй вызов уже ничего не найдёт
+      let q = db.from("exchange_requests")
+        .update(paid ? { paid_notified_at: new Date().toISOString() } : { notified_at: new Date().toISOString() })
+        .eq("id", id).gte("created_at", since);
+      q = paid ? q.eq("status", "paid").is("paid_notified_at", null) : q.is("notified_at", null);
+      const { data: x } = await q
+        .select("workspace_id, client_name, client_phone, cny, som, rate, comment, proof_path")
+        .maybeSingle();
+      if (!x) return json({ ok: true, sent: 0 });
+      const { data: link } = await db.from("ws_telegram").select("chat_id").eq("workspace_id", x.workspace_id).maybeSingle();
+      if (!link?.chat_id) return json({ ok: true, sent: 0, reason: "not_connected" });
+      const text = [
+        paid ? "💰 Клиент оплатил обмен — скриншот" : "💱 Заявка на обмен (ждёт оплаты)",
+        "👤 " + (x.client_name || "—"),
+        "📞 " + (x.client_phone || "—"),
+        "¥ " + x.cny + " = " + x.som + " сом (курс " + x.rate + ")",
+        ...(x.comment ? ["", String(x.comment).slice(0, 500)] : []),
+        "",
+        "Открыть: " + SITE_URL,
+      ].join("\n").slice(0, 1000);
+      if (paid && x.proof_path) {
+        const { data: signed } = await db.storage.from("fx-proofs").createSignedUrl(x.proof_path, 7 * 24 * 3600);
+        if (signed?.signedUrl) {
+          const ph = await tg("sendPhoto", { chat_id: link.chat_id, photo: signed.signedUrl, caption: text });
+          if (ph.ok) return json({ ok: true, sent: 1 });
+        }
+      }
+      const sent = await tg("sendMessage", { chat_id: link.chat_id, text, disable_web_page_preview: true });
+      return json({ ok: true, sent: sent.ok ? 1 : 0 });
+    }
+
+    // ---------- события сделки обмена: «получил», спор, сообщения в споре, решение ----------
+    //   байеру — всё, что написали клиент и администратор; администратору — споры и сообщения в них
+    if (action === "exchange_event") {
+      const id = String(body.id ?? "");
+      if (!/^[0-9a-f-]{36}$/.test(id)) return json({ ok: false });
+      const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // «забираем» события одним действием: второй вызов уже ничего не найдёт
+      const { data: evs } = await db.from("exchange_events")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("request_id", id).is("notified_at", null).gte("created_at", since)
+        .select("kind, author, body");
+      if (!evs || !evs.length) return json({ ok: true, sent: 0 });
+      const { data: x } = await db.from("exchange_requests")
+        .select("workspace_id, client_name, client_phone, cny, som, dispute").eq("id", id).maybeSingle();
+      if (!x) return json({ ok: true, sent: 0 });
+      const { data: w } = await db.from("workspaces").select("name").eq("id", x.workspace_id).maybeSingle();
+      const who: Record<string, string> = { client: "Клиент", buyer: "Байер", admin: "Администратор", system: "" };
+      const line = (e: any) =>
+        e.kind === "received" ? "✅ Клиент подтвердил: юани получил " + (e.body || "")
+        : e.kind === "dispute" ? "⚠️ " + who[e.author] + " открыл спор: " + String(e.body || "").slice(0, 600)
+        : e.kind === "resolved" ? "⚖️ Решение по спору: " + String(e.body || "").slice(0, 600)
+        : "💬 " + who[e.author] + ": " + String(e.body || "📎 фото").slice(0, 600);
+      const head = "💱 Обмен: " + (x.client_name || "—") + " · " + (x.client_phone || "—") + "\n¥ " + x.cny + " = " + x.som + " сом";
+      let sent = 0;
+      const toBuyer = evs.filter((e: any) => e.author !== "buyer" && e.kind !== "sent" && e.kind !== "auto_done");
+      if (toBuyer.length) {
+        const { data: link } = await db.from("ws_telegram").select("chat_id").eq("workspace_id", x.workspace_id).maybeSingle();
+        if (link?.chat_id) {
+          const text = [head, "", ...toBuyer.map(line), "", "Открыть: " + SITE_URL].join("\n").slice(0, 3500);
+          const r = await tg("sendMessage", { chat_id: link.chat_id, text, disable_web_page_preview: true });
+          if (r.ok) sent++;
+        }
+      }
+      const toAdmin = evs.filter((e: any) => e.author !== "admin" && (e.kind === "dispute" || (e.kind === "msg" && x.dispute === "open")));
+      if (toAdmin.length) {
+        const chatId = await getSetting("telegram_chat_id");
+        if (chatId) {
+          const text = ["⚖️ Спор по обмену · 🏢 " + (w?.name || "—"), head, "", ...toAdmin.map(line), "", "Открыть: " + SITE_URL]
+            .join("\n").slice(0, 3500);
+          const r = await tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true });
+          if (r.ok) sent++;
+        }
+      }
+      return json({ ok: true, sent });
     }
 
     // ---------- страница заказа клиента (без входа, по секретной ссылке) ----------
