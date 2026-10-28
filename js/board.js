@@ -35,6 +35,17 @@
     render();
   }
 
+  // Ссылка для приглашения друга-байера: в ней записан кабинет того, кто пригласил
+  function inviteUrl() {
+    return location.origin + location.pathname + "?ref=w" + String(state.myWs.id).replace(/-/g, "") + "#/join";
+  }
+  function inviteHtml() {
+    return '<div class="bd-news bd-invite"><div class="bd-head"><h3>' + U.icon("users", 16) + esc(t("ref_inv_t")) + "</h3></div>" +
+      '<p class="bd-text">' + esc(t("ref_inv_b")) + "</p>" +
+      '<div class="bd-actions"><button type="button" class="btn btn-sm btn-primary" data-board="refcopy">' + esc(t("ref_inv_copy")) + "</button>" +
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(t("ref_inv_wa_text", { url: inviteUrl() })) + '">' + esc(t("ref_inv_wa")) + "</a></div></div>";
+  }
+
   function render() {
     var box = $("#home-board");
     if (!box) return;
@@ -47,6 +58,7 @@
                : '<button type="button" class="btn btn-sm" data-board="ok" data-id="' + n.id + '">' + esc(t("board_news_ok")) + "</button>") +
         "</div>";
     }).join("");
+    if (!admin && state.myWs && state.myWs.id && state.myRole !== "staff") html += inviteHtml();
     if (admin) {
       html += '<details class="bd-post"><summary>' + esc(t("board_news_add")) + "</summary>" +
         '<textarea id="bd-text" rows="3" maxlength="1000" placeholder="' + esc(t("board_news_ph")) + '"></textarea>' +
@@ -104,6 +116,7 @@
       if (a === "ok") { markSeen(id); render(); }
       else if (a === "post") post();
       else if (a === "del") del(id);
+      else if (a === "refcopy") c.copyText(inviteUrl()).then(function (ok) { if (ok) toast(t("ref_inv_copied"), "ok"); });
     });
   }
 

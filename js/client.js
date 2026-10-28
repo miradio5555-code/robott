@@ -509,6 +509,14 @@
     });
   }
 
+  // Приглашение для клиента, который сам торгует: ссылка помнит, с чьей страницы он пришёл
+  function promoHtml() {
+    var tok = String(cd.token || "").slice(0, 12);
+    var href = location.pathname + (tok ? "?ref=o" + tok : "") + "#/join";
+    return '<section class="client-block promo-ref"><h2>' + esc(t("ref_promo_t")) + "</h2><p>" + esc(t("ref_promo_b")) + "</p>" +
+      '<a class="btn btn-primary" href="' + esc(href) + '">' + esc(t("ref_promo_btn")) + "</a></section>";
+  }
+
   function renderClient() {
     var box = $("#client-content");
     applyBrand(cab.token && !cab.open ? (cab.data && cab.data.brand) : (state.client && state.client.brand));
@@ -599,6 +607,8 @@
       (o.client_comment ? '<section class="client-block"><h2>' + esc(t("cl_comment")) + '</h2><p class="pre">' + esc(o.client_comment) + "</p></section>" : "") +
 
       '<div id="fx-pub-slot"></div>' +
+
+      promoHtml() +
 
       '<p class="fine-print">' + esc(t("cl_updated")) + ": " +
         esc(new Date(o.updated_at).toLocaleDateString(locale())) + "</p>";
