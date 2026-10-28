@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261117c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1719,7 +1719,7 @@
 
   // клиент подписан на этот заказ в Telegram — статусы он получает сам
   function tgTag(o) {
-    return o.tg_subs && o.tg_subs.length ? '<span class="batch-tag tg-tag" title="' + esc(t("tgc_tag_title")) + '">✈ Telegram</span>' : "";
+    return o.tg_subs && o.tg_subs.length ? '<span class="batch-tag tg-tag" title="' + esc(t("tgc_tag_title")) + '">' + U.icon("send", 12) + 'Telegram</span>' : "";
   }
 
   function trackTag(o) {
