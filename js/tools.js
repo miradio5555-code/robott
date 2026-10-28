@@ -102,14 +102,18 @@
   function printDoc(title, css, body, win) {
     var html = '<!doctype html><html lang="' + esc(typeof getLang === "function" ? getLang() : "ru") + '"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + "</title><style>" + css + PRINT_BAR_CSS + "</style></head><body>" +
-      '<div class="pbar"><b>' + esc(title) + '</b><button type="button" onclick="window.print()">' + esc(t("pr_print")) + "</button></div>" +
-      body + "<script>setTimeout(function(){window.print()},400)<\/script></body></html>";
+      '<div class="pbar"><b>' + esc(title) + '</b><button type="button">' + esc(t("pr_print")) + "</button></div>" +
+      body + "</body></html>";
     var w = win || null;
     if (!w) { try { w = window.open("", "_blank"); } catch (e) { w = null; } }
     if (w && w.document) {
       w.document.open();
       w.document.write(html);
       w.document.close();
+      // кнопку и печать включаем отсюда: встроенные скрипты запрещены правилом безопасности (CSP)
+      var pb = w.document.querySelector(".pbar button");
+      if (pb) pb.addEventListener("click", function () { w.print(); });
+      setTimeout(function () { try { w.focus(); w.print(); } catch (e) { /* ignore */ } }, 400);
       return;
     }
     // вкладку не дали открыть — печатаем через скрытую рамку
@@ -117,7 +121,7 @@
     f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
     document.body.appendChild(f);
     f.contentDocument.open();
-    f.contentDocument.write(html.replace(/<script>[\s\S]*?<\/script>/, ""));
+    f.contentDocument.write(html);
     f.contentDocument.close();
     setTimeout(function () {
       f.contentWindow.focus();
