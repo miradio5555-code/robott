@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261116c">
+  <link rel="stylesheet" href="style.css?v=20261116d">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -204,22 +204,22 @@
           </button>
           <div id="section-menu" class="section-menu hidden">
             <nav class="tabs section-menu-list" aria-label="Sections">
-            <button type="button" class="menu-group mg-main" data-group-toggle="main" aria-expanded="true"><i></i><span data-i18n="menu_main"></span><b class="mg-caret">▾</b></button>
-            <button type="button" class="tab active" data-group="main" data-tab="orders" aria-current="page" data-i18n="nav_orders"></button>
-            <button type="button" class="tab" data-group="main" data-tab="clients" data-i18n="nav_clients"></button>
-            <button type="button" class="tab" data-group="main" data-tab="shop" data-i18n="nav_shop"></button>
-            <button type="button" class="tab" data-group="main" data-tab="debts"><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
-            <button type="button" class="menu-group mg-money owner-only" data-group-toggle="money" aria-expanded="true"><i></i><span data-i18n="menu_money"></span><b class="mg-caret">▾</b></button>
-            <button type="button" class="tab owner-only" data-group="money" data-tab="analytics" data-i18n="nav_analytics"></button>
-            <button type="button" class="tab owner-only" data-group="money" data-tab="expenses" data-i18n="nav_expenses"></button>
-            <button type="button" class="menu-group mg-more" data-group-toggle="more" aria-expanded="true"><i></i><span data-i18n="menu_more"></span><b class="mg-caret">▾</b></button>
-            <button type="button" class="tab" data-group="more" data-tab="quote" data-i18n="nav_quote"></button>
-            <button id="vol-menu" type="button" class="tab" data-group="more" data-i18n="nav_volume" aria-haspopup="dialog"></button>
-            <button id="import-menu" type="button" class="tab" data-group="more" data-i18n="im_menu" data-import-open data-write aria-haspopup="dialog"></button>
-            <button type="button" class="tab" data-group="more" data-tab="suppliers" data-i18n="nav_suppliers"></button>
-            <button type="button" class="tab" data-group="more" data-tab="shipments" data-i18n="nav_shipments"></button>
-            <button type="button" class="tab admin-only" data-group="more" data-tab="buyers" data-i18n="nav_buyers"></button>
-            <button type="button" class="tab admin-only" data-group="more" data-tab="support"><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
+            <div class="menu-group mg-main" data-group-toggle="main" role="presentation"><span data-i18n="menu_main"></span></div>
+            <button type="button" class="tab active" data-group="main" data-tab="orders" aria-current="page"><i class="tab-ico" data-ico="package"></i><span data-i18n="nav_orders"></span></button>
+            <button type="button" class="tab" data-group="main" data-tab="clients"><i class="tab-ico" data-ico="users"></i><span data-i18n="nav_clients"></span></button>
+            <button type="button" class="tab" data-group="main" data-tab="shop"><i class="tab-ico" data-ico="store"></i><span data-i18n="nav_shop"></span></button>
+            <button type="button" class="tab" data-group="main" data-tab="debts"><i class="tab-ico" data-ico="wallet"></i><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
+            <div class="menu-group mg-money owner-only" data-group-toggle="money" role="presentation"><span data-i18n="menu_money"></span></div>
+            <button type="button" class="tab owner-only" data-group="money" data-tab="analytics"><i class="tab-ico" data-ico="chart"></i><span data-i18n="nav_analytics"></span></button>
+            <button type="button" class="tab owner-only" data-group="money" data-tab="expenses"><i class="tab-ico" data-ico="receipt"></i><span data-i18n="nav_expenses"></span></button>
+            <div class="menu-group mg-more" data-group-toggle="more" role="presentation"><span data-i18n="menu_more"></span></div>
+            <button type="button" class="tab" data-group="more" data-tab="quote"><i class="tab-ico" data-ico="calc"></i><span data-i18n="nav_quote"></span></button>
+            <button id="vol-menu" type="button" class="tab" data-group="more" aria-haspopup="dialog"><i class="tab-ico" data-ico="box"></i><span data-i18n="nav_volume"></span></button>
+            <button id="import-menu" type="button" class="tab" data-group="more" data-import-open data-write aria-haspopup="dialog"><i class="tab-ico" data-ico="file"></i><span data-i18n="im_menu"></span></button>
+            <button type="button" class="tab" data-group="more" data-tab="suppliers"><i class="tab-ico" data-ico="factory"></i><span data-i18n="nav_suppliers"></span></button>
+            <button type="button" class="tab" data-group="more" data-tab="shipments"><i class="tab-ico" data-ico="truck"></i><span data-i18n="nav_shipments"></span></button>
+            <button type="button" class="tab admin-only" data-group="more" data-tab="buyers"><i class="tab-ico" data-ico="users"></i><span data-i18n="nav_buyers"></span></button>
+            <button type="button" class="tab admin-only" data-group="more" data-tab="support"><i class="tab-ico" data-ico="message"></i><span data-i18n="nav_support"></span><span id="support-tab-badge" class="badge-inline hidden"></span></button>
             </nav>
             <div class="menu-divider" role="separator"></div>
             <button id="simple-btn" class="menu-action menu-simple hidden" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span></span></button>
@@ -1671,36 +1671,36 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261116c"></script>
-  <script src="i18n.js?v=20261116c"></script>
-  <script src="i18n.vi.js?v=20261116c"></script>
+  <script src="config.js?v=20261116d"></script>
+  <script src="i18n.js?v=20261116d"></script>
+  <script src="i18n.vi.js?v=20261116d"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261116c"></script>
+  <script src="app.js?v=20261116d"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261116c"></script>
-  <script src="js/support.js?v=20261116c"></script>
-  <script src="js/notify.js?v=20261116c"></script>
-  <script src="js/icons.js?v=20261116c"></script>
-  <script src="js/xlsx.js?v=20261116c"></script>
-  <script src="js/analytics.js?v=20261116c"></script>
-  <script src="js/bulk.js?v=20261116c"></script>
-  <script src="js/onboarding.js?v=20261116c"></script>
-  <script src="js/tgws.js?v=20261116c"></script>
-  <script src="js/mfa.js?v=20261116c"></script>
-  <script src="js/captcha.js?v=20261116c"></script>
-  <script src="js/tour.js?v=20261116c"></script>
-  <script src="js/recovery.js?v=20261116c"></script>
-  <script src="js/shop.js?v=20261116c"></script>
-  <script src="js/broadcast.js?v=20261116c"></script>
-  <script src="js/tools.js?v=20261116c"></script>
-  <script src="js/expenses.js?v=20261116c"></script>
-  <script src="js/import.js?v=20261116c"></script>
-  <script src="js/requests.js?v=20261116c"></script>
-  <script src="js/team.js?v=20261116c"></script>
-  <script src="js/shipments.js?v=20261116c"></script>
-  <script src="js/report.js?v=20261116c"></script>
-  <script src="js/debts.js?v=20261116c"></script>
-  <script src="js/quote.js?v=20261116c"></script>
-  <script src="js/client.js?v=20261116c"></script>
+  <script src="js/fx.js?v=20261116d"></script>
+  <script src="js/support.js?v=20261116d"></script>
+  <script src="js/notify.js?v=20261116d"></script>
+  <script src="js/icons.js?v=20261116d"></script>
+  <script src="js/xlsx.js?v=20261116d"></script>
+  <script src="js/analytics.js?v=20261116d"></script>
+  <script src="js/bulk.js?v=20261116d"></script>
+  <script src="js/onboarding.js?v=20261116d"></script>
+  <script src="js/tgws.js?v=20261116d"></script>
+  <script src="js/mfa.js?v=20261116d"></script>
+  <script src="js/captcha.js?v=20261116d"></script>
+  <script src="js/tour.js?v=20261116d"></script>
+  <script src="js/recovery.js?v=20261116d"></script>
+  <script src="js/shop.js?v=20261116d"></script>
+  <script src="js/broadcast.js?v=20261116d"></script>
+  <script src="js/tools.js?v=20261116d"></script>
+  <script src="js/expenses.js?v=20261116d"></script>
+  <script src="js/import.js?v=20261116d"></script>
+  <script src="js/requests.js?v=20261116d"></script>
+  <script src="js/team.js?v=20261116d"></script>
+  <script src="js/shipments.js?v=20261116d"></script>
+  <script src="js/report.js?v=20261116d"></script>
+  <script src="js/debts.js?v=20261116d"></script>
+  <script src="js/quote.js?v=20261116d"></script>
+  <script src="js/client.js?v=20261116d"></script>
 </body>
 </html>

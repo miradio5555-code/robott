@@ -509,7 +509,7 @@ I18N.vi = {
   rq_calc: "Tính giá",
   menu_main: "Chính",
   menu_money: "Tiền bạc",
-  menu_more: "Thêm",
+  menu_more: "Công cụ",
   r_back: "← Về phân tích",
   an_detail: "Chi tiết: theo tháng, khách hàng và sản phẩm",
   s_menu_sections: "Các mục trong menu",

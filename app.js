@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261116c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261116d"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -864,28 +864,8 @@
       toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
     });
     // 💡 помощник: свернуть / развернуть, кнопки в подсказках
-    // группы меню («Главное», «Деньги», «Ещё»): нажатие сворачивает и разворачивает, выбор запоминается
-    function applyMenuGroups() {
-      var closed = {};
-      try { closed = JSON.parse(localStorage.getItem("ula_menu_closed") || "{}") || {}; } catch (e) { closed = {}; }
-      $$("[data-group-toggle]").forEach(function (b) {
-        var g = b.getAttribute("data-group-toggle"), off = !!closed[g];
-        b.classList.toggle("closed", off);
-        b.setAttribute("aria-expanded", String(!off));
-        $$('.section-menu .tab[data-group="' + g + '"]').forEach(function (tab) { tab.classList.toggle("mg-hidden", off); });
-      });
-      return closed;
-    }
-    $$("[data-group-toggle]").forEach(function (b) {
-      b.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var closed = applyMenuGroups(), g = b.getAttribute("data-group-toggle");
-        closed[g] = !closed[g];
-        try { localStorage.setItem("ula_menu_closed", JSON.stringify(closed)); } catch (err) { /* ignore */ }
-        applyMenuGroups();
-      });
-    });
-    applyMenuGroups();
+    // значки у разделов меню (группы «Главное», «Деньги», «Инструменты» всегда раскрыты)
+    $$(".section-menu .tab-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 19); });
 
     // склад: на телефоне свёрнут в одну строку, нажатие на заголовок раскрывает контакты
     $("#wh-title").addEventListener("click", function () { $("#tab-orders .warehouse").classList.toggle("open"); });

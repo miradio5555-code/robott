@@ -2576,3 +2576,18 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .logo-row .stack { flex: 1; }
 .brand-logo { display: block; height: 36px; width: auto; max-width: 120px; object-fit: contain; border-radius: 8px; background: #fff; }
 .brand-co { font-weight: 600; font-size: 15px; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Меню разделов: значки, спокойные заголовки групп ---------- */
+.section-menu { max-height: calc(100dvh - 84px); overflow-y: auto; overscroll-behavior: contain; }
+.section-menu .tab { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 600; }
+.section-menu .tab .tab-ico { display: grid; place-items: center; width: 22px; flex: none; color: var(--muted); font-style: normal; }
+.section-menu .tab.active .tab-ico { color: var(--primary, #2F6FDE); }
+.section-menu .tab.active::after,
+.section-menu .tab[data-group].active::after { background: var(--primary, #2F6FDE); }
+.section-menu .menu-group,
+.section-menu .menu-group:hover { display: block; padding: 12px 12px 4px; background: none; cursor: default;
+  font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.section-menu .menu-group:first-child { padding-top: 4px; }
+.section-menu .menu-group.mg-main, .section-menu .menu-group.mg-money, .section-menu .menu-group.mg-more { color: var(--muted); }
+.section-menu .menu-action svg { color: var(--muted); }
+.section-menu .menu-logout, .section-menu .menu-logout svg { color: var(--red, #d64545); }
