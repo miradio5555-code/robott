@@ -101,7 +101,7 @@
         (e.body ? '<div class="fx-msg-body">' + esc(e.body) + "</div>" : "") +
         (file ? (pub
           ? '<button type="button" class="fx-msg-img" data-fx-img="' + esc(sentUrl(file)) + '"><img alt="" loading="lazy" src="' + esc(sentUrl(file)) + '"></button>'
-          : '<button type="button" class="btn btn-sm" data-fx-proof="' + esc(file) + '">📎 ' + esc(t("fx_d_photo")) + "</button>") : "") +
+          : '<button type="button" class="btn btn-sm" data-fx-proof="' + esc(file) + '">' + U.icon("clip", 16) + esc(t("fx_d_photo")) + "</button>") : "") +
         "</div>";
     }).join("") + "</div>";
   }
@@ -301,8 +301,8 @@
   function kycHtml() {
     var k = fx.kyc;
     if (k === undefined) return "";
-    if (k && k.status === "approved") return '<p class="kyc-ok">✔ ' + esc(t("kyc_ok")) + "</p>";
-    var html = '<div class="kyc-box"><h4>🪪 ' + esc(t("kyc_title")) + "</h4>";
+    if (k && k.status === "approved") return '<p class="kyc-ok">' + U.icon("check", 16) + esc(t("kyc_ok")) + "</p>";
+    var html = '<div class="kyc-box"><h4>' + U.icon("id", 18) + esc(t("kyc_title")) + "</h4>";
     if (k && k.status === "pending") {
       return html + '<p class="kyc-wait">⏳ ' + esc(t("kyc_pending", { d: c.fmtDate(k.submitted_at) })) + "</p></div>";
     }
@@ -378,7 +378,7 @@
   function kycAdminHtml() {
     var all = fx.kycList, pend = all.filter(function (k) { return k.status === "pending"; });
     var list = fx.kycFilter === "all" ? all : pend;
-    var html = '<section class="an-card fx-card"><h3>🪪 ' + esc(t("kyc_admin_title")) + "</h3>" +
+    var html = '<section class="an-card fx-card"><h3>' + U.icon("id", 18) + esc(t("kyc_admin_title")) + "</h3>" +
       '<div class="chips">' +
         '<button type="button" class="chip' + (fx.kycFilter === "pending" ? " active" : "") + '" data-kyc-filter="pending">' + esc(t("kyc_f_pending")) + " · " + pend.length + "</button>" +
         '<button type="button" class="chip' + (fx.kycFilter === "all" ? " active" : "") + '" data-kyc-filter="all">' + esc(t("fx_all")) + " · " + all.length + "</button>" +
@@ -387,14 +387,14 @@
     return html + '<div class="fx-list">' + list.map(function (k) {
       return '<div class="fx-row kyc-st-' + esc(k.status) + '">' +
         '<div class="fx-row-top"><b>' + esc(k.full_name) + '</b><span class="fx-st">' + esc(t("kyc_st_" + k.status)) + "</span></div>" +
-        '<div class="fx-row-sum">🪪 ' + esc(k.doc_number) + "</div>" +
+        '<div class="fx-row-sum">' + U.icon("id", 16) + esc(k.doc_number) + "</div>" +
         '<div class="fx-row-meta">' + esc(k.ws_name || "—") + " · " + esc(k.phone ? c.fmtPhone(k.phone) : "") + " · " + esc(k.email || "") + "</div>" +
         '<div class="fx-row-meta">' + esc(c.fmtDate(k.submitted_at)) + " · " + esc(c.fmtTime(k.submitted_at)) + "</div>" +
         (k.reason ? '<div class="fx-row-note">' + esc(k.reason) + "</div>" : "") +
         '<div class="fx-row-act">' +
           '<button type="button" class="btn btn-sm" data-kyc-view="' + esc(k.user_id) + '">' + esc(t("kyc_view")) + "</button>" +
           (k.status === "pending"
-            ? '<button type="button" class="btn btn-sm btn-primary" data-kyc-ok="' + esc(k.user_id) + '">✔ ' + esc(t("kyc_approve")) + "</button>" +
+            ? '<button type="button" class="btn btn-sm btn-primary" data-kyc-ok="' + esc(k.user_id) + '">' + U.icon("check", 16) + esc(t("kyc_approve")) + "</button>" +
               '<button type="button" class="btn btn-sm btn-ghost" data-kyc-no="' + esc(k.user_id) + '">' + esc(t("kyc_reject")) + "</button>"
             : k.status === "approved"
               ? '<button type="button" class="btn btn-sm btn-ghost" data-kyc-no="' + esc(k.user_id) + '">' + esc(t("kyc_revoke")) + "</button>"
@@ -447,14 +447,14 @@
     var waText = t("fx_wa_status", { name: r.client_name, url: statusUrl(r.id) });
     return '<div class="fx-row st-' + esc(r.status) + (disp ? " st-dispute" : "") + '">' +
       '<div class="fx-row-top"><b>' + esc(r.client_name) + '</b><span class="fx-st">' + esc(disp ? t("fx_st_dispute") : t("fx_st_" + r.status)) + "</span></div>" +
-      (r.client_flag ? '<div class="fx-flag">⚠ ' + esc(t("fx_flag")) + "</div>" : "") +
+      (r.client_flag ? '<div class="fx-flag">' + U.icon("alert", 14) + esc(t("fx_flag")) + "</div>" : "") +
       '<div class="fx-row-sum"><b>¥ ' + esc(money(r.cny)) + "</b> = " + esc(money(r.som)) + " " + esc(t("fx_som_short")) + " <small>(" + esc(rateStr(r.rate)) + ")</small></div>" +
       '<div class="fx-row-meta">' + esc(c.fmtDate(r.created_at)) + " · " + esc(c.fmtTime(r.created_at)) + "</div>" +
       (r.comment ? '<div class="fx-row-note">' + esc(r.comment) + "</div>" : "") +
       (r.status === "confirmed" && r.eta_until ? '<div class="fx-row-eta">' + esc(untilText(r.eta_until)) + "</div>" : "") +
       (r.status === "sent" && r.sent_at && !disp ? '<div class="fx-row-eta">' + esc(t("fx_wait_client", { t: when(new Date(new Date(r.sent_at).getTime() + 864e5)) })) + "</div>" : "") +
       (r.status === "done" && r.rating ? '<div class="fx-stars-line">' + "★★★★★".slice(0, r.rating) + '<span class="off">' + "★★★★★".slice(r.rating) + "</span></div>" : "") +
-      (r.buyer_note && (work || r.status === "sent") ? '<div class="fx-row-note">💬 ' + esc(r.buyer_note) + "</div>" : "") +
+      (r.buyer_note && (work || r.status === "sent") ? '<div class="fx-row-note">' + U.icon("message", 14) + esc(r.buyer_note) + "</div>" : "") +
       (r.dispute ? disputeHtml(r) : "") +
       (fx.confirming === r.id ? confirmHtml(r) : "") +
       (fx.busyId === r.id ? '<div class="fx-row-eta">' + esc(t("fx_uploading")) + "</div>" : "") +
@@ -467,10 +467,10 @@
           ? (r.status === "confirmed"
               ? '<button type="button" class="btn btn-sm" data-fx-confirm="' + esc(r.id) + '">' + esc(t("fx_eta_change")) + "</button>"
               : '<button type="button" class="btn btn-sm' + (r.status === "paid" ? " btn-primary" : "") + '" data-fx-confirm="' + esc(r.id) + '">' + esc(t("fx_confirm_btn")) + "</button>") +
-            '<button type="button" class="btn btn-sm' + (r.status === "confirmed" ? " btn-primary" : "") + '" data-fx-send="' + esc(r.id) + '">📷 ' + esc(t("fx_sent_btn")) + "</button>" +
+            '<button type="button" class="btn btn-sm' + (r.status === "confirmed" ? " btn-primary" : "") + '" data-fx-send="' + esc(r.id) + '">' + U.icon("camera", 16) + esc(t("fx_sent_btn")) + "</button>" +
             (r.status === "new"
               ? '<button type="button" class="btn btn-sm btn-ghost" data-fx-st="cancelled" data-fx-id="' + esc(r.id) + '">' + esc(t("fx_cancel_btn")) + "</button>"
-              : '<button type="button" class="btn btn-sm btn-ghost" data-fx-dopen="' + esc(r.id) + '">⚠ ' + esc(t("fx_d_btn")) + "</button>")
+              : '<button type="button" class="btn btn-sm btn-ghost" data-fx-dopen="' + esc(r.id) + '">' + U.icon("alert", 16) + esc(t("fx_d_btn")) + "</button>")
           : "") +
       "</div></div>";
   }
@@ -483,13 +483,13 @@
       ? (r.dispute_by === me ? t("fx_d_open_me") : t(r.dispute_by === "buyer" ? "fx_d_open_buyer" : "fx_d_open_client"))
       : t("fx_d_closed");
     return '<div class="fx-dispute' + (open ? " open" : "") + '">' +
-      "<b>⚖️ " + esc(title) + "</b>" +
+      "<b>" + U.icon("scale", 16) + esc(title) + "</b>" +
       (r.dispute_result ? '<p class="fx-d-res">' + esc(t(r.dispute_result === "client" ? "fx_d_res_client" : "fx_d_res_buyer")) + (r.dispute_note ? ": " + esc(r.dispute_note) : "") + "</p>" : "") +
       threadHtml(events || fx.events[r.id], me) +
       (open && !state.readOnly
         ? '<div class="fx-d-form"><textarea rows="2" maxlength="1000" data-fx-dmsg="' + esc(key) + '" placeholder="' + esc(t("fx_d_msg_ph")) + '"></textarea>' +
           '<div class="fx-row-act"><button type="button" class="btn btn-sm btn-primary" data-fx-dsend="' + esc(key) + '">' + esc(t("fx_d_send")) + "</button>" +
-          (me === "buyer" ? '<button type="button" class="btn btn-sm" data-fx-dattach="' + esc(r.id) + '">' + esc(t("fx_d_attach")) + "</button>" : "") +
+          (me === "buyer" ? '<button type="button" class="btn btn-sm" data-fx-dattach="' + esc(r.id) + '">' + U.icon("clip", 16) + esc(t("fx_d_attach")) + "</button>" : "") +
           "</div></div>" +
           (me === "buyer" ? '<p class="fine-print">' + esc(t("fx_d_hint_buyer")) + "</p>" : "")
         : "") +
@@ -500,7 +500,7 @@
   function disputesAdminHtml() {
     var all = fx.disputes, open = all.filter(function (d) { return d.dispute === "open"; });
     var list = fx.dFilter === "all" ? all : open;
-    var html = '<section class="an-card fx-card"><h3>⚖️ ' + esc(t("fx_disputes_title")) + "</h3>" +
+    var html = '<section class="an-card fx-card"><h3>' + U.icon("scale", 18) + esc(t("fx_disputes_title")) + "</h3>" +
       '<div class="chips">' +
         '<button type="button" class="chip' + (fx.dFilter === "open" ? " active" : "") + '" data-fx-dfilter="open">' + esc(t("fx_d_open_f")) + " · " + open.length + "</button>" +
         '<button type="button" class="chip' + (fx.dFilter === "all" ? " active" : "") + '" data-fx-dfilter="all">' + esc(t("fx_all")) + " · " + all.length + "</button>" +
@@ -513,7 +513,7 @@
         '<div class="fx-d-sides">' +
           "<div><small>" + esc(t("fx_who_client")) + "</small><b>" + esc(d.client_name) + "</b>" +
             '<a href="tel:' + esc(d.client_phone) + '">' + esc(c.fmtPhone(d.client_phone)) + "</a>" +
-            (d.blacklisted ? '<span class="fx-flag">⚠ ' + esc(t("fx_bl_tag")) + "</span>" : "") + "</div>" +
+            (d.blacklisted ? '<span class="fx-flag">' + U.icon("alert", 14) + esc(t("fx_bl_tag")) + "</span>" : "") + "</div>" +
           "<div><small>" + esc(t("fx_who_buyer")) + "</small><b>" + esc(d.ws_name || "—") + "</b>" +
             esc(d.buyer_name || "") + (d.buyer_phone ? ' · <a href="tel:' + esc(d.buyer_phone) + '">' + esc(c.fmtPhone(d.buyer_phone)) + "</a>" : "") +
             "<span>" + esc(d.buyer_kyc ? t("kyc_st_" + d.buyer_kyc) : "—") + "</span>" +
@@ -912,7 +912,7 @@
     }
     html += (f.updated_at ? '<p class="fx-date ' + (isToday(f.updated_at) ? "" : "old") + '">' + esc(dateLine(f.updated_at)) + "</p>" : "") +
       (f.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(f.eta) })) + "</p>" : "") +
-      '<p class="kyc-pub">✔ ' + esc(t("kyc_pub_badge")) + "</p>" +
+      '<p class="kyc-pub">' + U.icon("shield", 16) + esc(t("kyc_pub_badge")) + "</p>" +
       '<div class="fx-tiers-wrap">' + tiersHtml(f.tiers, parseNum(pub.cny) || 0) + "</div>";
     if (pub.step === "form") {
       var cny = parseNum(pub.cny);
@@ -1078,7 +1078,7 @@
     } else if (s.status === "paid" && !disp) {
       html += '<p class="muted">' + esc(s.eta ? t("fx_paid_wait", { n: etaName(s.eta) }) : t("fx_paid_wait0")) + "</p>";
     }
-    if (s.buyer_note && !cancelled) html += '<div class="fx-msg">💬 ' + esc(s.buyer_note) + "</div>";
+    if (s.buyer_note && !cancelled) html += '<div class="fx-msg">' + U.icon("message", 14) + esc(s.buyer_note) + "</div>";
     // юани отправлены: скриншот продавца и «Юани получил»
     if (s.status === "sent") {
       if (s.sent_proof) {
@@ -1088,7 +1088,7 @@
       html += '<div class="fx-recv"><b>' + esc(t("fx_recv_q")) + '</b><div class="fx-stars">' +
         [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="' + ((page.star || 0) >= n ? "on" : "") + '" data-fxs-star="' + n + '" aria-label="' + n + '">★</button>'; }).join("") +
         "</div>" +
-        '<button type="button" class="btn btn-primary btn-block" id="fxs-recv"' + (page.busy ? " disabled" : "") + ">✅ " + esc(t("fx_recv_btn")) + "</button>" +
+        '<button type="button" class="btn btn-primary btn-block" id="fxs-recv"' + (page.busy ? " disabled" : "") + ">" + U.icon("check", 18) + esc(t("fx_recv_btn")) + "</button>" +
         (s.close_at && !disp ? '<p class="fine-print">' + esc(t("fx_recv_auto", { t: when(s.close_at) })) + "</p>" : "") +
         "</div>";
     }
@@ -1109,30 +1109,30 @@
     // спор
     if (s.dispute) {
       var by = s.dispute_by === "client" ? t("fx_d_open_me") : t("fx_d_open_buyer");
-      html += '<div class="fx-dispute' + (disp ? " open" : "") + '"><b>⚖️ ' + esc(disp ? by : t("fx_d_closed")) + "</b>" +
+      html += '<div class="fx-dispute' + (disp ? " open" : "") + '"><b>' + U.icon("scale", 16) + esc(disp ? by : t("fx_d_closed")) + "</b>" +
         (s.dispute_result ? '<p class="fx-d-res">' + esc(t(s.dispute_result === "client" ? "fx_d_res_client" : "fx_d_res_buyer")) + (s.dispute_note ? ": " + esc(s.dispute_note) : "") + "</p>" : "") +
         threadHtml(s.events, "client") +
         (disp
           ? '<div class="fx-d-form"><textarea id="fxs-msg" rows="3" maxlength="1000" placeholder="' + esc(t("fx_d_msg_ph")) + '"></textarea>' +
             '<input id="fxs-dfile" type="file" accept="image/*" hidden>' +
             '<div class="fx-row-act"><button type="button" class="btn btn-sm btn-primary" id="fxs-dsend"' + (page.busy ? " disabled" : "") + ">" + esc(t("fx_d_send")) + "</button>" +
-            '<button type="button" class="btn btn-sm" id="fxs-dattach"' + (page.busy ? " disabled" : "") + ">" + esc(t("fx_d_attach")) + "</button></div></div>" +
+            '<button type="button" class="btn btn-sm" id="fxs-dattach"' + (page.busy ? " disabled" : "") + ">" + U.icon("clip", 16) + esc(t("fx_d_attach")) + "</button></div></div>" +
             '<p class="fine-print">' + esc(t("fx_d_hint_client")) + "</p>"
           : "") +
         "</div>";
     }
     if (s.can_dispute && !disp) {
       html += page.dForm
-        ? '<div class="fx-dispute open"><b>⚠ ' + esc(t("fx_d_btn")) + "</b>" +
+        ? '<div class="fx-dispute open"><b>' + U.icon("alert", 16) + esc(t("fx_d_btn")) + "</b>" +
             '<textarea id="fxs-reason" rows="3" maxlength="1000" placeholder="' + esc(t("fx_d_reason_ph")) + '"></textarea>' +
             '<button type="button" class="btn btn-primary btn-block" id="fxs-dgo"' + (page.busy ? " disabled" : "") + ">" + esc(t("fx_d_send")) + "</button>" +
             '<p class="fine-print">' + esc(t("fx_d_hint_client")) + "</p></div>"
-        : '<button type="button" class="btn btn-ghost btn-block fx-d-btn" id="fxs-dform">⚠ ' + esc(t(s.status === "sent" ? "fx_d_btn_notrecv" : "fx_d_btn")) + "</button>";
+        : '<button type="button" class="btn btn-ghost btn-block fx-d-btn" id="fxs-dform">' + U.icon("alert", 16) + esc(t(s.status === "sent" ? "fx_d_btn_notrecv" : "fx_d_btn")) + "</button>";
     } else if (s.dispute_from && !s.dispute && new Date(s.dispute_from) > new Date()) {
       html += '<p class="fine-print">' + esc(t("fx_d_from", { t: when(s.dispute_from) })) + "</p>";
     }
     if (page.error) html += '<p class="form-error" role="alert">' + esc(page.error) + "</p>";
-    if (!cancelled && s.status !== "done") html += '<p class="fx-protect">' + esc(t("fx_protect")) + "</p>";
+    if (!cancelled && s.status !== "done") html += '<p class="fx-protect">' + U.icon("shield", 18) + '<span>' + esc(t("fx_protect")) + '</span>' + "</p>";
     html += '<p class="fine-print">' + esc(t("fx_created", { d: when(s.created_at) })) +
       (live(s) ? " · " + esc(t("fx_auto")) : "") + "</p>" +
       '<button type="button" class="btn btn-ghost btn-block" id="fxs-refresh">' + esc(t("refresh")) + "</button>";

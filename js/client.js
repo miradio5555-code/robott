@@ -482,14 +482,14 @@
     } else {
       var link = "https://t.me/" + encodeURIComponent(tgc.bot) + "?start=o" + encodeURIComponent(cd.token);
       body = '<p class="muted">' + esc(t("tgc_text")) + "</p>" +
-        '<div class="track-actions"><a class="btn btn-primary tgc-btn" target="_blank" rel="noopener" data-tgc="open" href="' + esc(link) + '">' +
+        '<div class="track-actions"><a class="btn btn-primary tgc-btn" target="_blank" rel="noopener" data-tgc="open" href="' + esc(link) + '">' + U.icon("send", 16) +
           esc(t("tgc_btn")) + "</a>" +
         (tgc.opened ? '<button type="button" class="btn" data-tgc="check"' + (tgc.busy ? " disabled" : "") + ">" + esc(t(tgc.busy ? "tgc_checking" : "tgc_check")) + "</button>" : "") +
         "</div>" +
         (tgc.opened ? '<p class="fine-print">' + esc(t("tgc_hint")) + "</p>" : "") +
         (tgc.error ? '<p class="im-error">' + esc(t(tgc.error)) + "</p>" : "");
     }
-    return '<section class="client-block tgc-block"><h2>🔔 ' + esc(t("tgc_title")) + "</h2>" + body + "</section>";
+    return '<section class="client-block tgc-block"><h2>' + U.icon("bell", 18) + esc(t("tgc_title")) + "</h2>" + body + "</section>";
   }
 
   function clientPhotoUrls() {
