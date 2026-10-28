@@ -3122,3 +3122,5 @@ button.pf-ava-wrap:active { transform: scale(.96); }
 .pf-pic-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .pf-pic-btns .btn { min-height: 34px; padding: 0 12px; font-size: 13px; }
 .pf-edit-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.pf-photo-del { margin-top: 6px; font-size: 13px; color: var(--muted); }
+button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infinite; }
