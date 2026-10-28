@@ -6,6 +6,7 @@
 --     поэтому прямой доступ им не нужен. Раньше его закрывали только правила строк (RLS);
 --     теперь закрыт ещё и сам доступ к таблицам — второй замок на случай ошибки в правилах.
 --     То же — для новых таблиц, которые появятся потом.
+--   • У всех функций задан search_path; служебные проверки и функции-триггеры анонимам недоступны.
 --   • Фото заказов: не больше 5 МБ (сайт и так сжимает фото до ~260 КБ).
 --
 -- Как запустить: Supabase → SQL Editor → New query → вставить весь файл → Run.
@@ -30,7 +31,34 @@ alter default privileges in schema public revoke all on tables    from anon;
 alter default privileges in schema public revoke all on sequences from anon;
 
 
--- 2. Фото заказов — не больше 5 МБ
+-- 2. Функции (по замечаниям Supabase Security Advisor)
+--    • у всех функций задан search_path (нельзя подменить таблицы через свою схему);
+--    • служебные проверки (is_admin, is_member…) и функции-триггеры анонимам вызывать незачем — закрываем.
+--      Функции для страниц клиентов (get_client_order, submit_exchange, get_exchange_status…) остаются открытыми:
+--      они пускают только по секретной ссылке и отдают только нужное клиенту.
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as sig, p.prorettype = 'trigger'::regtype as is_trigger, p.proname
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prokind = 'f'
+  loop
+    if not exists (select 1 from pg_proc p2, unnest(coalesce(p2.proconfig, '{}')) x
+                    where p2.oid = f.sig::oid and x like 'search_path=%') then
+      execute format('alter function %s set search_path = public', f.sig);
+    end if;
+    if f.is_trigger then
+      execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+    elsif f.proname in ('is_admin', 'is_member', 'is_owner', 'can_read_ws', 'my_workspace_id') then
+      execute format('revoke all on function %s from public, anon', f.sig);
+      execute format('grant execute on function %s to authenticated', f.sig);
+    end if;
+  end loop;
+end $$;
+
+
+-- 3. Фото заказов — не больше 5 МБ
 update storage.buckets set file_size_limit = 5242880 where id = 'order-photos' and coalesce(file_size_limit, 0) > 5242880;
 
 
