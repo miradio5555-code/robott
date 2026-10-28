@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118d"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -827,6 +827,7 @@
     renderWarehouse();
     switchTab("orders");
     await Promise.all([loadOrders(), loadSuppliers()]);
+    ULA.board.load();           // новости и курс ULA на главной
     ULA.exchange.loadCount();   // значок новых заявок на обмен в меню
     decideSimple();
     applySimpleMode();
@@ -946,6 +947,7 @@
     ULA.tools.bind();
     ULA.expenses.bind();
     ULA.exchange.bind();
+    ULA.board.bind();
     ULA.importer.bind();
     $("#vol-menu").addEventListener("click", closeSectionMenu);
     $("#import-menu").addEventListener("click", closeSectionMenu);

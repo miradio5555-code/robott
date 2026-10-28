@@ -2749,3 +2749,16 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 14px; background: #151417; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
 .pwa-update .btn { min-height: 36px; flex: none; }
+
+/* Главная: новости и курс ULA */
+.home-board { display: grid; gap: 12px; margin: 0 0 14px; }
+.home-board.hidden { display: none; }
+.bd-news, .bd-rate, .bd-post { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.bd-news { border-left: 4px solid var(--red); }
+.bd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.bd-head h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 16px; font-weight: 600; }
+.bd-head span { font-size: 13px; color: var(--muted); }
+.bd-text { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bd-rate .btn { margin-top: 4px; }
+.bd-post summary { cursor: pointer; font-weight: 600; }
+.bd-post textarea { width: 100%; margin: 10px 0; }
