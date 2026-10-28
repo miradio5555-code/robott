@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261115a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261116a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -316,6 +316,15 @@
       db = miniClient(url, key);
       mode = "client";
       ULA.client.init(clientToken);
+      return;
+    }
+
+    // Общая ссылка клиента (?c=ТОКЕН): все его заказы в одном месте
+    var cabToken = new URLSearchParams(location.search).get("c");
+    if (cabToken) {
+      db = miniClient(url, key);
+      mode = "client";
+      ULA.client.initCabinet(cabToken);
       return;
     }
 
@@ -1152,6 +1161,11 @@
     });
     $("#link-rotate").addEventListener("click", rotateClientLink);
     $("#link-revoke").addEventListener("click", revokeClientLink);
+    $("#cab-create").addEventListener("click", function () { cabAction("create"); });
+    $("#cab-revoke").addEventListener("click", function () { cabAction("revoke"); });
+    $("#cab-copy").addEventListener("click", async function () {
+      if (await copyText($("#cab-input").value)) toast(t("copied"), "ok");
+    });
     $("#link-input").addEventListener("focus", function (e) { e.target.select(); });
   }
 
@@ -2668,6 +2682,7 @@
     state.linkOrderId = o.id;
     renderLinkModal(o);
     openModal("modal-link");
+    cabLoad(o);
     var url = clientUrl(o);
     if (url) copyText(url).then(function (ok) { if (ok) toast(t("copied"), "ok"); });
   }
@@ -2686,6 +2701,59 @@
       ? "https://wa.me/?text=" + encodeURIComponent(t("wa_text", { n: o.order_number }) + " " + url)
       : "#";
     $("#link-open").href = active ? url : "#";
+  }
+
+  // ---------- Общая ссылка клиента (все его заказы) ----------
+  function cabUrl(token) {
+    var base = location.origin + location.pathname.replace(/index\.html$/, "");
+    return base + "?c=" + token;
+  }
+
+  function renderCabBox(token) {
+    var url = token ? cabUrl(token) : "";
+    $("#cab-input").value = url;
+    $("#cab-input").classList.toggle("hidden", !token);
+    $("#cab-copy").classList.toggle("hidden", !token);
+    $("#cab-wa").classList.toggle("hidden", !token);
+    $("#cab-wa").href = token ? "https://wa.me/?text=" + encodeURIComponent(t("lk_all_wa") + " " + url) : "#";
+    $("#cab-create").classList.toggle("hidden", !!token || state.readOnly);
+    $("#cab-revoke").classList.toggle("hidden", !token || state.readOnly);
+  }
+
+  async function cabLoad(o) {
+    renderCabBox("");
+    $("#cab-create").classList.add("hidden");
+    try {
+      var res = await db.rpc("client_cabinet", { p_order_id: o.id, p_action: "get" });
+      if (res.error) throw res.error;
+      if (state.linkOrderId === o.id) renderCabBox(res.data || "");
+    } catch (err) {
+      console.error(err);
+      if (state.linkOrderId === o.id) renderCabBox("");
+    }
+  }
+
+  async function cabAction(action) {
+    var o = state.orders.find(function (x) { return x.id === state.linkOrderId; });
+    if (!o || state.readOnly) return;
+    if (action === "revoke" && !window.confirm(t("lk_all_confirm_revoke"))) return;
+    var btn = $(action === "create" ? "#cab-create" : "#cab-revoke");
+    btn.disabled = true;
+    try {
+      var res = await db.rpc("client_cabinet", { p_order_id: o.id, p_action: action });
+      if (res.error) throw res.error;
+      renderCabBox(res.data || "");
+      if (action === "create") {
+        await copyText(cabUrl(res.data));
+        toast(t("lk_all_created"), "ok");
+      } else {
+        toast(t("lk_all_revoked"), "ok");
+      }
+    } catch (err) {
+      handleError(err);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function rotateClientLink() {
