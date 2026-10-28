@@ -1293,6 +1293,8 @@ I18N.vi = {
   fx_recv_btn: "Đã nhận",
   fx_recv_auto: "Nếu không xác nhận hoặc mở tranh chấp trước {t}, giao dịch sẽ tự đóng",
   fx_protect: "Bảo vệ ULA Factory: người bán đã xác minh danh tính. Nếu có vấn đề, hãy mở tranh chấp tại đây.",
+  pwa_update: "Trang web đã được cập nhật",
+  pwa_reload: "Tải lại",
   logo_title: "Logo",
   logo_hint: "Khách hàng sẽ thấy logo này thay cho \"ULA Factory\" trên trang đơn hàng, liên kết chung và cửa hàng. Nên dùng png/jpg vuông hoặc ngang.",
   logo_upload: "Tải logo lên",

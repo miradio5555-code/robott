@@ -2742,3 +2742,10 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .tg-tag .ico { margin-right: 4px; }
 .fx-protect { display: flex; gap: 8px; align-items: flex-start; }
 .fx-protect .ico { flex: none; margin-top: 1px; color: var(--green); }
+
+/* ---------- Плашка «Вышло обновление» (js/pwa.js) ---------- */
+.pwa-update { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 2000;
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100% - 32px); padding: 10px 10px 10px 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px; background: #151417; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.pwa-update .btn { min-height: 36px; flex: none; }
