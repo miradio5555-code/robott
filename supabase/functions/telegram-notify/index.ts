@@ -6,6 +6,8 @@
 //   "notify"         — байер только что написал в поддержку → прислать админу сообщение в Telegram.
 //   "connect"        — (только админ) найти чат, где админ нажал Start у бота, и запомнить его.
 //   "status"         — (только админ) подключено ли, как зовут бота.
+//   "news_broadcast" — (только админ) новость платформы → всем байерам, у которых подключён Telegram кабинета.
+//                      Каждая новость рассылается один раз (отметка tg_sent_at).
 //   Для байера (заявки клиентов):
 //   "bot"            — (вошедший пользователь) как зовут бота, чтобы собрать ссылку «Start».
 //   "connect_ws"     — (владелец кабинета) проверить, что он нажал Start с его кодом, и запомнить чат.
@@ -457,6 +459,27 @@ Deno.serve(async (req) => {
       await db.from("support_messages").update({ notified_at: new Date().toISOString() })
         .in("id", rows.map((r) => r.id));
       return json({ ok: true, sent: rows.length });
+    }
+
+    // ---------- новость платформы → байерам в Telegram (админ) ----------
+    if (action === "news_broadcast") {
+      if (isAdmin !== true) return json({ error: "forbidden" }, 403);
+      const id = Number(body.news_id);
+      if (!Number.isSafeInteger(id) || id <= 0) return json({ error: "bad_id" }, 400);
+      // отметить заранее: даже при двойном нажатии новость уйдёт один раз
+      const { data: news } = await db.from("platform_news").update({ tg_sent_at: new Date().toISOString() })
+        .eq("id", id).is("tg_sent_at", null).select("body").maybeSingle();
+      if (!news) return json({ ok: true, sent: 0, reason: "already_sent" });
+      const { data: chats } = await db.from("ws_telegram").select("chat_id").not("chat_id", "is", null);
+      const ids = [...new Set((chats ?? []).map((r: any) => String(r.chat_id)))];
+      const text = ("📢 Новости ULA Factory\n\n" + String(news.body)).slice(0, 3900) + "\n\n" + SITE_URL;
+      let sent = 0;
+      for (const chat of ids) {
+        const r = await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true });
+        if (r.ok) sent++;
+        await new Promise((ok) => setTimeout(ok, 40));   // Telegram: не больше ~30 сообщений в секунду
+      }
+      return json({ ok: true, sent, total: ids.length });
     }
 
     return json({ error: "unknown_action" }, 400);
