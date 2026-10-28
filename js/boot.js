@@ -15,3 +15,20 @@
   window.addEventListener("error", function () { setTimeout(fail, 300); });
   setTimeout(fail, 12000);
 })();
+
+// Заставка со знаком при входе в кабинет: один раз за сессию, нажатие — пропустить.
+(function () {
+  "use strict";
+  var el = document.getElementById("intro");
+  if (!el) return;
+  var seen = false;
+  try { seen = sessionStorage.getItem("ula_intro") === "1"; sessionStorage.setItem("ula_intro", "1"); } catch (e) {}
+  var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // на страницах для клиентов (витрина, заказ, заявка) заставку не показываем
+  var pub = /[?&](order|c|shop|xr|fx|request)=/.test(location.search);
+  function done() { if (el.parentNode) el.parentNode.removeChild(el); }
+  if (seen || calm || pub) { done(); return; }
+  el.classList.add("play");
+  el.addEventListener("click", done);
+  setTimeout(done, 2600);
+})();
