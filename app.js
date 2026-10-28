@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261116a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261116b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -714,35 +714,55 @@
     if (teamMsg) toast(t(teamMsg), teamMsg === "tm_joined" ? "ok" : "error");
 
     // нет телефона (например, вход через Google) — попросить указать
-    if (p.role === "buyer" && !p.phone) openOnboard();
+    // и нет данных компании (адрес склада) — тоже обязательно заполнить
+    if (p.role === "buyer" && needsOnboard()) openOnboard();
 
     // новому байеру один раз показываем обучение по шагам
     ULA.tour.maybeStart();
   }
 
   // ---------- Завершение регистрации: телефон обязателен ----------
+  function needsOnboard() {
+    return !state.me.phone || (state.myRole === "owner" && state.myWs && !state.myWs.warehouse_address);
+  }
+
   function openOnboard() {
-    $("#o-phone").value = "";
+    var ownWs = state.myRole === "owner" && !!state.myWs;
+    $("#o-phone").value = state.me.phone || "";
+    $("#o-phone-field").classList.toggle("hidden", !!state.me.phone);
+    $("#o-ws").closest(".field").classList.toggle("hidden", !ownWs);
+    $("#o-address").closest(".field").classList.toggle("hidden", !ownWs);
+    $("#o-contacts").closest(".field").classList.toggle("hidden", !ownWs);
     $("#o-ws").value = state.myWs ? state.myWs.name : "";
+    $("#o-address").value = (state.myWs && state.myWs.warehouse_address) || "";
+    $("#o-contacts").value = (state.myWs && state.myWs.warehouse_contacts) || "";
     setFormError("#onboard-error", "");
     openModal("modal-onboard");
-    $("#o-phone").focus();
+    (state.me.phone && ownWs ? $("#o-ws") : $("#o-phone")).focus();
   }
 
   async function saveOnboard(e) {
     e.preventDefault();
     var phone = cleanPhone($("#o-phone").value);
     if (!/^\+?\d{9,15}$/.test(phone)) { setFormError("#onboard-error", t("e_phone")); $("#o-phone").focus(); return; }
+    var ownWs = state.myRole === "owner" && !!state.myWs;
     var wsName = $("#o-ws").value.trim();
+    var address = $("#o-address").value.trim();
+    if (ownWs && !wsName) { setFormError("#onboard-error", t("e_ws_name")); $("#o-ws").focus(); return; }
+    if (ownWs && !address) { setFormError("#onboard-error", t("e_ob_addr")); $("#o-address").focus(); return; }
     var btn = $("#onboard-save");
     btn.disabled = true;
     try {
       var res = await db.from("profiles").update({ phone: phone }).eq("user_id", state.me.id);
       if (res.error) throw res.error;
       state.me.phone = phone;
-      if (wsName && state.myWs && wsName !== state.myWs.name) {
-        var w = await db.from("workspaces").update({ name: wsName }).eq("id", state.myWs.id).select(WS_FIELDS).single();
-        if (!w.error) { state.myWs = w.data; if (state.ws && state.ws.id === w.data.id) state.ws = w.data; }
+      if (ownWs) {
+        var w = await db.from("workspaces").update({
+          name: wsName, warehouse_address: address, warehouse_contacts: $("#o-contacts").value.trim() || null
+        }).eq("id", state.myWs.id).select(WS_FIELDS).single();
+        if (w.error) throw w.error;
+        state.myWs = w.data;
+        if (state.ws && state.ws.id === w.data.id) { state.ws = w.data; renderWsBanner(); renderWarehouse(); }
       }
       closeModal("modal-onboard");
       toast(t("s_saved"), "ok");

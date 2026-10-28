@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261116a">
+  <link rel="stylesheet" href="style.css?v=20261116b">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -1033,11 +1033,16 @@
       <div class="modal-head"><h2 data-i18n="onboard_title"></h2></div>
       <div class="modal-body">
         <p class="muted b-lead" data-i18n="onboard_text"></p>
-        <label class="field"><span data-i18n="join_phone"></span>
+        <label id="o-phone-field" class="field"><span data-i18n="join_phone"></span>
           <input id="o-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+996 555 123 456" required>
           <p class="field-hint" data-i18n="cd_phone_hint"></p></label>
         <label class="field"><span data-i18n="join_ws"></span>
-          <input id="o-ws" type="text" maxlength="120" autocomplete="organization"></label>
+          <input id="o-ws" type="text" maxlength="120" autocomplete="organization" required></label>
+        <label class="field"><span data-i18n="s_address"></span>
+          <textarea id="o-address" rows="3" maxlength="500" lang="zh-CN" required></textarea>
+          <p class="field-hint" data-i18n="s_address_hint"></p></label>
+        <label class="field"><span data-i18n="s_contacts"></span>
+          <textarea id="o-contacts" rows="2" maxlength="500"></textarea></label>
         <p id="onboard-error" class="form-error hidden" role="alert"></p>
       </div>
       <div class="modal-foot">
@@ -1651,36 +1656,36 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261116a"></script>
-  <script src="i18n.js?v=20261116a"></script>
-  <script src="i18n.vi.js?v=20261116a"></script>
+  <script src="config.js?v=20261116b"></script>
+  <script src="i18n.js?v=20261116b"></script>
+  <script src="i18n.vi.js?v=20261116b"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261116a"></script>
+  <script src="app.js?v=20261116b"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261116a"></script>
-  <script src="js/support.js?v=20261116a"></script>
-  <script src="js/notify.js?v=20261116a"></script>
-  <script src="js/icons.js?v=20261116a"></script>
-  <script src="js/xlsx.js?v=20261116a"></script>
-  <script src="js/analytics.js?v=20261116a"></script>
-  <script src="js/bulk.js?v=20261116a"></script>
-  <script src="js/onboarding.js?v=20261116a"></script>
-  <script src="js/tgws.js?v=20261116a"></script>
-  <script src="js/mfa.js?v=20261116a"></script>
-  <script src="js/captcha.js?v=20261116a"></script>
-  <script src="js/tour.js?v=20261116a"></script>
-  <script src="js/recovery.js?v=20261116a"></script>
-  <script src="js/shop.js?v=20261116a"></script>
-  <script src="js/broadcast.js?v=20261116a"></script>
-  <script src="js/tools.js?v=20261116a"></script>
-  <script src="js/expenses.js?v=20261116a"></script>
-  <script src="js/import.js?v=20261116a"></script>
-  <script src="js/requests.js?v=20261116a"></script>
-  <script src="js/team.js?v=20261116a"></script>
-  <script src="js/shipments.js?v=20261116a"></script>
-  <script src="js/report.js?v=20261116a"></script>
-  <script src="js/debts.js?v=20261116a"></script>
-  <script src="js/quote.js?v=20261116a"></script>
-  <script src="js/client.js?v=20261116a"></script>
+  <script src="js/fx.js?v=20261116b"></script>
+  <script src="js/support.js?v=20261116b"></script>
+  <script src="js/notify.js?v=20261116b"></script>
+  <script src="js/icons.js?v=20261116b"></script>
+  <script src="js/xlsx.js?v=20261116b"></script>
+  <script src="js/analytics.js?v=20261116b"></script>
+  <script src="js/bulk.js?v=20261116b"></script>
+  <script src="js/onboarding.js?v=20261116b"></script>
+  <script src="js/tgws.js?v=20261116b"></script>
+  <script src="js/mfa.js?v=20261116b"></script>
+  <script src="js/captcha.js?v=20261116b"></script>
+  <script src="js/tour.js?v=20261116b"></script>
+  <script src="js/recovery.js?v=20261116b"></script>
+  <script src="js/shop.js?v=20261116b"></script>
+  <script src="js/broadcast.js?v=20261116b"></script>
+  <script src="js/tools.js?v=20261116b"></script>
+  <script src="js/expenses.js?v=20261116b"></script>
+  <script src="js/import.js?v=20261116b"></script>
+  <script src="js/requests.js?v=20261116b"></script>
+  <script src="js/team.js?v=20261116b"></script>
+  <script src="js/shipments.js?v=20261116b"></script>
+  <script src="js/report.js?v=20261116b"></script>
+  <script src="js/debts.js?v=20261116b"></script>
+  <script src="js/quote.js?v=20261116b"></script>
+  <script src="js/client.js?v=20261116b"></script>
 </body>
 </html>
