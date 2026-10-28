@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 27 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 28 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -1084,3 +1084,43 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 20. Общая ссылка клиента: только его заказы (по телефону), чужие закрыты, отключается, таблица и внутренняя функция недоступны'
+
+-- ===== 21. Логотип байера =====
+reset role;
+insert into t select 'b_ws_id', id::text from public.workspaces where name = 'Б-карго';
+insert into t select 'cur_tok', public_token from public.orders where id = (select v::uuid from t where k = 'b_order');
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare ws text := (select v from t where k = 'b_ws_id');
+begin
+  update public.workspaces set logo_path = ws || '/logo_1.png' where id = ws::uuid;
+  if (select logo_path from public.workspaces where id = ws::uuid) is distinct from ws || '/logo_1.png' then
+    raise exception 'ПРОВАЛ: владелец не смог задать логотип'; end if;
+  begin update public.workspaces set logo_path = '../evil.svg' where id = ws::uuid; raise exception 'ПРОВАЛ: принят странный путь логотипа';
+  exception when check_violation then null; end;
+  insert into storage.objects (bucket_id, name) values ('logos', ws || '/logo_1.png');
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare ws text := (select v from t where k = 'b_ws_id');
+begin
+  update public.workspaces set logo_path = ws || '/hack.png' where id = ws::uuid;
+  begin insert into storage.objects (bucket_id, name) values ('logos', ws || '/hack.png'); raise exception 'ПРОВАЛ: чужой байер загрузил логотип в чужой кабинет';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+do $$
+declare ws text := (select v from t where k = 'b_ws_id');
+begin
+  if (public.get_client_order((select v from t where k = 'cur_tok'))->'brand'->>'logo') is distinct from ws || '/logo_1.png' then
+    raise exception 'ПРОВАЛ: клиент не видит логотип (или чужой байер его подменил)'; end if;
+  if (public.get_client_order((select v from t where k = 'cur_tok'))->'brand'->>'name') <> 'Б-карго' then
+    raise exception 'ПРОВАЛ: нет названия кабинета у клиента'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 21. Логотип: владелец задаёт, чужой не может, путь проверяется, клиент видит название и логотип'
