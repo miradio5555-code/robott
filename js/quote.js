@@ -185,6 +185,26 @@
     $("#q-bar-price").textContent = r.valid ? fmt(r.out, r.b) : "";
     $("#q-need").classList.toggle("hidden", r.valid);
 
+    // шаги: галочка у заполненного шага и его сумма справа
+    var mkSet = $("#q-markup").value.trim() !== "";
+    $("#q-step1").classList.toggle("done", r.qty > 0 && r.price > 0);
+    $("#q-step2").classList.toggle("done", r.wTotal > 0 && r.tariff > 0);
+    $("#q-step3").classList.toggle("done", r.valid && mkSet);
+    $("#q-s1-sum").textContent = r.qty > 0 && r.price > 0 && r.rate > 0 ? fmt(r.goods, r.b) : "";
+    $("#q-s2-sum").textContent = r.delivery > 0 ? fmt(r.delivery, r.b) : "";
+    $("#q-s3-sum").textContent = r.valid && r.profit > 0 ? "+" + fmt(r.profit, r.b) : "";
+    $$("#q-step3 [data-mk]").forEach(function (b) {
+      b.classList.toggle("active", mkSet && Number(b.getAttribute("data-mk")) === r.markup);
+    });
+    if (r.missingDeliveryRate) $("#q-rates-box").open = true;
+    // цена мягко «подпрыгивает», когда меняется
+    var shown = r.valid ? fmt(r.out, r.b) : "";
+    if (shown && shown !== qs.lastShown) {
+      var box = $("#q-result .quote-price-box");
+      box.classList.remove("q-pop"); void box.offsetWidth; box.classList.add("q-pop");
+    }
+    qs.lastShown = shown;
+
     // текст ответа клиенту
     $$("#tab-quote [data-ql]").forEach(function (b) {
       var on = b.getAttribute("data-ql") === qs.lang;
@@ -351,7 +371,14 @@
         updateBar();
       }, { threshold: 0.2 }).observe($("#q-result"));
     }
-    $("#q-clear").addEventListener("click", function () { clearItem(); render(); $("#q-name").focus(); });
+    $("#q-clear").addEventListener("click", function () { clearItem(); render(); $("#q-price").focus(); });
+    $$("#q-step3 [data-mk]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var el = $("#q-markup");
+        el.value = b.getAttribute("data-mk");
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    });
 
     // «Запомнить курс» — сохраняет в «Мои курсы» кабинета
     $("#q-save-rate").addEventListener("click", async function () {
