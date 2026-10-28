@@ -31,7 +31,7 @@
   // =====================================================
   //  СТРАНИЦА ДЛЯ КЛИЕНТА
   // =====================================================
-  var sp = { token: "", name: "", items: [], step: "loading", cur: null, qty: 1, draft: {}, error: "", busy: false, result: null };
+  var sp = { token: "", name: "", logo: "", items: [], step: "loading", cur: null, qty: 1, draft: {}, error: "", busy: false, result: null };
 
   async function initPublic(token) {
     c.showView("shop");
@@ -44,7 +44,7 @@
       var res = await c.db().rpc("get_shop", { p_token: sp.token });
       if (res.error) throw res.error;
       if (!res.data) { sp.step = "notfound"; }
-      else { sp.name = res.data.name || ""; sp.items = res.data.products || []; sp.step = "list"; }
+      else { sp.name = res.data.name || ""; sp.logo = res.data.logo || ""; sp.items = res.data.products || []; sp.step = "list"; }
     } catch (err) {
       console.error(err);
       sp.step = "error";
@@ -62,6 +62,7 @@
   function renderPublic() {
     var box = $("#shop-content");
     if (!box) return;
+    if (U.client) U.client.applyBrand(sp.logo ? { name: sp.name, logo: sp.logo } : null);
     if (sp.step === "item") readDraft();
     if (sp.step === "loading") { box.innerHTML = '<div id="sp-loading" class="state-box">' + esc(t("loading")) + "</div>"; return; }
     if (sp.step === "notfound" || sp.step === "error") {

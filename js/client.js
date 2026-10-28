@@ -488,8 +488,22 @@
     return ((state.client && state.client.photos) || []).map(photoUrl);
   }
 
+  // Логотип и название компании байера вместо «ULA Factory» (если логотип загружен)
+  function applyBrand(b) {
+    ["#view-client .brand", "#view-shop .brand"].forEach(function (sel) {
+      var el = $(sel);
+      if (!el) return;
+      if (el.dataset.orig === undefined) el.dataset.orig = el.innerHTML;
+      var url = b && b.logo ? c.db().storage.from("logos").getPublicUrl(b.logo).data.publicUrl : "";
+      el.innerHTML = url
+        ? '<img class="brand-logo" src="' + esc(url) + '" alt=""><span class="brand-co">' + esc(b.name || "") + "</span>"
+        : el.dataset.orig;
+    });
+  }
+
   function renderClient() {
     var box = $("#client-content");
+    applyBrand(cab.token && !cab.open ? (cab.data && cab.data.brand) : (state.client && state.client.brand));
 
     if (state.clientState === "loading") {
       box.innerHTML = '<div class="state-box">' + esc(t("loading")) + "</div>";
@@ -585,5 +599,5 @@
     }
   }
 
-  U.client = { init: initClient, initCabinet: initCabinet, render: renderClient };
+  U.client = { init: initClient, initCabinet: initCabinet, render: renderClient, applyBrand: applyBrand };
 })(window.ULA);
