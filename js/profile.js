@@ -107,13 +107,6 @@
   function editHtml(owner) {
     var logo = state.ws && state.ws.logo_path;
     var h = '<div class="pf-card pf-edit">';
-    if (me.canPhoto) {
-      h += '<div class="pf-pic"><span class="pf-pic-img round">' + (me.avatar ? '<img src="' + esc(photoUrl(me.avatar)) + '" alt="">' : U.icon("camera", 22)) + "</span>" +
-        '<span class="pf-pic-t"><b>' + esc(t("pf_photo")) + "</b><small>" + esc(t("pf_photo_hint")) + "</small>" +
-        '<span class="pf-pic-btns"><button type="button" class="btn btn-sm btn-primary" data-pf-photo' + (me.busy ? " disabled" : "") + ">" + esc(t(me.avatar ? "pf_photo_change" : "pf_photo_up")) + "</button>" +
-        (me.avatar ? '<button type="button" class="btn btn-sm btn-ghost" data-pf-photo-del>' + esc(t("pf_remove")) + "</button>" : "") + "</span></span></div>" +
-        '<input type="file" id="pf-photo-file" accept="image/png,image/jpeg,image/webp" hidden>';
-    }
     h += '<label class="field"><span>' + esc(t("pf_name")) + '</span><input id="pf-name" type="text" maxlength="120" autocomplete="name" value="' + esc(state.me.name || "") + '"></label>';
     if (owner) {
       h += '<label class="field"><span>' + esc(t("pf_company")) + '</span><input id="pf-company" type="text" maxlength="120" value="' + esc(state.ws.name || "") + '"></label>' +
@@ -194,11 +187,13 @@
     var h = "";
 
     h += '<div class="pf-head">' +
-      '<button type="button" class="pf-ava-wrap" data-pf-edit aria-label="' + esc(t("pf_edit")) + '"><span class="pf-ava">' + avatarHtml() + '</span><span class="pf-badge">' + U.icon("camera", 15) + "</span></button>" +
+      '<button type="button" class="pf-ava-wrap' + (me.busy ? " busy" : "") + '" data-pf-ava aria-label="' + esc(t(me.avatar ? "pf_photo_change" : "pf_photo_up")) + '"><span class="pf-ava">' + avatarHtml() + '</span><span class="pf-badge">' + U.icon("camera", 15) + "</span></button>" +
       '<h1 class="pf-name">' + esc(state.me.name || state.me.email || "") + "</h1>" +
       '<p class="pf-sub">' + esc([state.ws && state.ws.name, roleLabel()].filter(Boolean).join(" · ")) + "</p>" +
       (state.me.email ? '<p class="pf-mail">' + esc(state.me.email) + "</p>" : "") +
+      (me.avatar ? '<button type="button" class="link-btn pf-photo-del" data-pf-photo-del>' + esc(t("pf_photo_del")) + "</button>" : "") +
       (me.edit ? "" : '<button type="button" class="btn btn-sm pf-edit-btn" data-pf-edit>' + esc(t("pf_edit")) + "</button>") +
+      '<input type="file" id="pf-photo-file" accept="image/png,image/jpeg,image/webp" hidden>' +
       "</div>";
     if (me.edit) h += editHtml(owner);
 
@@ -269,7 +264,13 @@
       if (e.target.closest("[data-pf-edit]")) { me.edit = true; render(); var n = $("#pf-name"); if (n) n.focus(); return; }
       if (e.target.closest("[data-pf-cancel]")) { me.edit = false; render(); return; }
       if (e.target.closest("[data-pf-save]")) { saveEdit(); return; }
-      if (e.target.closest("[data-pf-photo]")) { $("#pf-photo-file").click(); return; }
+      // нажали на аватар — сразу выбрать своё фото (если файл 36 ещё не запущен — открыть редактирование)
+      if (e.target.closest("[data-pf-ava]")) {
+        if (me.busy) return;
+        if (me.canPhoto) $("#pf-photo-file").click();
+        else { me.edit = true; render(); }
+        return;
+      }
       if (e.target.closest("[data-pf-photo-del]")) {
         savePhotoPath(null).then(function () { c.toast(t("s_saved"), "ok"); }, function (err) { console.error(err); c.toast(t("error_generic"), "error"); })
           .then(function () { render(); refreshCard(); });
