@@ -31,7 +31,7 @@
   // =====================================================
   //  СТРАНИЦА ДЛЯ КЛИЕНТА
   // =====================================================
-  var sp = { token: "", name: "", logo: "", items: [], step: "loading", cur: null, qty: 1, draft: {}, error: "", busy: false, result: null };
+  var sp = { token: "", name: "", logo: "", items: [], step: "loading", cur: null, qty: 1, cart: [], draft: {}, error: "", busy: false, result: null };
 
   async function initPublic(token) {
     c.showView("shop");
@@ -52,6 +52,9 @@
     renderPublic();
   }
 
+  function findItem(id) { for (var i = 0; i < sp.items.length; i++) if (sp.items[i].id === id) return sp.items[i]; return null; }
+  function cartCount() { return sp.cart.reduce(function (n, x) { return n + 1; }, 0); }
+
   function readDraft() {
     ["name", "phone", "telegram", "comment"].forEach(function (k) {
       var el = $("#sp-" + k);
@@ -63,7 +66,7 @@
     var box = $("#shop-content");
     if (!box) return;
     if (U.client) U.client.applyBrand(sp.logo ? { name: sp.name, logo: sp.logo } : null);
-    if (sp.step === "item") readDraft();
+    if (sp.step === "cart") readDraft();
     if (sp.step === "loading") { box.innerHTML = '<div id="sp-loading" class="state-box">' + esc(t("loading")) + "</div>"; return; }
     if (sp.step === "notfound" || sp.step === "error") {
       box.innerHTML = '<section class="client-block"><h1 class="rq-title">' + esc(t(sp.step === "notfound" ? "sh2_nf_title" : "rq_err_title")) +
@@ -89,15 +92,30 @@
         '<h1 class="sp-item-title">' + esc(p.title) + "</h1>" +
         '<p class="sp-item-price">' + esc(priceText(p)) + "</p>" +
         (p.description ? '<p class="sp-item-desc">' + esc(p.description) + "</p>" : "") +
+        '<div class="field"><span>' + esc(t("rq_qty")) + '</span><div class="sp-qty">' +
+          '<button type="button" class="btn" data-sp="minus" aria-label="−">−</button><b id="sp-qty">' + sp.qty + "</b>" +
+          '<button type="button" class="btn" data-sp="plus" aria-label="+">+</button></div></div>' +
+        '<button type="button" class="btn btn-primary btn-block" data-sp="add">' + esc(t("sh3_add")) + "</button>" +
+      "</section>";
+      return;
+    }
+    if (sp.step === "cart") {
+      var d2 = sp.draft;
+      box.innerHTML = '<button type="button" class="btn btn-ghost btn-sm sp-back" data-sp="back">← ' + esc(t("sh3_more")) + "</button>" +
+        '<section class="client-block"><h1 class="rq-title">' + esc(t("sh3_cart")) + "</h1>" +
+        '<div class="sp-cart">' + sp.cart.map(function (ci, i) {
+          var pp = findItem(ci.id); if (!pp) return "";
+          return '<div class="sp-cart-row"><span class="sp-cart-t">' + esc(pp.title) + '<small>' + esc(priceText(pp)) + "</small></span>" +
+            '<span class="sp-qty"><button type="button" class="btn" data-sp="cminus" data-i="' + i + '" aria-label="−">−</button><b>' + ci.qty + "</b>" +
+            '<button type="button" class="btn" data-sp="cplus" data-i="' + i + '" aria-label="+">+</button></span>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-sp="cdel" data-i="' + i + '" aria-label="' + esc(t("sh3_remove")) + '">✕</button></div>';
+        }).join("") + "</div>" +
         '<form id="sp-form" novalidate autocomplete="on">' +
-          '<div class="field"><span>' + esc(t("rq_qty")) + '</span><div class="sp-qty">' +
-            '<button type="button" class="btn" data-sp="minus" aria-label="−">−</button><b id="sp-qty">' + sp.qty + "</b>" +
-            '<button type="button" class="btn" data-sp="plus" aria-label="+">+</button></div></div>' +
-          '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="sp-name" type="text" autocomplete="name" maxlength="120" value="' + esc(d.name || "") + '"></label>' +
-          '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="sp-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(d.phone || "") + '">' +
+          '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="sp-name" type="text" autocomplete="name" maxlength="120" value="' + esc(d2.name || "") + '"></label>' +
+          '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="sp-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(d2.phone || "") + '">' +
             '<p class="field-hint">' + esc(t("rq_phone_hint")) + "</p></label>" +
-          '<label class="field"><span>' + esc(t("rq_telegram")) + '</span><input id="sp-telegram" type="text" autocomplete="off" placeholder="@username" value="' + esc(d.telegram || "") + '"></label>' +
-          '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="sp-comment" rows="2" maxlength="900" placeholder="' + esc(t("rq_comment_ph")) + '">' + esc(d.comment || "") + "</textarea></label>" +
+          '<label class="field"><span>' + esc(t("rq_telegram")) + '</span><input id="sp-telegram" type="text" autocomplete="off" placeholder="@username" value="' + esc(d2.telegram || "") + '"></label>' +
+          '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="sp-comment" rows="2" maxlength="600" placeholder="' + esc(t("rq_comment_ph")) + '">' + esc(d2.comment || "") + "</textarea></label>" +
           '<div class="hp" aria-hidden="true"><label>Website<input id="sp-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
           (sp.error ? '<p class="form-error" role="alert">' + esc(sp.error) + "</p>" : "") +
           '<button class="btn btn-primary btn-block" type="submit"' + (sp.busy ? " disabled" : "") + ">" + esc(t(sp.busy ? "rq_sending" : "sh2_order")) + "</button>" +
@@ -114,6 +132,7 @@
               '<span class="sp-card-title">' + esc(p.title) + '</span><b class="sp-card-price">' + esc(priceText(p)) + "</b></button>";
           }).join("") + "</div>"
         : '<div id="sp-empty" class="state-box">' + esc(t("sh2_empty")) + "</div>") +
+      (cartCount() ? '<div class="sp-cartbar"><button type="button" class="btn btn-primary btn-block" data-sp="cart">' + esc(t("sh3_checkout", { n: cartCount() })) + "</button></div>" : "") +
       '<div id="fx-pub-slot-shop"></div>';
     // обмен сом → юань (если байер включил)
     if (U.exchange) U.exchange.mountPublic($("#fx-pub-slot-shop"), sp.fx, "shop", sp.token);
@@ -129,13 +148,25 @@
     if (tg && !/^[A-Za-z0-9_]{5,32}$/.test(tg)) { sp.error = t("rq_e_tg"); return renderPublic(); }
     sp.error = ""; sp.busy = true; renderPublic();
     try {
-      var res = await c.db().rpc("shop_order", {
-        p_token: sp.token, p_product: sp.cur.id, p_qty: sp.qty, p_name: name, p_phone: phone,
-        p_telegram: tg || null, p_comment: String(d.comment || "").trim() || null,
-        p_website: ($("#sp-website") && $("#sp-website").value) || null
+      var items = sp.cart.map(function (x) { return { id: x.id, qty: x.qty }; });
+      var cm = String(d.comment || "").trim() || null, web = ($("#sp-website") && $("#sp-website").value) || null;
+      var res = await c.db().rpc("shop_order_multi", {
+        p_token: sp.token, p_items: items, p_name: name, p_phone: phone,
+        p_telegram: tg || null, p_comment: cm, p_website: web
       });
+      // если файл 35 ещё не запущен в базе — отправляем по одному заказу на товар
+      if (res.error && /shop_order_multi|PGRST202|schema cache/i.test(String(res.error.message || "") + String(res.error.code || ""))) {
+        for (var k = 0; k < items.length; k++) {
+          res = await c.db().rpc("shop_order", {
+            p_token: sp.token, p_product: items[k].id, p_qty: items[k].qty, p_name: name, p_phone: phone,
+            p_telegram: tg || null, p_comment: cm, p_website: web
+          });
+          if (res.error) break;
+        }
+      }
       if (res.error) throw res.error;
       sp.result = res.data || {};
+      sp.cart = [];
       sp.step = "sent";
       sp.draft.comment = "";
       // сообщить байеру в Telegram (если подключён)
@@ -170,10 +201,25 @@
       var b = e.target.closest("[data-sp]");
       if (!b) return;
       var a = b.getAttribute("data-sp");
-      if (a === "back") { readDraft(); sp.step = "list"; sp.cur = null; renderPublic(); window.scrollTo(0, 0); }
+      if (a === "add") {
+        var ex = sp.cart.filter(function (x) { return x.id === sp.cur.id; })[0];
+        if (ex) ex.qty = Math.min(9999, ex.qty + sp.qty); else sp.cart.push({ id: sp.cur.id, qty: sp.qty });
+        sp.step = "list"; sp.cur = null; renderPublic(); window.scrollTo(0, 0);
+      }
+      else if (a === "cart") { sp.error = ""; sp.step = "cart"; renderPublic(); window.scrollTo(0, 0); }
+      else if (a === "cplus" || a === "cminus" || a === "cdel") {
+        var ci = sp.cart[Number(b.getAttribute("data-i"))];
+        if (ci) {
+          if (a === "cdel") sp.cart.splice(sp.cart.indexOf(ci), 1);
+          else ci.qty = Math.max(1, Math.min(9999, ci.qty + (a === "cplus" ? 1 : -1)));
+        }
+        if (!sp.cart.length) sp.step = "list";
+        renderPublic();
+      }
+      else if (a === "back") { readDraft(); sp.step = "list"; sp.cur = null; renderPublic(); window.scrollTo(0, 0); }
       else if (a === "plus" || a === "minus") {
         sp.qty = Math.max(1, Math.min(9999, sp.qty + (a === "plus" ? 1 : -1)));
-        $("#sp-qty").textContent = sp.qty;
+        var qe = $("#sp-qty"); if (qe) qe.textContent = sp.qty;
       }
     });
     box.addEventListener("submit", function (e) {
