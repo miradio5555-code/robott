@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261116b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261116c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -779,7 +779,7 @@
     el.classList.toggle("hidden", !msg);
   }
 
-  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, " +
+  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, logo_path, " +
     "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token, profit_goals";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
@@ -960,6 +960,12 @@
     // ⚙️ настройки; «Изменить» у склада открывает их сразу на разделе склада
     $("#settings-btn").addEventListener("click", function () { closeSectionMenu(); openSettings(); });
     $("#wh-edit").addEventListener("click", function () { openSettings("s-warehouse"); });
+    $("#logo-pick").addEventListener("click", function () { $("#logo-file").click(); });
+    $("#logo-file").addEventListener("change", function () { uploadLogo(this.files && this.files[0]); });
+    $("#logo-remove").addEventListener("click", async function () {
+      setLogoError("");
+      try { await setLogo(null); toast(t("s_saved"), "ok"); } catch (err) { console.error(err); setLogoError(t("error_generic")); }
+    });
     $(".warehouse").addEventListener("click", function (e) {
       if (e.target.closest("[data-act='wh-add']")) openSettings("s-warehouse");
     });
@@ -1302,6 +1308,57 @@
     fillCurrencySelect($("#s-def-client"), w.default_client_currency || "KGS");
     fillCurrencySelect($("#s-def-delivery"), w.default_delivery_currency || "USD", deliveryCurrencies(w.default_client_currency || "KGS"));
     $("#s-def-tariff").value = numStr(w.default_delivery_tariff);
+    renderLogo();
+  }
+
+  // ---------- Логотип кабинета ----------
+  function renderLogo() {
+    var path = state.ws && state.ws.logo_path;
+    $("#logo-preview").innerHTML = path
+      ? '<img src="' + esc(db.storage.from("logos").getPublicUrl(path).data.publicUrl) + '" alt="">'
+      : "";
+    $("#logo-remove").classList.toggle("hidden", !path);
+    $("#logo-pick").textContent = t(path ? "logo_change" : "logo_upload");
+  }
+
+  function setLogoError(msg) {
+    var el = $("#logo-error");
+    el.textContent = msg || "";
+    el.classList.toggle("hidden", !msg);
+  }
+
+  async function setLogo(path) {
+    var old = state.ws.logo_path;
+    var res = await db.from("workspaces").update({ logo_path: path }).eq("id", state.ws.id).select(WS_FIELDS).single();
+    if (res.error) throw res.error;
+    state.ws = res.data;
+    if (state.myWs && state.myWs.id === res.data.id) state.myWs = res.data;
+    if (old && old !== path) db.storage.from("logos").remove([old]);   // старый файл больше не нужен
+    renderLogo();
+  }
+
+  async function uploadLogo(file) {
+    setLogoError("");
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) { setLogoError(t("logo_err_type")); return; }
+    var btn = $("#logo-pick");
+    btn.disabled = true;
+    try {
+      var blob = await shrinkImage(file, 320, 80 * 1024);
+      if (blob.size > 1024 * 1024) { setLogoError(t("logo_err_size")); return; }
+      var ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
+      var path = state.ws.id + "/" + uid() + "." + ext;
+      var up = await db.storage.from("logos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+      if (up.error) throw up.error;
+      try { await setLogo(path); }
+      catch (err) { await db.storage.from("logos").remove([path]); throw err; }
+      toast(t("s_saved"), "ok");
+    } catch (err) {
+      console.error(err);
+      setLogoError(t("error_generic"));
+    } finally {
+      btn.disabled = false;
+      $("#logo-file").value = "";
+    }
   }
 
   function setSettingsError(msg) {

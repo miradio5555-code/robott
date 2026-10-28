@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261116b">
+  <link rel="stylesheet" href="style.css?v=20261116c">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -990,6 +990,21 @@
           </div>
         </section>
 
+        <!-- Логотип: клиенты видят его вместо «ULA Factory» -->
+        <section class="s-section owner-only" id="s-logo" data-ws-section>
+          <h3 data-i18n="logo_title"></h3>
+          <p class="field-hint" data-i18n="logo_hint"></p>
+          <div class="logo-row">
+            <span id="logo-preview" class="logo-preview"></span>
+            <div class="stack">
+              <button id="logo-pick" class="btn" type="button" data-i18n="logo_upload"></button>
+              <button id="logo-remove" class="btn btn-ghost hidden" type="button" data-i18n="logo_remove"></button>
+            </div>
+          </div>
+          <input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <p id="logo-error" class="form-error hidden" role="alert"></p>
+        </section>
+
         <!-- Склад в Китае -->
         <section class="s-section" id="s-warehouse" data-ws-section>
           <h3 data-i18n="warehouse_title"></h3>
@@ -1656,36 +1671,36 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261116b"></script>
-  <script src="i18n.js?v=20261116b"></script>
-  <script src="i18n.vi.js?v=20261116b"></script>
+  <script src="config.js?v=20261116c"></script>
+  <script src="i18n.js?v=20261116c"></script>
+  <script src="i18n.vi.js?v=20261116c"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261116b"></script>
+  <script src="app.js?v=20261116c"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261116b"></script>
-  <script src="js/support.js?v=20261116b"></script>
-  <script src="js/notify.js?v=20261116b"></script>
-  <script src="js/icons.js?v=20261116b"></script>
-  <script src="js/xlsx.js?v=20261116b"></script>
-  <script src="js/analytics.js?v=20261116b"></script>
-  <script src="js/bulk.js?v=20261116b"></script>
-  <script src="js/onboarding.js?v=20261116b"></script>
-  <script src="js/tgws.js?v=20261116b"></script>
-  <script src="js/mfa.js?v=20261116b"></script>
-  <script src="js/captcha.js?v=20261116b"></script>
-  <script src="js/tour.js?v=20261116b"></script>
-  <script src="js/recovery.js?v=20261116b"></script>
-  <script src="js/shop.js?v=20261116b"></script>
-  <script src="js/broadcast.js?v=20261116b"></script>
-  <script src="js/tools.js?v=20261116b"></script>
-  <script src="js/expenses.js?v=20261116b"></script>
-  <script src="js/import.js?v=20261116b"></script>
-  <script src="js/requests.js?v=20261116b"></script>
-  <script src="js/team.js?v=20261116b"></script>
-  <script src="js/shipments.js?v=20261116b"></script>
-  <script src="js/report.js?v=20261116b"></script>
-  <script src="js/debts.js?v=20261116b"></script>
-  <script src="js/quote.js?v=20261116b"></script>
-  <script src="js/client.js?v=20261116b"></script>
+  <script src="js/fx.js?v=20261116c"></script>
+  <script src="js/support.js?v=20261116c"></script>
+  <script src="js/notify.js?v=20261116c"></script>
+  <script src="js/icons.js?v=20261116c"></script>
+  <script src="js/xlsx.js?v=20261116c"></script>
+  <script src="js/analytics.js?v=20261116c"></script>
+  <script src="js/bulk.js?v=20261116c"></script>
+  <script src="js/onboarding.js?v=20261116c"></script>
+  <script src="js/tgws.js?v=20261116c"></script>
+  <script src="js/mfa.js?v=20261116c"></script>
+  <script src="js/captcha.js?v=20261116c"></script>
+  <script src="js/tour.js?v=20261116c"></script>
+  <script src="js/recovery.js?v=20261116c"></script>
+  <script src="js/shop.js?v=20261116c"></script>
+  <script src="js/broadcast.js?v=20261116c"></script>
+  <script src="js/tools.js?v=20261116c"></script>
+  <script src="js/expenses.js?v=20261116c"></script>
+  <script src="js/import.js?v=20261116c"></script>
+  <script src="js/requests.js?v=20261116c"></script>
+  <script src="js/team.js?v=20261116c"></script>
+  <script src="js/shipments.js?v=20261116c"></script>
+  <script src="js/report.js?v=20261116c"></script>
+  <script src="js/debts.js?v=20261116c"></script>
+  <script src="js/quote.js?v=20261116c"></script>
+  <script src="js/client.js?v=20261116c"></script>
 </body>
 </html>
