@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261116d"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261116g"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -334,6 +334,24 @@
       db = miniClient(url, key);
       mode = "shop";
       ULA.shop.initPublic(shopToken);
+      return;
+    }
+
+    // Статус заявки на обмен для клиента (?xr=НОМЕР): что происходит и сколько ждать
+    var xrId = new URLSearchParams(location.search).get("xr");
+    if (xrId) {
+      db = miniClient(url, key);
+      mode = "fx";
+      ULA.exchange.initStatus(xrId);
+      return;
+    }
+
+    // Обмен сом → юань для клиента байера (?fx=ТОКЕН): курс, заявка, скриншот оплаты
+    var fxToken = new URLSearchParams(location.search).get("fx");
+    if (fxToken) {
+      db = miniClient(url, key);
+      mode = "fx";
+      ULA.exchange.initPage(fxToken);
       return;
     }
 
@@ -433,6 +451,16 @@
           return {
             getPublicUrl: function (path) {
               return { data: { publicUrl: base + "/storage/v1/object/public/" + bucket + "/" + path } };
+            },
+            // загрузка файла (скриншот оплаты обмена); права проверяет база
+            upload: function (path, blob, opts) {
+              return fetch(base + "/storage/v1/object/" + bucket + "/" + path, {
+                method: "POST",
+                headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": (opts && opts.contentType) || blob.type || "application/octet-stream", "x-upsert": "false" },
+                body: blob
+              }).then(function (r) {
+                return r.json().catch(function () { return null; }).then(function (d) { return { data: r.ok ? d : null, error: r.ok ? null : (d || { message: "HTTP " + r.status }) }; });
+              });
             }
           };
         }
@@ -498,6 +526,10 @@
     }
     if (mode === "shop") {
       ULA.shop.renderPublic();
+      return;
+    }
+    if (mode === "fx") {
+      ULA.exchange.renderPage();
       return;
     }
     applySimpleMode();
@@ -779,7 +811,7 @@
     el.classList.toggle("hidden", !msg);
   }
 
-  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, logo_path, " +
+  var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, logo_path, fx_on, fx_tiers, fx_note, fx_updated_at, fx_eta, " +
     "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token, profit_goals";
 
   // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
@@ -795,6 +827,7 @@
     renderWarehouse();
     switchTab("orders");
     await Promise.all([loadOrders(), loadSuppliers()]);
+    ULA.exchange.loadCount();   // значок новых заявок на обмен в меню
     decideSimple();
     applySimpleMode();
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
@@ -912,6 +945,7 @@
     ULA.broadcast.bind();
     ULA.tools.bind();
     ULA.expenses.bind();
+    ULA.exchange.bind();
     ULA.importer.bind();
     $("#vol-menu").addEventListener("click", closeSectionMenu);
     $("#import-menu").addEventListener("click", closeSectionMenu);
@@ -1743,8 +1777,8 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
-    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
+    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
     $("#tab-shop").classList.toggle("hidden", state.tab !== "shop");
@@ -1756,6 +1790,7 @@
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
+    $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     $$(".tab").forEach(function (b) {
@@ -1771,6 +1806,7 @@
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
+    if (state.tab === "exchange" && db) ULA.exchange.open();
     if (state.tab === "shop" && db && state.ws) ULA.shop.open();
     if (state.tab === "shipments") ULA.shipments.open();
     if (state.tab === "debts") ULA.debts.open();
@@ -1791,7 +1827,7 @@
     var ico = $("#section-menu-ico");
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
-      var ICONS = { orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
+      var ICONS = { exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
         suppliers: "factory", shipments: "truck", buyers: "users", support: "message" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
@@ -2304,6 +2340,7 @@
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
       else if (state.tab === "expenses") { await loadOrders(); await ULA.expenses.reload(); }
+      else if (state.tab === "exchange") await ULA.exchange.open();
       else await loadOrders();
       // открытая карточка заказа — перерисовать со свежими данными
       if ($("#modal-detail").classList.contains("open")) renderDetail();
