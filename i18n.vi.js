@@ -597,6 +597,8 @@ I18N.vi = {
   tour_bulk: "Đánh dấu nhiều đơn và đổi trạng thái cho tất cả cùng lúc. Sau đó trang sẽ cho biết cần nhắn cho những khách nào.",
   tour_menu2_t: "Tiền bạc và công cụ",
   tour_menu2: "Công nợ: ai nợ bao nhiêu và tin nhắn nhắc sẵn. Phân tích: lợi nhuận và biểu đồ. Báo giá: trả lời nhanh khách hỏi “bao nhiêu tiền”.",
+  tour_fx_t: "Đổi som → nhân dân tệ",
+  tour_fx: "Cần trả tiền nhà cung cấp bằng nhân dân tệ? Đổi som sang tệ với người đã xác minh. Trang giữ tiền đến khi bạn xác nhận đã nhận, có tranh chấp thì hỗ trợ sẽ giúp.",
   tour_settings_t: "Cài đặt",
   tour_settings: "Tỷ giá và tiền tệ, kho, Telegram cho yêu cầu, đăng nhập bằng mã (2FA) và trợ lý trong nhóm đều ở đây.",
   tour_support_t: "Cần giúp đỡ?",
