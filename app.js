@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118f"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118g"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -2560,14 +2560,16 @@
       try {
         // Код приглашения уходит вместе с регистрацией — база сама создаст кабинет
         var jTok = await ULA.captcha.get("cf-join");
+        var refRaw = new URLSearchParams(location.search).get("ref") || "";
+        var refCode = /^[A-Za-z0-9_-]{1,40}$/.test(refRaw) ? refRaw : "";
         var res = await db.auth.signUp({
           email: email,
           password: pass,
           options: {
             captchaToken: jTok || undefined,
             data: code
-              ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone }
-              : { full_name: name, workspace_name: wsName || name, phone: phone },
+              ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone, ref: refCode || undefined }
+              : { full_name: name, workspace_name: wsName || name, phone: phone, ref: refCode || undefined },
             emailRedirectTo: location.origin + location.pathname
           }
         });

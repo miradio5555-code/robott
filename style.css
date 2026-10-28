@@ -2796,3 +2796,7 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .rc-out { display: grid; text-align: right; font-size: 13px; color: var(--muted); }
 .rc-out b { font-size: 18px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 @media (max-width: 380px) { .rc-calc { grid-template-columns: 1fr; } .rc-out { text-align: left; } }
+
+.promo-ref { text-align: center; }
+.promo-ref p { margin: 6px 0 12px; color: var(--muted); }
+.bd-actions { display: flex; flex-wrap: wrap; gap: 8px; }
