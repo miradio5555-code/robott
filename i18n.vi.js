@@ -1405,6 +1405,8 @@ I18N.vi = {
   pf_save: "Lưu",
   pf_cancel: "Hủy",
   pf_photo_del: "Gỡ ảnh",
+  bn_fx: "Đổi tiền",
+  bn_support: "Chat",
   logo_title: "Logo",
   logo_hint: "Khách hàng sẽ thấy logo này thay cho \"ULA Factory\" trên trang đơn hàng, liên kết chung và cửa hàng. Nên dùng png/jpg vuông hoặc ngang.",
   logo_upload: "Tải logo lên",

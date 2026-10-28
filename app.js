@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118r"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118s"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1846,9 +1846,10 @@
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
-    // у админа платформы свои разделы (Байеры, Поддержка) — ему оставляем верхнее меню вместо нижнего
-    $("#bottom-nav").classList.toggle("hidden", isAdmin);
-    document.body.classList.toggle("no-bottom-nav", isAdmin);
+    // нижнее меню: у байера — его главные разделы, у админа платформы — Байеры, Поддержка, Обмен
+    var bnTabs = !isAdmin ? ["orders", "clients", "shop", "debts"]
+      : state.ws ? ["orders", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
+    $$("#bottom-nav [data-tab]").forEach(function (b) { b.classList.toggle("hidden", bnTabs.indexOf(b.getAttribute("data-tab")) === -1); });
     $$(".tab").forEach(function (b) {
       // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
       var on = b.getAttribute("data-tab") === (state.tab === "report" ? "analytics" : state.tab);
