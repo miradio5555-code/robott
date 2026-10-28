@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118i"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118j"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1064,6 +1064,7 @@
       state.limit = PAGE_SIZE;
       renderChips();
       renderOrders();
+      centerChip(true);
     });
 
     // Открываем одно меню со всеми разделами кабинета.
@@ -1522,6 +1523,19 @@
     return state.status === "all" && !state.q.trim() && !state.hintFilter && !state.from && !state.to;
   }
 
+  // Значки статусов для круглых кнопок-фильтров
+  var CHIP_ICONS = {
+    all: '<circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',
+    "new": '<path d="M12 4v16M4 12h16"/>',
+    awaiting_payment: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/>',
+    purchasing: '<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+    china_warehouse: '<path d="M3 10l9-6 9 6v10H3z"/><path d="M8 20v-6h8v6"/>',
+    in_transit: '<path d="M2 7h12v9H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+    arrived: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+    delivered: '<path d="M5 12l5 5 9-10"/>',
+    cancelled: '<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+
   function renderChips() {
     var counts = {}, active = 0;
     STATUSES.forEach(function (s) { counts[s] = 0; });
@@ -1530,12 +1544,35 @@
       if (!isDone(o)) active++;
     });
     var items = [["all", active]].concat(STATUSES.map(function (s) { return [s, counts[s]]; }));
-    $("#chips").innerHTML = items.map(function (it) {
-      var key = it[0];
-      return '<button type="button" class="chip chip-' + key + (state.status === key ? " active" : "") +
-        '" data-status="' + key + '" role="tab" aria-selected="' + (state.status === key) + '">' +
-        "<span>" + esc(t(key === "all" ? "filter_active" : "filter_" + key)) + "</span><b>" + it[1] + "</b></button>";
-    }).join("");
+    var box = $("#chips");
+    var cur = 0;
+    items.forEach(function (it, i) { if (it[0] === state.status) cur = i; });
+    box.classList.add("chips-ico");
+    // Кнопки уже есть — меняем их на месте, чтобы переход был плавным
+    if (box.children.length !== items.length) {
+      box.innerHTML = items.map(function (it) {
+        var key = it[0];
+        return '<button type="button" class="chip chip-' + key + " st-" + key + '" data-status="' + key + '" role="tab">' +
+          '<span class="ci"><svg viewBox="0 0 24 24" aria-hidden="true">' + CHIP_ICONS[key] + "</svg><b></b></span>" +
+          '<span class="cl">' + esc(t(key === "all" ? "filter_active" : "filter_" + key)) + "</span></button>";
+      }).join("");
+    }
+    items.forEach(function (it, i) {
+      var b = box.children[i], on = i === cur;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", String(on));
+      b.style.setProperty("--d", Math.min(Math.abs(i - cur), 3));
+      b.querySelector("b").textContent = it[1];
+      b.classList.toggle("zero", !it[1] && !on);
+    });
+  }
+  function centerChip(smooth) {
+    var b = $("#chips .chip.active");
+    if (!b) return;
+    var box = $("#chips");
+    var left = b.offsetLeft - (box.clientWidth - b.offsetWidth) / 2;
+    var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    box.scrollTo({ left: Math.max(0, left), behavior: smooth && !calm ? "smooth" : "auto" });
   }
 
   function filtered() {

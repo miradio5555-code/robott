@@ -2813,3 +2813,56 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 #order-form.form-short .adv { display: none !important; }
 .form-more { margin-top: 4px; }
 body.simple-mode #bulk-btn, body.simple-mode #import-btn, body.simple-mode #tab-orders .summary + .fine-print { display: none !important; }
+
+/* ---------- Круглые фильтры статусов (заказы) ---------- */
+#tab-orders .chips-ico { gap: 4px; align-items: flex-start; padding-top: 10px; padding-bottom: 4px; scroll-padding: 0 16px; }
+#tab-orders .chips-ico .chip {
+  flex-direction: column; justify-content: flex-start; gap: 6px;
+  width: 78px; min-height: 0; padding: 0 2px 8px;
+  border: 0; border-radius: 12px; background: none; color: var(--muted);
+  font-size: 12px; font-weight: 600; white-space: normal; text-align: center;
+  position: relative; animation: none;
+  transform: translateY(calc(var(--d, 0) * 5px));
+  transition: transform .35s var(--ease), color .2s;
+}
+#tab-orders .chips-ico .chip:hover { transform: translateY(calc(var(--d, 0) * 5px - 2px)); }
+#tab-orders .chips-ico .ci {
+  position: relative; display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--surface); color: var(--st, var(--ink));
+  box-shadow: 0 2px 8px rgba(0,0,0,.08), inset 0 0 0 1px var(--line);
+  transition: transform .35s var(--ease), background .25s, color .25s, box-shadow .25s;
+}
+#tab-orders .chips-ico .ci svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+#tab-orders .chips-ico .chip-all .ci svg { fill: currentColor; stroke: none; }
+#tab-orders .chips-ico .ci b {
+  position: absolute; top: -4px; right: -6px;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: 999px; background: var(--surface); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: 12px; line-height: 22px;
+}
+#tab-orders .chips-ico .chip.zero .ci { opacity: .55; }
+#tab-orders .chips-ico .cl { line-height: 1.2; min-height: 2.4em; }
+#tab-orders .chips-ico .cl::after {
+  content: ""; display: block; width: 22px; height: 3px; margin: 4px auto 0;
+  border-radius: 3px; background: var(--st, var(--primary));
+  transform: scaleX(0); transition: transform .3s var(--ease);
+}
+#tab-orders .chips-ico .chip.active { color: var(--ink); font-weight: 800; }
+#tab-orders .chips-ico .chip.active .ci {
+  transform: scale(1.14); background: var(--st, var(--primary)); color: #fff;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--st, var(--primary)) 35%, transparent);
+}
+#tab-orders .chips-ico .chip-all.active .ci { background: var(--ink); color: var(--surface); box-shadow: 0 8px 18px rgba(0,0,0,.22); }
+#tab-orders .chips-ico .chip-all .cl::after { background: var(--ink); }
+#tab-orders .chips-ico .chip.active .cl::after { transform: scaleX(1); }
+#tab-orders .chips-ico .chip:focus-visible { box-shadow: none; }
+#tab-orders .chips-ico .chip:focus-visible .ci { box-shadow: 0 0 0 3px var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) {
+  #tab-orders .chips-ico .chip, #tab-orders .chips-ico .ci, #tab-orders .chips-ico .cl::after { transition: none; }
+}
+html[data-theme="dark"] #tab-orders .chips-ico .chip.active:not(.chip-all) .ci { color: #14161A; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) #tab-orders .chips-ico .chip.active:not(.chip-all) .ci { color: #14161A; }
+}
