@@ -3124,3 +3124,10 @@ button.pf-ava-wrap:active { transform: scale(.96); }
 .pf-edit-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
 .pf-photo-del { margin-top: 6px; font-size: 13px; color: var(--muted); }
 button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infinite; }
+@media (max-width: 640px) {
+  body.no-bottom-nav .section-menu-btn { display: inline-flex; }
+  body.no-bottom-nav .top-profile { order: 4; }
+  body.no-bottom-nav #view-admin { padding-bottom: 0; }
+  body.no-bottom-nav .fab { bottom: calc(18px + env(safe-area-inset-bottom)); }
+  body.no-bottom-nav .quote-bar { bottom: calc(14px + env(safe-area-inset-bottom)); }
+}
