@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118h"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118i"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1134,6 +1134,11 @@
 
     // форма
     $("#order-form").addEventListener("submit", saveOrder);
+    $("#f-more").addEventListener("click", function () {
+      var short = !$("#order-form").classList.contains("form-short");
+      try { localStorage.setItem("ula_form_full", short ? "0" : "1"); } catch (e) { /* ignore */ }
+      setFormShort(short);
+    });
     $("#f-purchase_currency").addEventListener("change", onCurrencyChange);
     $("#f-client_currency").addEventListener("change", onCurrencyChange);
     $("#f-delivery_currency").addEventListener("change", onDeliveryCurrencyChange);
@@ -1880,10 +1885,11 @@
   }
 
   // ---------- Простой режим ----------
-  // Новичку в меню только главное: Заказы, Клиенты, Долги. Остальное — кнопкой «Показать все разделы»
+  // Новичку в меню только главное: Заказы, Клиенты, Витрина, Долги. На странице заказов
+  // «Что сделать сегодня» стоит первым и раскрыт, лишние кнопки (Выбрать, Из Excel) спрятаны. Остальное — кнопкой «Показать все разделы»
   // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
-  var SIMPLE_TABS = ["orders", "clients", "debts"];
+  var SIMPLE_TABS = ["orders", "clients", "shop", "debts"];
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
@@ -1920,6 +1926,13 @@
     }
     var cb = $("#s-simple");
     if (cb) cb.checked = on;
+    var as = $("#assistant"), sum = $("#tab-orders .summary"), wh = $("#tab-orders .warehouse");
+    if (as && sum && wh) {
+      if (on) sum.parentNode.insertBefore(as, sum); else wh.parentNode.insertBefore(as, wh.nextSibling);
+      var asc = null;
+      try { asc = localStorage.getItem("cc_as_collapsed"); } catch (e) { /* ignore */ }
+      if (asc === null) { as.classList.toggle("collapsed", !on); $("#as-toggle").setAttribute("aria-expanded", String(on)); }
+    }
     if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report") switchTab("orders");
   }
 
@@ -2929,6 +2942,16 @@
     form.pending = [];
   }
 
+  // Короткая форма: у нового заказа видно только главное (клиент, товар, цена, вес, оплата, фото).
+  // Валюты, тариф, поставщик и прочее берутся из настроек и прячутся под «Показать все поля».
+  // Выбор «показывать всё» запоминается на этом устройстве. Изменение заказа — всегда полная форма.
+  function formFullPref() { try { return localStorage.getItem("ula_form_full") === "1"; } catch (e) { return false; } }
+  function setFormShort(on) {
+    $("#order-form").classList.toggle("form-short", on);
+    $("#f-more").textContent = t(on ? "f_more_show" : "f_more_hide");
+    $("#f-more").classList.toggle("hidden", !!form.editing);
+  }
+
   function openOrderForm(o) {
     releasePending();
     form.editing = o || null;
@@ -2937,6 +2960,7 @@
 
     var set = function (id, v) { $("#f-" + id).value = v == null ? "" : v; };
     $("#order-form-title").textContent = t(o ? "edit_order" : "new_order");
+    setFormShort(!o && !formFullPref());
     fillStatusSelect(o ? o.status : "new");
 
     if (o) {

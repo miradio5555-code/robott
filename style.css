@@ -2808,3 +2808,8 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .sp-cart-row .sp-qty .btn { width: 38px; min-height: 38px; font-size: 18px; }
 .sp-cart-row .sp-qty b { font-size: 16px; min-width: 24px; }
 .sp-cartbar { position: sticky; bottom: 12px; margin-top: 16px; z-index: 5; }
+
+/* короткая форма заказа и простой режим */
+#order-form.form-short .adv { display: none !important; }
+.form-more { margin-top: 4px; }
+body.simple-mode #bulk-btn, body.simple-mode #import-btn, body.simple-mode #tab-orders .summary + .fine-print { display: none !important; }

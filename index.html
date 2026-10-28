@@ -10,7 +10,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <!-- в ссылках есть секретные номера (?order=, ?xr=) — не передавать адрес страницы другим сайтам -->
   <meta name="referrer" content="no-referrer">
-  <script src="js/head.js?v=20261118h"></script>
+  <script src="js/head.js?v=20261118i"></script>
   <title>ULA Factory</title>
   <link rel="icon" href="img/mark.svg" type="image/svg+xml">
   <link rel="icon" href="img/favicon.png" type="image/png" sizes="64x64">
@@ -25,14 +25,14 @@
   <!-- Шрифты Google подключает js/head.js «в фоне» -->
   <link rel="preload" href="fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261118h">
+  <link rel="stylesheet" href="style.css?v=20261118i">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
   <div id="boot" class="boot">
     <p id="boot-text">Загрузка… / Loading…</p>
   </div>
-  <script src="js/boot.js?v=20261118h"></script>
+  <script src="js/boot.js?v=20261118i"></script>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -725,7 +725,7 @@
       </div>
 
       <div class="modal-body">
-        <fieldset>
+        <fieldset class="adv">
           <legend data-i18n="sec_main"></legend>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_order_number"></span>
@@ -744,7 +744,7 @@
               <input id="f-client_name" type="text" required></label>
             <label class="field"><span data-i18n="f_phone"></span>
               <input id="f-client_phone" type="tel" inputmode="tel"></label>
-            <label class="field"><span data-i18n="f_wechat"></span>
+            <label class="field adv"><span data-i18n="f_wechat"></span>
               <input id="f-client_wechat" type="text"></label>
           </div>
         </fieldset>
@@ -754,13 +754,13 @@
           <div class="grid-2">
             <label class="field"><span data-i18n="f_product_ru"></span>
               <input id="f-product_ru" type="text" required></label>
-            <label class="field"><span data-i18n="f_product_zh"></span>
+            <label class="field adv"><span data-i18n="f_product_zh"></span>
               <input id="f-product_zh" type="text" lang="zh-CN"></label>
-            <label class="field"><span data-i18n="f_supplier"></span>
+            <label class="field adv"><span data-i18n="f_supplier"></span>
               <input id="f-supplier" type="text" list="supplier-options" autocomplete="off"></label>
-            <label class="field"><span data-i18n="f_supplier_wechat"></span>
+            <label class="field adv"><span data-i18n="f_supplier_wechat"></span>
               <input id="f-supplier_wechat" type="text" maxlength="100" autocapitalize="off" spellcheck="false"></label>
-            <label class="field"><span data-i18n="f_link"></span>
+            <label class="field adv"><span data-i18n="f_link"></span>
               <input id="f-supplier_link" type="url" inputmode="url" placeholder="https://"></label>
           </div>
           <label class="field"><span data-i18n="f_tracking"></span>
@@ -773,7 +773,7 @@
           <legend data-i18n="sec_money"></legend>
 
           <!-- Валюты выбирает сам байер: у поставщика (USD/CNY) и для клиента -->
-          <div class="grid-2">
+          <div class="grid-2 adv">
             <label class="field"><span data-i18n="f_purchase_currency"></span>
               <select id="f-purchase_currency" class="currency-select"></select></label>
             <label class="field"><span data-i18n="f_client_currency"></span>
@@ -798,21 +798,21 @@
             <label class="field"><span data-i18n="f_weight"></span>
               <input id="f-weight_kg" type="text" inputmode="decimal">
               <button id="f-weight-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button></label>
-            <label class="field"><span data-i18n="f_delivery_currency"></span>
+            <label class="field adv"><span data-i18n="f_delivery_currency"></span>
               <select id="f-delivery_currency" class="currency-select"></select></label>
-            <label class="field"><span id="lbl-tariff"></span>
+            <label class="field adv"><span id="lbl-tariff"></span>
               <input id="f-delivery_tariff" type="text" inputmode="decimal"></label>
-            <label class="field"><span id="lbl-delivery"></span>
+            <label class="field adv"><span id="lbl-delivery"></span>
               <input id="f-delivery_cost" type="text" inputmode="decimal">
               <p class="field-hint" data-i18n="f_delivery_hint"></p></label>
-            <label class="field"><span id="lbl-delivery-rate"></span>
+            <label class="field adv"><span id="lbl-delivery-rate"></span>
               <input id="f-delivery_rate" type="text" inputmode="decimal"></label>
           </div>
 
           <!-- Цена для клиента и оплата. Клиент видит только «к оплате», «оплачено», «осталось» -->
           <h4 class="money-sub" data-i18n="k_payment"></h4>
           <div class="grid-3">
-            <label class="field"><span data-i18n="f_markup"></span>
+            <label class="field adv"><span data-i18n="f_markup"></span>
               <input id="f-markup" type="text" inputmode="decimal" placeholder="15">
               <p class="field-hint" data-i18n="f_markup_hint"></p></label>
             <label class="field"><span id="lbl-client-price"></span>
@@ -823,10 +823,10 @@
           </div>
 
           <div class="calc" aria-live="polite">
-            <div class="calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">0</b></div>
-            <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="calc-goods-som">0</b></div>
-            <div class="calc-row"><span data-i18n="c_delivery"></span><b id="calc-delivery">0</b></div>
-            <div class="calc-row calc-cost"><span data-i18n="c_cost"></span><b id="calc-cost">0</b></div>
+            <div class="adv calc-row"><span data-i18n="c_goods_cny"></span><b id="calc-goods-cny">0</b></div>
+            <div class="adv calc-row"><span data-i18n="c_goods_som"></span><b id="calc-goods-som">0</b></div>
+            <div class="adv calc-row"><span data-i18n="c_delivery"></span><b id="calc-delivery">0</b></div>
+            <div class="adv calc-row calc-cost"><span data-i18n="c_cost"></span><b id="calc-cost">0</b></div>
             <div class="calc-row calc-total"><span data-i18n="c_client_price"></span><b id="calc-total">0</b></div>
             <div class="calc-row calc-profit"><span data-i18n="c_profit"></span><b id="calc-profit">—</b></div>
             <div class="calc-row"><span data-i18n="c_paid"></span><b id="calc-paid">0</b></div>
@@ -845,13 +845,15 @@
 
         <fieldset>
           <legend data-i18n="sec_comments"></legend>
-          <label class="field"><span data-i18n="f_delivery_info"></span>
+          <label class="field adv"><span data-i18n="f_delivery_info"></span>
             <textarea id="f-delivery_info" rows="2"></textarea></label>
           <label class="field"><span data-i18n="f_comment_client"></span>
             <textarea id="f-client_comment" rows="2"></textarea></label>
-          <label class="field"><span data-i18n="f_comment_admin"></span>
+          <label class="field adv"><span data-i18n="f_comment_admin"></span>
             <textarea id="f-admin_comment" rows="3"></textarea></label>
         </fieldset>
+        <!-- короткая форма: лишние поля спрятаны, эта кнопка показывает всё -->
+        <button id="f-more" class="btn btn-ghost btn-block form-more" type="button"></button>
       </div>
 
       <div class="modal-foot">
@@ -1661,39 +1663,39 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261118h"></script>
-  <script src="i18n.js?v=20261118h"></script>
-  <script src="i18n.vi.js?v=20261118h"></script>
+  <script src="config.js?v=20261118i"></script>
+  <script src="i18n.js?v=20261118i"></script>
+  <script src="i18n.vi.js?v=20261118i"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261118h"></script>
+  <script src="app.js?v=20261118i"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261118h"></script>
-  <script src="js/support.js?v=20261118h"></script>
-  <script src="js/notify.js?v=20261118h"></script>
-  <script src="js/icons.js?v=20261118h"></script>
-  <script src="js/xlsx.js?v=20261118h"></script>
-  <script src="js/analytics.js?v=20261118h"></script>
-  <script src="js/bulk.js?v=20261118h"></script>
-  <script src="js/onboarding.js?v=20261118h"></script>
-  <script src="js/tgws.js?v=20261118h"></script>
-  <script src="js/mfa.js?v=20261118h"></script>
-  <script src="js/captcha.js?v=20261118h"></script>
-  <script src="js/tour.js?v=20261118h"></script>
-  <script src="js/recovery.js?v=20261118h"></script>
-  <script src="js/shop.js?v=20261118h"></script>
-  <script src="js/broadcast.js?v=20261118h"></script>
-  <script src="js/tools.js?v=20261118h"></script>
-  <script src="js/expenses.js?v=20261118h"></script>
-  <script src="js/exchange.js?v=20261118h"></script>
-  <script src="js/board.js?v=20261118h"></script>
-  <script src="js/import.js?v=20261118h"></script>
-  <script src="js/requests.js?v=20261118h"></script>
-  <script src="js/team.js?v=20261118h"></script>
-  <script src="js/shipments.js?v=20261118h"></script>
-  <script src="js/report.js?v=20261118h"></script>
-  <script src="js/debts.js?v=20261118h"></script>
-  <script src="js/quote.js?v=20261118h"></script>
-  <script src="js/client.js?v=20261118h"></script>
-  <script src="js/pwa.js?v=20261118h"></script>
+  <script src="js/fx.js?v=20261118i"></script>
+  <script src="js/support.js?v=20261118i"></script>
+  <script src="js/notify.js?v=20261118i"></script>
+  <script src="js/icons.js?v=20261118i"></script>
+  <script src="js/xlsx.js?v=20261118i"></script>
+  <script src="js/analytics.js?v=20261118i"></script>
+  <script src="js/bulk.js?v=20261118i"></script>
+  <script src="js/onboarding.js?v=20261118i"></script>
+  <script src="js/tgws.js?v=20261118i"></script>
+  <script src="js/mfa.js?v=20261118i"></script>
+  <script src="js/captcha.js?v=20261118i"></script>
+  <script src="js/tour.js?v=20261118i"></script>
+  <script src="js/recovery.js?v=20261118i"></script>
+  <script src="js/shop.js?v=20261118i"></script>
+  <script src="js/broadcast.js?v=20261118i"></script>
+  <script src="js/tools.js?v=20261118i"></script>
+  <script src="js/expenses.js?v=20261118i"></script>
+  <script src="js/exchange.js?v=20261118i"></script>
+  <script src="js/board.js?v=20261118i"></script>
+  <script src="js/import.js?v=20261118i"></script>
+  <script src="js/requests.js?v=20261118i"></script>
+  <script src="js/team.js?v=20261118i"></script>
+  <script src="js/shipments.js?v=20261118i"></script>
+  <script src="js/report.js?v=20261118i"></script>
+  <script src="js/debts.js?v=20261118i"></script>
+  <script src="js/quote.js?v=20261118i"></script>
+  <script src="js/client.js?v=20261118i"></script>
+  <script src="js/pwa.js?v=20261118i"></script>
 </body>
 </html>
