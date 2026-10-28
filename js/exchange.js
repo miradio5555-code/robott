@@ -11,6 +11,9 @@
 //
 // Курс ступенчатый: [{from: 1000, rate: 12.6}, {from: 10000, rate: 12.4}] —
 // «от 1 000 ¥ — 12,6 сом за 1 ¥, от 10 000 ¥ — 12,4». Меньшая ступень — минимальная сумма.
+//
+// Проверка личности (файл 30): включить обмен можно только после того, как байер один раз
+// загрузил паспорт и селфи с паспортом, а администратор нажал «Проверен».
 // Вынесено из app.js. Общие помощники берутся из window.ULA.core. Подключается после app.js.
 // =====================================================
 (function (U) {
@@ -19,7 +22,8 @@
   var $ = c.$, esc = c.esc, toast = c.toast, money = c.money, num = c.num, parseNum = c.parseNum, state = c.state;
 
   var MAX_TIERS = 10;
-  var fx = { platform: null, list: [], filter: "active", loading: false };
+  var fx = { platform: null, list: [], filter: "active", loading: false,
+    kyc: undefined, kycFiles: {}, kycBusy: false, kycList: [], kycFilter: "pending" };
 
   function isAdmin() { return !!(state.me && state.me.role === "admin"); }
   function canOwn() { return !state.readOnly && state.myRole === "owner"; }
@@ -140,6 +144,18 @@
     fx.list = res.error ? [] : (res.data || []);
     setBadge(countActive());
   }
+  // своя проверка личности (undefined — ещё не загружено, null — не отправлял)
+  async function loadKyc() {
+    if (!state.me) return;
+    var res = await c.db().from("fx_kyc").select("status, reason, full_name, submitted_at").eq("user_id", state.me.id).maybeSingle();
+    fx.kyc = res.error ? null : res.data;
+  }
+  async function loadKycList() {
+    var res = await c.db().rpc("admin_kyc_list");
+    fx.kycList = res.error ? [] : (res.data || []);
+  }
+  function kycOk() { return !!(fx.kyc && fx.kyc.status === "approved"); }
+
   function countActive() { return fx.list.filter(function (r) { return r.status === "new" || r.status === "paid" || r.status === "confirmed"; }).length; }
   function setBadge(n) {
     var b = $("#fx-badge");
@@ -203,11 +219,13 @@
 
   function myHtml() {
     var w = state.ws || {}, own = canOwn();
+    var canOn = own && (kycOk() || w.fx_on);
     return '<section class="an-card fx-card"><h3>' + esc(t("fx_my_title")) + "</h3>" +
       '<p class="muted">' + esc(t("fx_my_hint")) + "</p>" +
+      (own ? kycHtml() : "") +
       (w.fx_tiers ? '<p class="fx-date ' + (isToday(w.fx_updated_at) ? "" : "old") + '">' + esc(dateLine(w.fx_updated_at)) + "</p>" : "") +
       '<form id="fxm-form" class="fx-form" novalidate>' +
-        '<label class="check-line"><input id="fxm-on" type="checkbox"' + (w.fx_on ? " checked" : "") + (own ? "" : " disabled") + "> <span>" + esc(t("fx_on_label")) + "</span></label>" +
+        '<label class="check-line"><input id="fxm-on" type="checkbox"' + (w.fx_on ? " checked" : "") + (canOn ? "" : " disabled") + "> <span>" + esc(t("fx_on_label")) + "</span></label>" +
         editorHtml("fxm", w.fx_tiers, !own) +
         '<p class="fine-print">' + esc(t("fx_ed_hint")) + "</p>" +
         '<label class="field"><span>' + esc(t("fx_eta_label")) + '</span><select id="fxm-eta"' + (own ? "" : " disabled") + '><option value="">—</option>' +
@@ -216,6 +234,138 @@
         '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxm-note" rows="3" maxlength="500" placeholder="' + esc(t("fx_note_ph")) + '"' + (own ? "" : " disabled") + ">" + esc(w.fx_note || "") + "</textarea></label>" +
         (own ? '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button>" : '<p class="fine-print">' + esc(t("fx_readonly")) + "</p>") +
       "</form>" + linkHtml() + "</section>";
+  }
+
+  // ---------- Проверка личности: байер ----------
+  var KYC_SLOTS = [["front", "kyc_front", true], ["back", "kyc_back", false], ["selfie", "kyc_selfie", true]];
+  function kycHtml() {
+    var k = fx.kyc;
+    if (k === undefined) return "";
+    if (k && k.status === "approved") return '<p class="kyc-ok">✔ ' + esc(t("kyc_ok")) + "</p>";
+    var html = '<div class="kyc-box"><h4>🪪 ' + esc(t("kyc_title")) + "</h4>";
+    if (k && k.status === "pending") {
+      return html + '<p class="kyc-wait">⏳ ' + esc(t("kyc_pending", { d: c.fmtDate(k.submitted_at) })) + "</p></div>";
+    }
+    if (k && (k.status === "rejected" || k.status === "revoked")) {
+      html += '<p class="form-error">' + esc(t(k.status === "revoked" ? "kyc_revoked" : "kyc_rejected")) +
+        (k.reason ? ": " + esc(k.reason) : "") + "</p>";
+    }
+    html += '<p class="muted">' + esc(t("kyc_why")) + "</p>" +
+      '<form id="kyc-form" class="fx-form" novalidate>' +
+      '<label class="field"><span>' + esc(t("kyc_name")) + '</span><input id="kyc-name" type="text" maxlength="120" autocomplete="name" placeholder="' + esc(t("kyc_name_ph")) + '"></label>' +
+      '<label class="field"><span>' + esc(t("kyc_doc")) + '</span><input id="kyc-doc" type="text" maxlength="24" autocapitalize="characters" placeholder="ID1234567"></label>' +
+      '<div class="kyc-files">' + KYC_SLOTS.map(function (sl) {
+        var f = fx.kycFiles[sl[0]];
+        return '<button type="button" class="kyc-file' + (f ? " has" : "") + '" data-kyc-pick="' + sl[0] + '">' +
+          (f ? '<img alt="" src="' + esc(f.url) + '">' : '<span class="kyc-plus">+</span>') +
+          "<small>" + esc(t(sl[1])) + (sl[2] ? " *" : "") + "</small></button>" +
+          '<input type="file" accept="image/*" hidden data-kyc-file="' + sl[0] + '"' + (sl[0] === "selfie" ? ' capture="user"' : "") + ">";
+      }).join("") + "</div>" +
+      '<p class="fine-print">' + esc(t("kyc_photo_hint")) + "</p>" +
+      '<label class="check-line"><input id="kyc-consent" type="checkbox"> <span>' + esc(t("kyc_consent")) +
+        ' <a href="privacy.html" target="_blank" rel="noopener">' + esc(t("legal_privacy")) + "</a></span></label>" +
+      '<button class="btn btn-primary btn-block" type="submit"' + (fx.kycBusy ? " disabled" : "") + ">" + esc(t(fx.kycBusy ? "fx_uploading" : "kyc_send")) + "</button>" +
+      "</form>";
+    return html + "</div>";
+  }
+
+  async function submitKyc() {
+    var name = $("#kyc-name").value.trim().replace(/\s+/g, " "), doc = $("#kyc-doc").value.toUpperCase().replace(/[\s-]/g, "");
+    if (name.length < 5) { toast(t("kyc_e_name"), "error"); $("#kyc-name").focus(); return; }
+    if (!/^[A-Z0-9]{5,20}$/.test(doc)) { toast(t("kyc_e_doc"), "error"); $("#kyc-doc").focus(); return; }
+    if (!fx.kycFiles.front || !fx.kycFiles.selfie) { toast(t("kyc_e_files"), "error"); return; }
+    if (!$("#kyc-consent").checked) { toast(t("kyc_e_consent"), "error"); return; }
+    fx.kycBusy = true;
+    var keep = { name: $("#kyc-name").value, doc: $("#kyc-doc").value };
+    render(); $("#kyc-name").value = keep.name; $("#kyc-doc").value = keep.doc; $("#kyc-consent").checked = true;
+    try {
+      var paths = {}, stamp = Date.now().toString(36);
+      for (var i = 0; i < KYC_SLOTS.length; i++) {
+        var key = KYC_SLOTS[i][0], f = fx.kycFiles[key];
+        if (!f) continue;
+        // паспорт должен читаться: крупно и почти без сжатия
+        var blob = await c.shrinkImage(f.file, 2200, 1800 * 1024, true);
+        var path = state.me.id + "/" + key + "-" + stamp + ".jpg";
+        var up = await c.db().storage.from("kyc").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        if (up.error) throw up.error;
+        paths[key] = path;
+      }
+      var res = await c.db().rpc("kyc_submit", { p_name: name, p_doc: doc, p_front: paths.front, p_back: paths.back || null,
+        p_selfie: paths.selfie, p_consent: true });
+      if (res.error) throw res.error;
+      // администратору — сообщение в «Поддержку» (и в Telegram)
+      try {
+        await c.db().rpc("support_send", { p_body: t("kyc_admin_msg", { name: name }), p_meta: { kind: "kyc" } });
+        c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {});
+      } catch (e) { /* не важно */ }
+      Object.keys(fx.kycFiles).forEach(function (k) { URL.revokeObjectURL(fx.kycFiles[k].url); });
+      fx.kycFiles = {};
+      toast(t("kyc_sent"), "ok");
+      await loadKyc();
+    } catch (err) {
+      var m = String((err && err.message) || "");
+      if (/kyc_done/.test(m)) await loadKyc();
+      else if (/invalid_doc/.test(m)) toast(t("kyc_e_doc"), "error");
+      else if (/invalid_name/.test(m)) toast(t("kyc_e_name"), "error");
+      else c.handleError(err);
+    } finally {
+      fx.kycBusy = false;
+      render();
+    }
+  }
+
+  // ---------- Проверка личности: администратор ----------
+  function kycAdminHtml() {
+    var all = fx.kycList, pend = all.filter(function (k) { return k.status === "pending"; });
+    var list = fx.kycFilter === "all" ? all : pend;
+    var html = '<section class="an-card fx-card"><h3>🪪 ' + esc(t("kyc_admin_title")) + "</h3>" +
+      '<div class="chips">' +
+        '<button type="button" class="chip' + (fx.kycFilter === "pending" ? " active" : "") + '" data-kyc-filter="pending">' + esc(t("kyc_f_pending")) + " · " + pend.length + "</button>" +
+        '<button type="button" class="chip' + (fx.kycFilter === "all" ? " active" : "") + '" data-kyc-filter="all">' + esc(t("fx_all")) + " · " + all.length + "</button>" +
+      "</div>";
+    if (!list.length) return html + '<div class="state-box">' + esc(t("kyc_admin_empty")) + "</div></section>";
+    return html + '<div class="fx-list">' + list.map(function (k) {
+      return '<div class="fx-row kyc-st-' + esc(k.status) + '">' +
+        '<div class="fx-row-top"><b>' + esc(k.full_name) + '</b><span class="fx-st">' + esc(t("kyc_st_" + k.status)) + "</span></div>" +
+        '<div class="fx-row-sum">🪪 ' + esc(k.doc_number) + "</div>" +
+        '<div class="fx-row-meta">' + esc(k.ws_name || "—") + " · " + esc(k.phone ? c.fmtPhone(k.phone) : "") + " · " + esc(k.email || "") + "</div>" +
+        '<div class="fx-row-meta">' + esc(c.fmtDate(k.submitted_at)) + " · " + esc(c.fmtTime(k.submitted_at)) + "</div>" +
+        (k.reason ? '<div class="fx-row-note">' + esc(k.reason) + "</div>" : "") +
+        '<div class="fx-row-act">' +
+          '<button type="button" class="btn btn-sm" data-kyc-view="' + esc(k.user_id) + '">' + esc(t("kyc_view")) + "</button>" +
+          (k.status === "pending"
+            ? '<button type="button" class="btn btn-sm btn-primary" data-kyc-ok="' + esc(k.user_id) + '">✔ ' + esc(t("kyc_approve")) + "</button>" +
+              '<button type="button" class="btn btn-sm btn-ghost" data-kyc-no="' + esc(k.user_id) + '">' + esc(t("kyc_reject")) + "</button>"
+            : k.status === "approved"
+              ? '<button type="button" class="btn btn-sm btn-ghost" data-kyc-no="' + esc(k.user_id) + '">' + esc(t("kyc_revoke")) + "</button>"
+              : "") +
+        "</div></div>";
+    }).join("") + "</div></section>";
+  }
+
+  async function kycView(uid) {
+    var k = fx.kycList.filter(function (x) { return x.user_id === uid; })[0];
+    if (!k) return;
+    var paths = [k.front_path, k.back_path, k.selfie_path].filter(Boolean);
+    var res = await c.db().storage.from("kyc").createSignedUrls(paths, 600);
+    if (res.error || !res.data) { toast(t("error_generic"), "error"); return; }
+    var urls = res.data.map(function (x) { return x.signedUrl; }).filter(Boolean);
+    if (urls.length) c.openLightbox(urls, 0); else toast(t("error_generic"), "error");
+  }
+
+  async function kycDecide(uid, ok) {
+    var reason = null;
+    if (!ok) {
+      reason = window.prompt(t("kyc_reason_q"), "");
+      if (reason == null) return;
+      reason = reason.trim();
+      if (!reason) { toast(t("kyc_e_reason"), "error"); return; }
+    }
+    var res = await c.db().rpc("admin_kyc_decide", { p_user: uid, p_ok: ok, p_reason: reason });
+    if (res.error) { c.handleError(res.error); return; }
+    toast(t("fx_saved"), "ok");
+    await loadKycList();
+    render();
   }
 
   function requestsHtml() {
@@ -282,7 +432,7 @@
   function render() {
     var box = $("#fx-body");
     if (!box) return;
-    box.innerHTML = (state.ws ? requestsHtml() + myHtml() : "") + (kgBuyer() ? platformHtml() : "");
+    box.innerHTML = (state.ws ? requestsHtml() + myHtml() : "") + (isAdmin() ? kycAdminHtml() : "") + (kgBuyer() ? platformHtml() : "");
     updateCalc();
   }
 
@@ -297,7 +447,8 @@
 
   async function open() {
     render();
-    await Promise.all([loadPlatform(), state.ws ? loadRequests() : Promise.resolve()]);
+    await Promise.all([loadPlatform(), state.ws ? loadRequests() : Promise.resolve(), loadKyc(),
+      isAdmin() ? loadKycList() : Promise.resolve()]);
     render();
   }
 
@@ -318,7 +469,10 @@
       if (state.myWs && state.myWs.id === res.data.id) state.myWs = res.data;
       toast(t("fx_saved"), "ok");
       render();
-    } catch (err) { c.handleError(err); }
+    } catch (err) {
+      if (/kyc_required/.test(String((err && err.message) || ""))) { toast(t("kyc_e_required"), "error"); return; }
+      c.handleError(err);
+    }
   }
 
   async function saveAdmin(e) {
@@ -387,9 +541,32 @@
     box.addEventListener("submit", function (e) {
       if (e.target.id === "fxm-form") saveMine(e);
       else if (e.target.id === "fxa-form") saveAdmin(e);
+      else if (e.target.id === "kyc-form") { e.preventDefault(); if (!fx.kycBusy) submitKyc(); }
+    });
+    box.addEventListener("change", function (e) {
+      var key = e.target.getAttribute && e.target.getAttribute("data-kyc-file");
+      if (!key || !e.target.files || !e.target.files[0]) return;
+      var file = e.target.files[0];
+      if (!/^image\//.test(file.type)) { toast(t("kyc_e_files"), "error"); return; }
+      if (fx.kycFiles[key]) URL.revokeObjectURL(fx.kycFiles[key].url);
+      fx.kycFiles[key] = { file: file, url: URL.createObjectURL(file) };
+      // перерисовать только плитки, чтобы не стереть введённые ФИО и номер
+      var keep = { name: $("#kyc-name").value, doc: $("#kyc-doc").value, ok: $("#kyc-consent").checked };
+      render();
+      $("#kyc-name").value = keep.name; $("#kyc-doc").value = keep.doc; $("#kyc-consent").checked = keep.ok;
     });
     box.addEventListener("click", async function (e) {
       if (e.target.closest("#fxp-send")) { askAdmin(); return; }
+      var kp = e.target.closest("[data-kyc-pick]");
+      if (kp) { var inp = box.querySelector('[data-kyc-file="' + kp.getAttribute("data-kyc-pick") + '"]'); if (inp) inp.click(); return; }
+      var kf = e.target.closest("[data-kyc-filter]");
+      if (kf) { fx.kycFilter = kf.getAttribute("data-kyc-filter"); render(); return; }
+      var kv = e.target.closest("[data-kyc-view]");
+      if (kv) { kycView(kv.getAttribute("data-kyc-view")); return; }
+      var ko = e.target.closest("[data-kyc-ok]");
+      if (ko) { kycDecide(ko.getAttribute("data-kyc-ok"), true); return; }
+      var kn = e.target.closest("[data-kyc-no]");
+      if (kn) { kycDecide(kn.getAttribute("data-kyc-no"), false); return; }
       if (e.target.closest("#fx-link-make")) { makeLink(); return; }
       if (e.target.closest("#fx-link-copy")) {
         var ok = await c.copyText($("#fx-link-input").value);
@@ -504,6 +681,7 @@
     }
     html += (f.updated_at ? '<p class="fx-date ' + (isToday(f.updated_at) ? "" : "old") + '">' + esc(dateLine(f.updated_at)) + "</p>" : "") +
       (f.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(f.eta) })) + "</p>" : "") +
+      '<p class="kyc-pub">✔ ' + esc(t("kyc_pub_badge")) + "</p>" +
       '<div class="fx-tiers-wrap">' + tiersHtml(f.tiers, parseNum(pub.cny) || 0) + "</div>";
     if (pub.step === "form") {
       var cny = parseNum(pub.cny);
