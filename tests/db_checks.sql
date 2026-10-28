@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 28 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 30 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -1124,3 +1124,180 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 21. Логотип: владелец задаёт, чужой не может, путь проверяется, клиент видит название и логотип'
+
+-- ===== 22. Обмен сом → юань =====
+reset role;
+insert into t select 'cur_tok2', public_token from public.orders where id = (select v::uuid from t where k = 'b_order');
+set role anon;
+do $$
+begin
+  -- обмен выключен — заявку не принять, клиент курса не видит
+  begin perform public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996555111222', 2000, null);
+    raise exception 'ПРОВАЛ: заявка при выключенном обмене';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  if (public.get_client_order((select v from t where k = 'cur_tok2'))->'brand'->'fx')::text <> 'null' then
+    raise exception 'ПРОВАЛ: курс виден при выключенном обмене'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare ws uuid := (select v::uuid from t where k = 'b_ws_id');
+begin
+  update public.workspaces set fx_on = true, fx_note = 'Мбанк 0555 000 111',
+    fx_tiers = '[{"from": 1000, "rate": 12.6}, {"from": 10000, "rate": 12.4}]' where id = ws;
+  if (select fx_updated_at from public.workspaces where id = ws) is null then raise exception 'ПРОВАЛ: дата курса не поставилась'; end if;
+  begin update public.workspaces set fx_tiers = '[{"from": 0, "rate": -1}]' where id = ws; raise exception 'ПРОВАЛ: принят отрицательный курс';
+  exception when check_violation then null; end;
+  begin update public.workspaces set fx_tiers = '[{"from": 5, "rate": 12}, {"from": 5, "rate": 11}]' where id = ws; raise exception 'ПРОВАЛ: приняты одинаковые ступени';
+  exception when check_violation then null; end;
+  begin update public.workspaces set fx_tiers = '{"rate": 12}' where id = ws; raise exception 'ПРОВАЛ: принят курс не списком';
+  exception when check_violation then null; end;
+  begin perform public.admin_set_platform_fx('[{"from": 0, "rate": 12}]', null); raise exception 'ПРОВАЛ: байер поменял курс админа';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+update public.workspaces set fx_tiers = '[{"from": 0, "rate": 1}]' where id = (select v::uuid from t where k = 'b_ws_id');  -- чужой: строка не меняется
+reset role;
+set role anon;
+do $$
+declare r json;
+begin
+  if (public.get_client_order((select v from t where k = 'cur_tok2'))->'brand'->'fx'->'tiers'->1->>'rate')::numeric <> 12.4 then
+    raise exception 'ПРОВАЛ: клиент не видит ступени курса (или чужой байер их поменял)'; end if;
+  begin perform public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996555111222', 500, null);
+    raise exception 'ПРОВАЛ: принята сумма меньше минимальной';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996 555 111 222', 2000, 'вечером');
+  if (r->>'som')::numeric <> 25200 or (r->>'rate')::numeric <> 12.6 then raise exception 'ПРОВАЛ: неверная сумма для 2000 ¥ (%)', r; end if;
+  if r->>'note' <> 'Мбанк 0555 000 111' then raise exception 'ПРОВАЛ: клиент не получил реквизиты'; end if;
+  insert into t values ('fx_req', r->>'id');
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996555111222', 10000, null);
+  if (r->>'som')::numeric <> 124000 then raise exception 'ПРОВАЛ: не сработала ступень от 10 000 ¥ (%)', r; end if;
+  begin perform public.submit_exchange('order', '00000000000000000000000000000000', 'Азамат', '+996555111222', 2000, null);
+    raise exception 'ПРОВАЛ: заявка по чужой ссылке';
+  exception when others then if sqlerrm <> 'link_not_found' then raise; end if; end;
+end $$;
+do $$
+declare i int;
+begin
+  for i in 1..3 loop
+    perform public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996555111222', 3000, null);
+  end loop;
+  begin perform public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Азамат', '+996555111222', 3000, null);
+    raise exception 'ПРОВАЛ: нет лимита заявок с одного телефона';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform count(*) from public.exchange_requests; raise exception 'ПРОВАЛ: аноним читает заявки';
+  exception when insufficient_privilege then null; end;
+  begin perform public.ws_brand((select v::uuid from t where k = 'b_ws_id')); raise exception 'ПРОВАЛ: аноним вызвал внутреннюю функцию';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- скриншот оплаты: только к своей свежей заявке
+do $$
+declare id text := (select v from t where k = 'fx_req');  -- номер заявки
+begin
+  begin insert into storage.objects (bucket_id, name) values ('fx-proofs', gen_random_uuid()::text || '/p.jpg');
+    raise exception 'ПРОВАЛ: загрузка к несуществующей заявке';
+  exception when insufficient_privilege then null; end;
+  begin insert into storage.objects (bucket_id, name) values ('fx-proofs', id || '/../x.svg');
+    raise exception 'ПРОВАЛ: принято странное имя файла';
+  exception when insufficient_privilege then null; end;
+  insert into storage.objects (bucket_id, name) values ('fx-proofs', id || '/pay1.jpg');
+  if not public.fx_attach_proof(id::uuid, id || '/pay1.jpg') then raise exception 'ПРОВАЛ: скриншот не прикрепился'; end if;
+  begin perform public.fx_attach_proof(id::uuid, id || '/pay1.jpg'); raise exception 'ПРОВАЛ: скриншот прикреплён дважды';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin insert into storage.objects (bucket_id, name) values ('fx-proofs', id || '/pay2.jpg');
+    raise exception 'ПРОВАЛ: загрузка к уже оплаченной заявке';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.exchange_requests; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер видит заявки на обмен'; end if;
+  select count(*) into n from storage.objects where bucket_id = 'fx-proofs'; if n <> 0 then raise exception 'ПРОВАЛ: чужой байер видит скриншоты'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.exchange_requests; if n <> 5 then raise exception 'ПРОВАЛ: байер видит % заявок вместо 5', n; end if;
+  if (select status from public.exchange_requests where comment = 'вечером') <> 'paid' then raise exception 'ПРОВАЛ: заявка со скриншотом не стала «оплачено»'; end if;
+  select count(*) into n from storage.objects where bucket_id = 'fx-proofs'; if n <> 1 then raise exception 'ПРОВАЛ: байер не видит скриншот'; end if;
+  update public.exchange_requests set status = 'done' where comment = 'вечером';
+  begin update public.exchange_requests set som = 1 where comment = 'вечером'; raise exception 'ПРОВАЛ: байер меняет сумму заявки';
+  exception when insufficient_privilege then null; end;
+  if (select tiers from public.platform_fx) is not null then raise exception 'ПРОВАЛ: курс админа не пустой'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+select public.admin_set_platform_fx('[{"from": 0, "rate": 12.3}, {"from": 5000, "rate": 12.2}]', 'Наличные');
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  if public.fx_rate_for((select tiers from public.platform_fx), 6000) <> 12.2 then raise exception 'ПРОВАЛ: байер не видит курс админа'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 22. Обмен: ступени курса, минимум, лимиты; скриншот только к своей заявке, видит только свой байер; курс админа ставит только админ'
+
+-- ===== 23. Статус заявки на обмен для клиента =====
+reset role;
+delete from public.exchange_requests where client_phone <> '+996555111222';
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+update public.workspaces set fx_eta = 30 where id = (select v::uuid from t where k = 'b_ws_id');
+reset role;
+set role anon;
+do $$
+declare r json; s json; rid uuid;
+begin
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Бакыт', '+996777000111', 1500, null);
+  rid := (r->>'id')::uuid;
+  insert into t values ('fx_req2', rid::text);
+  s := public.get_exchange_status(rid);
+  if s->>'status' <> 'new' or s->>'note' <> 'Мбанк 0555 000 111' or (s->>'eta')::int <> 30 or not (s->>'can_upload')::boolean then
+    raise exception 'ПРОВАЛ: клиент видит неверный статус новой заявки (%)', s; end if;
+  if s->>'status_at' is null then raise exception 'ПРОВАЛ: нет времени статуса'; end if;
+  if public.get_exchange_status(gen_random_uuid()) is not null then raise exception 'ПРОВАЛ: статус чужой/несуществующей заявки'; end if;
+  if s::text like '%client_phone%' or s::text like '%Бакыт%' then raise exception 'ПРОВАЛ: в статусе лишние личные данные'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+update public.exchange_requests set status = 'done' where id = (select v::uuid from t where k = 'fx_req2');  -- чужой: не видит, не меняет
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'fx_req2');
+begin
+  if (select status from public.exchange_requests where exchange_requests.id = rid) <> 'new' then raise exception 'ПРОВАЛ: чужой байер поменял статус'; end if;
+  update public.exchange_requests set status = 'confirmed', eta_until = now() + interval '30 days', buyer_note = 'Отправлю на Alipay'
+   where exchange_requests.id = rid;
+  if (select eta_until from public.exchange_requests where exchange_requests.id = rid) > now() + interval '7 days 1 minute' then
+    raise exception 'ПРОВАЛ: время ожидания больше 7 дней'; end if;
+  begin update public.exchange_requests set status = 'lost' where exchange_requests.id = rid; raise exception 'ПРОВАЛ: принят неизвестный статус';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+set role anon;
+do $$
+declare s json := public.get_exchange_status((select v::uuid from t where k = 'fx_req2'));
+begin
+  if s->>'status' <> 'confirmed' or s->>'buyer_note' <> 'Отправлю на Alipay' or s->>'eta_until' is null then
+    raise exception 'ПРОВАЛ: клиент не видит подтверждение и время (%)', s; end if;
+  if s->>'note' is not null or (s->>'can_upload')::boolean then raise exception 'ПРОВАЛ: после подтверждения видны реквизиты/загрузка'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 23. Статус обмена: клиент видит статус, время ожидания и сообщение только своей заявки; менять может только свой байер'
