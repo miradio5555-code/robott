@@ -2660,3 +2660,20 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .fx-status.st-done h1 { color: #1E9E62; }
 .fx-status.st-cancelled h1 { color: var(--muted); }
 .fx-my-list { display: grid; gap: 6px; }
+
+/* Проверка личности обменника (файл 30) */
+.kyc-box { margin: 10px 0; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--soft); }
+.kyc-box h4 { margin: 0 0 6px; }
+.kyc-box .muted { margin: 0 0 4px; font-size: 13px; }
+.kyc-ok, .kyc-pub { margin: 6px 0; font-size: 14px; font-weight: 600; color: var(--green); }
+.kyc-pub { font-size: 13px; }
+.kyc-wait { margin: 4px 0 0; font-weight: 600; }
+.kyc-files { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kyc-file { position: relative; display: grid; place-items: center; gap: 4px; min-height: 96px; padding: 6px; border-radius: var(--r-md);
+  border: 1.5px dashed var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; overflow: hidden; font: inherit; }
+.kyc-file.has { border-style: solid; border-color: var(--green); }
+.kyc-file img { width: 100%; height: 64px; object-fit: cover; border-radius: var(--r-sm); }
+.kyc-file small { font-size: 11px; line-height: 1.25; text-align: center; color: var(--muted); }
+.kyc-plus { font-size: 26px; line-height: 1; color: var(--muted); }
+.kyc-st-approved .fx-st { color: var(--green); }
+.kyc-st-rejected .fx-st, .kyc-st-revoked .fx-st { color: var(--red); }
