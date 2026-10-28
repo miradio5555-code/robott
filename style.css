@@ -2866,3 +2866,51 @@ html[data-theme="dark"] #tab-orders .chips-ico .chip.active:not(.chip-all) .ci {
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) #tab-orders .chips-ico .chip.active:not(.chip-all) .ci { color: #14161A; }
 }
+
+/* ---------- Расчёт цены: 3 понятных шага ---------- */
+#tab-quote .q-steps { display: grid; gap: 12px; padding: 14px; }
+#tab-quote .q-step {
+  position: relative; padding: 14px 14px 12px; border-radius: 16px;
+  background: var(--paper); border: 1px solid var(--line);
+  transition: border-color .25s, background .25s;
+  animation: q-in .4s var(--ease) backwards;
+}
+#tab-quote #q-step2 { animation-delay: .07s; }
+#tab-quote #q-step3 { animation-delay: .14s; }
+@keyframes q-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+#tab-quote .q-step:focus-within { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--paper)); }
+#tab-quote .q-step.done { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+#tab-quote .q-step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+#tab-quote .q-num {
+  flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--primary); color: var(--on-primary); font-weight: 800; font-size: 15px; font-style: normal;
+  transition: background .25s, transform .3s var(--ease);
+}
+#tab-quote .q-num i { font-style: normal; }
+#tab-quote .q-step.done .q-num { background: var(--green); transform: scale(1.06); }
+#tab-quote .q-step.done .q-num i { font-size: 0; }
+#tab-quote .q-step.done .q-num i::before { content: "✓"; font-size: 17px; }
+#tab-quote .q-step-t { flex: 1; min-width: 0; display: grid; }
+#tab-quote .q-step-t b { font-size: 16px; }
+#tab-quote .q-step-t small { color: var(--muted); font-size: 13px; }
+#tab-quote .q-step-sum { font-style: normal; font-weight: 800; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#tab-quote .q-step-profit { color: var(--green); }
+#tab-quote .q-step .field { margin-bottom: 0; }
+#tab-quote .q-step input { font-size: 18px; font-weight: 700; }
+#tab-quote .q-step .quote-modes { margin-top: 10px; }
+#tab-quote .q-mk { display: grid; gap: 10px; }
+#tab-quote .q-mk-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#tab-quote .q-mk-chips .notify-lang { min-height: 40px; font-size: 15px; font-weight: 800; }
+#tab-quote .q-more { margin-top: 10px; }
+#tab-quote .q-more > summary { cursor: pointer; color: var(--primary); font-size: 14px; font-weight: 700; padding: 4px 0; list-style: none; }
+#tab-quote .q-more > summary::-webkit-details-marker { display: none; }
+#tab-quote .q-more[open] > summary { margin-bottom: 10px; }
+#tab-quote .q-rates { margin-top: 0; padding: 12px 14px; border-radius: 16px; border: 1px dashed var(--line-strong); }
+#tab-quote .q-rates > summary { color: var(--muted); }
+#tab-quote .q-rates .grid-2 { gap: 10px; }
+#tab-quote .quote-price-box.q-pop { animation: q-pop .35s var(--ease); }
+@keyframes q-pop { 0% { transform: scale(1); } 40% { transform: scale(1.035); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  #tab-quote .q-step, #tab-quote .quote-price-box.q-pop { animation: none; }
+}
+#tab-quote .q-step .grid-2 { align-items: end; }
