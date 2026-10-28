@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 31 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 32 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -1234,7 +1234,7 @@ begin
   select count(*) into n from public.exchange_requests; if n <> 5 then raise exception 'ПРОВАЛ: байер видит % заявок вместо 5', n; end if;
   if (select status from public.exchange_requests where comment = 'вечером') <> 'paid' then raise exception 'ПРОВАЛ: заявка со скриншотом не стала «оплачено»'; end if;
   select count(*) into n from storage.objects where bucket_id = 'fx-proofs'; if n <> 1 then raise exception 'ПРОВАЛ: байер не видит скриншот'; end if;
-  update public.exchange_requests set status = 'done' where comment = 'вечером';
+  update public.exchange_requests set status = 'confirmed' where comment = 'вечером';
   begin update public.exchange_requests set som = 1 where comment = 'вечером'; raise exception 'ПРОВАЛ: байер меняет сумму заявки';
   exception when insufficient_privilege then null; end;
   if (select tiers from public.platform_fx) is not null then raise exception 'ПРОВАЛ: курс админа не пустой'; end if;
@@ -1291,7 +1291,7 @@ begin
   if (select eta_until from public.exchange_requests where exchange_requests.id = rid) > now() + interval '7 days 1 minute' then
     raise exception 'ПРОВАЛ: время ожидания больше 7 дней'; end if;
   begin update public.exchange_requests set status = 'lost' where exchange_requests.id = rid; raise exception 'ПРОВАЛ: принят неизвестный статус';
-  exception when check_violation then null; end;
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
 end $$;
 reset role;
 set role anon;
@@ -1417,3 +1417,192 @@ begin
 end $$;
 reset request.uid;
 \echo '✅ 24. Проверка личности: без неё обмен не включить; паспорт видят только сам байер и админ; после проверки данные не подменить; снятие выключает обмен'
+
+-- ===== 25. Обмен как P2P: подтверждение двух сторон и споры =====
+reset role;
+set role anon;
+do $$
+declare r json; rid uuid;
+begin
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Самат', '+996700111222', 2000, null);
+  rid := (r->>'id')::uuid; insert into t values ('p1', rid::text);
+  insert into storage.objects (bucket_id, name) values ('fx-proofs', rid || '/pay.jpg');
+  perform public.fx_attach_proof(rid, rid || '/pay.jpg');
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Эрлан', '+996700333444', 3000, null);
+  rid := (r->>'id')::uuid; insert into t values ('p2', rid::text);
+  insert into storage.objects (bucket_id, name) values ('fx-proofs', rid || '/pay.jpg');
+  perform public.fx_attach_proof(rid, rid || '/pay.jpg');
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Нурлан', '+996700555666', 1500, null);
+  insert into t values ('p3', r->>'id');
+  -- рано: клиент ещё не может спорить, «получил» — только после отправки
+  begin perform public.fx_client_received((select v::uuid from t where k = 'p1'), 5); raise exception 'ПРОВАЛ: «получил» до отправки';
+  exception when others then if sqlerrm <> 'bad_status' then raise; end if; end;
+  begin perform public.fx_dispute_open((select v::uuid from t where k = 'p1'), 'Где мои юани?'); raise exception 'ПРОВАЛ: спор сразу после оплаты';
+  exception when others then if sqlerrm <> 'cannot_dispute' then raise; end if; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p1'); n int;
+begin
+  begin update public.exchange_requests set status = 'done' where id = rid; raise exception 'ПРОВАЛ: байер сам поставил «выполнено»';
+  exception when others then if sqlerrm <> 'bad_status' then raise; end if; end;
+  begin update public.exchange_requests set status = 'cancelled' where id = rid; raise exception 'ПРОВАЛ: байер отменил оплаченную заявку';
+  exception when others then if sqlerrm <> 'bad_status' then raise; end if; end;
+  update public.exchange_requests set status = 'confirmed', eta_until = now() + interval '30 minutes' where id = rid;
+  begin perform public.fx_mark_sent(rid, rid || '/nofile1234567890.jpg'); raise exception 'ПРОВАЛ: «отправлены» без скриншота';
+  exception when others then if sqlerrm <> 'file_not_found' then raise; end if; end;
+  begin insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/short.jpg'); raise exception 'ПРОВАЛ: угадываемое имя файла';
+  exception when insufficient_privilege then null; end;
+  insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/sentAbcdefgh123456.jpg');
+  perform public.fx_mark_sent(rid, rid || '/sentAbcdefgh123456.jpg', 'Отправил на Alipay');
+  if (select status from public.exchange_requests where id = rid) <> 'sent' then raise exception 'ПРОВАЛ: не стало «отправлены»'; end if;
+  delete from public.exchange_requests where id = rid;
+  select count(*) into n from public.exchange_requests where id = rid;
+  if n <> 1 then raise exception 'ПРОВАЛ: байер удалил оплаченную заявку'; end if;
+  -- заявка 3 не оплачена: отменить можно, а удалить — тоже
+  update public.exchange_requests set status = 'cancelled' where id = (select v::uuid from t where k = 'p3');
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p1');
+begin
+  begin insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/sentZzzzzzzz123456.jpg'); raise exception 'ПРОВАЛ: чужой байер загрузил в чужую заявку';
+  exception when insufficient_privilege then null; end;
+  begin perform public.fx_mark_sent(rid, rid || '/sentAbcdefgh123456.jpg'); raise exception 'ПРОВАЛ: чужой байер отметил отправку';
+  exception when insufficient_privilege then null; end;
+  begin perform public.fx_autoclose_ws((select v::uuid from t where k = 'b_ws_id')); raise exception 'ПРОВАЛ: чужой закрывает сделки';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p1'); s json;
+begin
+  s := public.get_exchange_status(rid);
+  if s->>'status' <> 'sent' or s->>'sent_proof' is null or not (s->>'can_dispute')::boolean or s->>'close_at' is null then
+    raise exception 'ПРОВАЛ: клиент не видит отправку (%)', s; end if;
+  begin perform public.fx_dispute_open(rid, 'нет'); raise exception 'ПРОВАЛ: спор без причины';
+  exception when others then if sqlerrm <> 'invalid_reason' then raise; end if; end;
+  if public.fx_dispute_open(rid, 'Юани не пришли на Alipay') <> 'client' then raise exception 'ПРОВАЛ: спор не открылся'; end if;
+  begin perform public.fx_dispute_open(rid, 'Ещё раз открыть'); raise exception 'ПРОВАЛ: второй спор';
+  exception when others then if sqlerrm <> 'cannot_dispute' then raise; end if; end;
+  begin insert into storage.objects (bucket_id, name) values ('fx-proofs', rid || '/pay2.jpg'); raise exception 'ПРОВАЛ: загрузка не-спорного файла';
+  exception when insufficient_privilege then null; end;
+  insert into storage.objects (bucket_id, name) values ('fx-proofs', rid || '/d-alipay01.jpg');
+  perform public.fx_dispute_post(rid, 'Вот мой Alipay — пусто', rid || '/d-alipay01.jpg');
+  begin perform public.fx_dispute_post(rid, null, rid || '/pay.jpg'); raise exception 'ПРОВАЛ: клиент приложил не свой файл спора';
+  exception when others then if sqlerrm <> 'file_not_found' then raise; end if; end;
+  s := public.get_exchange_status(rid);
+  if s->>'dispute' <> 'open' or json_array_length(s->'events') <> 2 then raise exception 'ПРОВАЛ: клиент не видит спор (%)', s; end if;
+  if (s->'events'->1->>'file') is not null then raise exception 'ПРОВАЛ: клиенту отдан путь закрытого файла'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p1'); rid2 uuid := (select v::uuid from t where k = 'p2');
+begin
+  begin update public.exchange_requests set buyer_note = 'тихо поменял' where id = rid; raise exception 'ПРОВАЛ: байер меняет заявку во время спора';
+  exception when others then if sqlerrm <> 'dispute_open' then raise; end if; end;
+  insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/chatAbcdefgh123456.jpg');
+  perform public.fx_dispute_post(rid, 'Вот выписка Alipay', rid || '/chatAbcdefgh123456.jpg');
+  if (select count(*) from public.exchange_events where request_id = rid) < 4 then raise exception 'ПРОВАЛ: байер не видит переписку'; end if;
+  if (select count(*) from storage.objects where bucket_id = 'fx-proofs' and name = rid || '/d-alipay01.jpg') <> 1 then
+    raise exception 'ПРОВАЛ: байер не видит фото клиента в споре'; end if;
+  -- байер открывает спор по оплаченной заявке 2: деньги не пришли
+  if public.fx_dispute_open(rid2, 'Деньги не пришли, скриншот поддельный') <> 'buyer' then raise exception 'ПРОВАЛ: байер не открыл спор'; end if;
+  begin perform public.admin_fx_resolve(rid, 'buyer', 'сам себе', false); raise exception 'ПРОВАЛ: байер решает спор';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  if exists (select 1 from public.exchange_events) then raise exception 'ПРОВАЛ: чужой байер видит переписку'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p1'); rid2 uuid := (select v::uuid from t where k = 'p2'); l json;
+begin
+  l := public.admin_fx_disputes();
+  if json_array_length(l) <> 2 or l->0->>'dispute' <> 'open' or json_array_length(l->0->'events') < 1 then
+    raise exception 'ПРОВАЛ: админ не видит споры (%)', l; end if;
+  perform public.fx_dispute_post(rid, 'Пришлите выписку за сегодня', null);
+  begin perform public.admin_fx_resolve(rid, 'buyer', ' ', true); raise exception 'ПРОВАЛ: решение без причины';
+  exception when others then if sqlerrm <> 'reason_required' then raise; end if; end;
+  perform public.admin_fx_resolve(rid, 'buyer', 'Выписка подтверждает перевод', true);
+  perform public.admin_fx_resolve(rid2, 'client', 'Оплата видна в банке — отправьте юани', false);
+  begin perform public.admin_fx_resolve(rid2, 'buyer', 'передумал', false); raise exception 'ПРОВАЛ: решение дважды';
+  exception when others then if sqlerrm <> 'no_dispute' then raise; end if; end;
+  l := public.admin_fx_disputes();
+  if (l->0->>'strikes')::int <> 1 then raise exception 'ПРОВАЛ: не посчитан спор против байера (%)', l->0->'strikes'; end if;
+end $$;
+reset role;
+do $$
+begin
+  if (select status from public.exchange_requests where id = (select v::uuid from t where k = 'p1')) <> 'done' then raise exception 'ПРОВАЛ: после решения «прав байер» сделка не закрыта'; end if;
+  if (select status from public.exchange_requests where id = (select v::uuid from t where k = 'p2')) <> 'confirmed' then raise exception 'ПРОВАЛ: после «прав клиент» байер не обязан отправить'; end if;
+  if not exists (select 1 from public.fx_blacklist where phone = '+996700111222') then raise exception 'ПРОВАЛ: номер не в чёрном списке'; end if;
+end $$;
+set role anon;
+do $$
+declare r json; rid uuid;
+begin
+  begin perform count(*) from public.fx_blacklist; raise exception 'ПРОВАЛ: аноним видит чёрный список';
+  exception when insufficient_privilege then null; end;
+  r := public.submit_exchange('order', (select v from t where k = 'cur_tok2'), 'Самат', '+996700111222', 1200, null);
+  insert into t values ('p4', r->>'id');
+  if public.get_exchange_status((select v::uuid from t where k = 'p2'))->>'dispute_result' <> 'client' then
+    raise exception 'ПРОВАЛ: клиент не видит решение'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p2');
+begin
+  if not (select client_flag from public.exchange_requests where id = (select v::uuid from t where k = 'p4')) then
+    raise exception 'ПРОВАЛ: байер не видит пометку чёрного списка'; end if;
+  insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/sentQwertyui123456.jpg');
+  perform public.fx_mark_sent(rid, rid || '/sentQwertyui123456.jpg');
+end $$;
+reset role;
+-- клиент молчит 24 часа — сделка закрывается сама
+update public.exchange_requests set sent_at = now() - interval '25 hours' where id = (select v::uuid from t where k = 'p2');
+set role anon;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p2');
+begin
+  if public.get_exchange_status(rid)->>'status' <> 'done' then raise exception 'ПРОВАЛ: сделка не закрылась через 24 часа'; end if;
+end $$;
+reset role;
+-- клиент подтверждает получение с оценкой
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p4');
+begin
+  insert into storage.objects (bucket_id, name) values ('fx-sent', rid || '/sentPoiuytre123456.jpg');
+  perform public.fx_mark_sent(rid, rid || '/sentPoiuytre123456.jpg');
+end $$;
+reset role;
+set role anon;
+do $$
+declare rid uuid := (select v::uuid from t where k = 'p4');
+begin
+  begin perform public.fx_client_received(rid, 9); raise exception 'ПРОВАЛ: оценка 9';
+  exception when others then if sqlerrm <> 'bad_rating' then raise; end if; end;
+  perform public.fx_client_received(rid, 5);
+  if public.get_exchange_status(rid)->>'status' <> 'done' or (public.get_exchange_status(rid)->>'rating')::int <> 5 then
+    raise exception 'ПРОВАЛ: «получил» не закрыл сделку'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 25. Обмен P2P: «отправлены» только со скриншотом, «получил» — клиент (или 24 часа); оплаченную не отменить и не удалить; спор: обе стороны, переписка, решение админа, чёрный список'
