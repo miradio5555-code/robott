@@ -282,7 +282,7 @@
     var canOn = own && (kycOk() || w.fx_on);
     return '<section class="an-card fx-card"><h3>' + esc(t("fx_my_title")) + "</h3>" +
       '<p class="muted">' + esc(t("fx_my_hint")) + "</p>" +
-      (own ? kycHtml() : "") +
+      (own && !isAdmin() ? kycHtml() : "") +
       (w.fx_tiers ? '<p class="fx-date ' + (isToday(w.fx_updated_at) ? "" : "old") + '">' + esc(dateLine(w.fx_updated_at)) + "</p>" : "") +
       '<form id="fxm-form" class="fx-form" novalidate>' +
         '<label class="check-line"><input id="fxm-on" type="checkbox"' + (w.fx_on ? " checked" : "") + (canOn ? "" : " disabled") + "> <span>" + esc(t("fx_on_label")) + "</span></label>" +
@@ -653,7 +653,7 @@
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { fx.keep[ta.getAttribute("data-fx-dmsg")] = ta.value; });
     box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' +
       (isAdmin() ? disputesAdminHtml() : "") +
-      (state.ws ? requestsHtml() + myHtml() : "") + (isAdmin() ? kycAdminHtml() : "") + (kgBuyer() ? platformHtml() : "");
+      (state.ws ? requestsHtml() + (isAdmin() ? "" : myHtml()) : "") + (isAdmin() ? kycAdminHtml() : "") + (kgBuyer() ? platformHtml() : "");
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
     updateCalc();
   }
@@ -1253,6 +1253,18 @@
     mountPublic($("#fx-pub-slot-page"), d.fx, "shop", page.token);
   }
 
-  U.exchange = { bind: bind, open: open, render: render, loadCount: loadCount, mountPublic: mountPublic,
+  // Курс ULA для главной страницы (карточка «Курс на сегодня»): пустая строка, если курса нет или человеку он не нужен
+  async function homeRate() {
+    if (!kgBuyer()) return "";
+    await loadPlatform();
+    var p = fx.platform;
+    if (!p || !sortTiers(p.tiers).length) return "";
+    return '<div class="bd-rate"><div class="bd-head"><h3>' + esc(t("board_rate_title")) + '</h3><span class="fx-date ' + (isToday(p.updated_at) ? "" : "old") + '">' +
+      esc(dateLine(p.updated_at)) + "</span></div>" + tiersHtml(p.tiers, 0) +
+      (p.note ? '<p class="fx-note">' + esc(p.note) + "</p>" : "") +
+      '<button type="button" class="btn btn-sm" data-board="fx">' + esc(t("nav_fx")) + "</button></div>";
+  }
+
+  U.exchange = { homeRate: homeRate, bind: bind, open: open, render: render, loadCount: loadCount, mountPublic: mountPublic,
     initPage: initPage, initStatus: initStatus, renderPage: renderPage, bestRate: bestRate };
 })(window.ULA);
