@@ -285,7 +285,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118m"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118o"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1828,7 +1828,7 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
@@ -1843,6 +1843,7 @@
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
     $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
+    $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     $("#bottom-nav").classList.toggle("hidden", isAdmin);
     $$(".tab").forEach(function (b) {
@@ -1858,6 +1859,8 @@
     if (state.tab === "suppliers" && db && state.ws) loadSuppliers();
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
+    if (state.tab === "profile") ULA.profile.open();
+    if (ULA.profile) ULA.profile.refreshCard();
     if (state.tab === "exchange" && db) ULA.exchange.open();
     if (state.tab === "shop" && db && state.ws) ULA.shop.open();
     if (state.tab === "shipments") ULA.shipments.open();
@@ -1880,7 +1883,7 @@
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
       var ICONS = { exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "users", support: "message" };
+        suppliers: "factory", shipments: "truck", buyers: "users", support: "message", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
@@ -1934,7 +1937,7 @@
   // «Что сделать сегодня» стоит первым и раскрыт, лишние кнопки (Выбрать, Из Excel) спрятаны. Остальное — кнопкой «Показать все разделы»
   // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
-  var SIMPLE_TABS = ["orders", "clients", "shop", "debts"];
+  var SIMPLE_TABS = ["orders", "clients", "shop", "debts", "profile"];
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
@@ -3396,7 +3399,7 @@
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
     clientUrl: clientUrl, copyText: copyText, closeModal: closeModal,
-    switchTab: switchTab, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
+    switchTab: switchTab, openSettings: openSettings, getTheme: getTheme, applyTheme: applyTheme, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
