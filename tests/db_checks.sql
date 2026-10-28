@@ -178,7 +178,7 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.schema_migrations;
-  if n < 26 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
+  if n < 27 then raise exception 'ПРОВАЛ: в schema_migrations отмечено только % файлов', n; end if;
 end $$;
 set request.uid = '00000000-0000-0000-0000-0000000000b1';
 set role authenticated;
@@ -998,3 +998,89 @@ begin
   if n <> 0 then raise exception 'ПРОВАЛ: после новой ссылки клиента подписка осталась'; end if;
 end $$;
 \echo '✅ 19. Telegram клиента: подписки видит только свой байер, менять может только функция, новая ссылка их сбрасывает'
+
+-- ---------- 20. Одна ссылка на все заказы клиента ----------
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+with x as (
+  insert into public.orders (client_name, client_phone, product_ru, quantity, unit_price_cny, exchange_rate, client_price, paid_amount)
+  values ('Айбек', '+996 700 111 222', 'Куртка', 1, 100, 13, 2000, 500),
+         ('Айбек Д.', '0700111222', 'Кроссовки', 1, 100, 13, 3000, 3000),
+         ('Другой клиент', '+996 555 999 888', 'Чужой товар', 1, 100, 13, 1000, 0)
+  returning id, product_ru, order_number)
+, a as (insert into t select 'k_' || product_ru, order_number from x)
+insert into t select 'kid_' || product_ru, id::text from x;
+select public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'get') is null as none_yet \gset
+select public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'create') as cab_token \gset
+insert into t values ('cab_token', :'cab_token');
+reset role;
+do $$
+begin
+  if (select v from t where k = 'cab_token') !~ '^[a-f0-9]{32}$' then raise exception 'ПРОВАЛ: токен общей ссылки неверный'; end if;
+end $$;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  if public.client_cabinet((select v::uuid from t where k = 'kid_Кроссовки'), 'get') <> (select v from t where k = 'cab_token') then
+    raise exception 'ПРОВАЛ: у одного клиента (по телефону) разные общие ссылки'; end if;
+  if public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'create') <> (select v from t where k = 'cab_token') then
+    raise exception 'ПРОВАЛ: повторное создание поменяло токен'; end if;
+  if public.client_cabinet((select v::uuid from t where k = 'kid_Чужой товар'), 'get') is not null then
+    raise exception 'ПРОВАЛ: у другого клиента появилась ссылка'; end if;
+end $$;
+reset role;
+set role anon;
+do $$
+declare j json; tok text := (select v from t where k = 'cab_token');
+begin
+  j := public.get_client_cabinet(tok);
+  if json_array_length(j->'orders') <> 2 then raise exception 'ПРОВАЛ: в общей ссылке % заказов вместо 2', json_array_length(j->'orders'); end if;
+  if (j->'orders'->0->>'product_ru') = 'Чужой товар' or (j->'orders'->1->>'product_ru') = 'Чужой товар' then
+    raise exception 'ПРОВАЛ: в общей ссылке заказ другого клиента'; end if;
+  if (j->'debt'->0->>'amount')::numeric <> 1500 then raise exception 'ПРОВАЛ: общий долг неверный: %', j->'debt'; end if;
+  if public.get_cabinet_order(tok, (select v from t where k = 'k_Куртка')) is null then raise exception 'ПРОВАЛ: заказ клиента не открывается'; end if;
+  if public.get_cabinet_order(tok, (select v from t where k = 'k_Чужой товар')) is not null then raise exception 'ПРОВАЛ: по общей ссылке открылся чужой заказ'; end if;
+  if public.get_cabinet_order(tok, 'нет-такого') is not null then raise exception 'ПРОВАЛ: несуществующий заказ'; end if;
+  if public.get_client_cabinet('00000000000000000000000000000000') is not null then raise exception 'ПРОВАЛ: чужой токен открылся'; end if;
+  if public.get_client_cabinet('abc') is not null then raise exception 'ПРОВАЛ: мусорный токен открылся'; end if;
+  begin perform public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'get'); raise exception 'ПРОВАЛ: аноним управляет ссылкой';
+  exception when insufficient_privilege then null; end;
+  begin perform count(*) from public.client_cabinets; raise exception 'ПРОВАЛ: аноним читает таблицу ссылок';
+  exception when insufficient_privilege then null; end;
+  begin perform public.client_order_json((select v::uuid from t where k = 'kid_Куртка')); raise exception 'ПРОВАЛ: аноним вызвал внутреннюю функцию';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$
+begin
+  begin perform public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'create'); raise exception 'ПРОВАЛ: чужой байер создал ссылку';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'revoke'); raise exception 'ПРОВАЛ: чужой байер отключил ссылку';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  begin perform count(*) from public.client_cabinets; raise exception 'ПРОВАЛ: байер читает таблицу ссылок напрямую';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+select public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'revoke') is null as revoked \gset
+reset role;
+set role anon;
+do $$
+begin
+  if public.get_client_cabinet((select v from t where k = 'cab_token')) is not null then raise exception 'ПРОВАЛ: отключённая ссылка работает'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  if public.client_cabinet((select v::uuid from t where k = 'kid_Куртка'), 'create') = (select v from t where k = 'cab_token') then
+    raise exception 'ПРОВАЛ: после отключения выдан тот же токен'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 20. Общая ссылка клиента: только его заказы (по телефону), чужие закрыты, отключается, таблица и внутренняя функция недоступны'
