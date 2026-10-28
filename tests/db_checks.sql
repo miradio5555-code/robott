@@ -1634,3 +1634,80 @@ begin
   if n <> 0 then raise exception 'ПРОВАЛ: аноним может вызвать % служебных функций', n; end if;
 end $$;
 \echo '✅ 26. Безопасность: у анонима нет прямого доступа к таблицам, у всех таблиц есть RLS, у всех функций задан search_path, служебные функции анониму недоступны'
+
+-- ===== 27. Новости платформы: пишет только админ, читают все вошедшие =====
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+select public.admin_post_news('Тест: новый курс с завтрашнего дня');
+do $$
+begin
+  begin perform public.admin_post_news('   '); raise exception 'ПРОВАЛ: пустая новость принята';
+  exception when others then if sqlerrm <> 'empty_news' then raise; end if; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+do $$
+begin
+  if (select count(*) from public.platform_news) <> 1 then raise exception 'ПРОВАЛ: байер не видит новость'; end if;
+  begin perform public.admin_post_news('взлом'); raise exception 'ПРОВАЛ: байер опубликовал новость';
+  exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
+  begin perform public.admin_delete_news(1); raise exception 'ПРОВАЛ: байер удалил новость';
+  exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
+  begin insert into public.platform_news (body) values ('напрямую'); raise exception 'ПРОВАЛ: байер записал в таблицу напрямую';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+do $$
+begin
+  begin perform count(*) from public.platform_news; raise exception 'ПРОВАЛ: аноним читает новости';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+select public.admin_delete_news((select max(id) from public.platform_news));
+do $$ begin if (select count(*) from public.platform_news) <> 0 then raise exception 'ПРОВАЛ: админ не удалил новость'; end if; end $$;
+reset role;
+reset request.uid;
+\echo '✅ 27. Новости: публикует и удаляет только админ, читают вошедшие, аноним и прямая запись закрыты'
+
+-- ===== 28. История курса ULA: пишется сама при смене курса =====
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+select public.admin_set_platform_fx('[{"from":1000,"rate":12.5}]'::jsonb, 'тест');
+create temp table h0 as select count(*) as cnt from public.platform_fx_history;
+select public.admin_set_platform_fx('[{"from":1000,"rate":12.5}]'::jsonb, 'только заметка');
+select public.admin_set_platform_fx('[{"from":1000,"rate":12.4}]'::jsonb, null);
+do $$
+declare n bigint;
+begin
+  if (select count(*) from public.platform_fx_history) <> (select cnt from h0) + 1 then
+    raise exception 'ПРОВАЛ: история курса записалась неверно'; end if;
+  n := public.admin_post_news('Курс обновлён');
+  if n is null then raise exception 'ПРОВАЛ: admin_post_news не вернула номер'; end if;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+do $$
+begin
+  if (select count(*) from public.platform_fx_history) < 2 then raise exception 'ПРОВАЛ: байер не видит историю курса'; end if;
+  begin insert into public.platform_fx_history (tiers) values ('[]'); raise exception 'ПРОВАЛ: байер записал в историю';
+  exception when insufficient_privilege then null; end;
+  begin update public.platform_news set tg_sent_at = now(); raise exception 'ПРОВАЛ: байер изменил новость';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+do $$
+begin
+  begin perform count(*) from public.platform_fx_history; raise exception 'ПРОВАЛ: аноним читает историю';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 28. История курса: пишется только при смене ступеней, читают вошедшие, записать вручную нельзя'
