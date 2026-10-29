@@ -809,6 +809,16 @@ begin
   r := public.shop_order((select v from t where k = 'shop_tok'), (select v::uuid from t where k = 'shop_pid'), 2, 'Азамат', '+996555777001', null, 'Размер 42', null);
   if not (r ->> 'ok')::boolean then raise exception 'ПРОВАЛ: заказ из витрины не создан'; end if;
   insert into t values ('shop_onum', r ->> 'order_number');
+  -- корзина: скрытый товар в списке — отказ; обычный список — один заказ
+  begin perform public.shop_order_multi((select v from t where k = 'shop_tok'),
+      jsonb_build_array(jsonb_build_object('id', (select v from t where k = 'shop_pid'), 'qty', 1), jsonb_build_object('id', (select v from t where k = 'shop_hid'), 'qty', 1)),
+      'Азамат', '+996555777001', null, null, null);
+    raise exception 'ПРОВАЛ: корзина приняла скрытый товар';
+  exception when others then if sqlerrm like 'ПРОВАЛ%' then raise; end if; end;
+  r := public.shop_order_multi((select v from t where k = 'shop_tok'),
+      jsonb_build_array(jsonb_build_object('id', (select v from t where k = 'shop_pid'), 'qty', 2), jsonb_build_object('id', (select v from t where k = 'shop_pid'), 'qty', 1)),
+      'Азамат', '+996555777001', null, null, null);
+  if not (r ->> 'ok')::boolean then raise exception 'ПРОВАЛ: заказ из корзины не создан'; end if;
 end $$;
 reset role;
 do $$
@@ -1711,3 +1721,45 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 28. История курса: пишется только при смене ступеней, читают вошедшие, записать вручную нельзя'
+
+-- ===== 29. Страна байера =====
+reset role;
+reset request.uid;
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000e1', 'e@test.kz', '{"full_name":"Байер Е","phone":"+77010000555","workspace_name":"Е-карго","country":"kz"}'),
+  ('00000000-0000-0000-0000-0000000000e2', 'e2@test.kg', '{"full_name":"Байер Ж","phone":"+996555000666","country":"<script>"}');
+do $$
+begin
+  if (select country from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000e1') is distinct from 'KZ' then
+    raise exception 'ПРОВАЛ: страна из регистрации не сохранилась'; end if;
+  if (select country from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000e2') is not null then
+    raise exception 'ПРОВАЛ: мусор вместо страны сохранился'; end if;
+end $$;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+update public.workspaces set country = 'KG' where owner_id = '00000000-0000-0000-0000-0000000000b1';
+do $$
+begin
+  if (select country from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000b1') is distinct from 'KG' then
+    raise exception 'ПРОВАЛ: владелец не смог указать страну'; end if;
+  begin update public.workspaces set country = 'kg1' where owner_id = '00000000-0000-0000-0000-0000000000b1';
+    raise exception 'ПРОВАЛ: сохранилась неверная страна';
+  exception when check_violation then null; end;
+  update public.workspaces set country = 'CN' where owner_id = '00000000-0000-0000-0000-0000000000e1';
+  if (select country from public.workspaces w where w.owner_id = '00000000-0000-0000-0000-0000000000e1') is not null
+     and exists (select 1 from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000e1' and country = 'CN') then
+    raise exception 'ПРОВАЛ: байер поменял страну чужого кабинета'; end if;
+  begin perform * from public.admin_list_workspaces(); raise exception 'ПРОВАЛ: байер получил список кабинетов';
+  exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+do $$
+begin
+  if (select country from public.admin_list_workspaces() where owner_id = '00000000-0000-0000-0000-0000000000e1') is distinct from 'KZ' then
+    raise exception 'ПРОВАЛ: админ не видит страну в списке'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 29. Страна: берётся из регистрации, мусор отбрасывается, менять может только владелец, в списке у админа есть'
