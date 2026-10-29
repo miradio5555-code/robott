@@ -3131,3 +3131,9 @@ button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infin
   body.no-bottom-nav .fab { bottom: calc(18px + env(safe-area-inset-bottom)); }
   body.no-bottom-nav .quote-bar { bottom: calc(14px + env(safe-area-inset-bottom)); }
 }
+
+/* ===== Страна байера: фильтр в списке байеров ===== */
+.buyers-countries { margin: 0 0 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.buyers-countries::-webkit-scrollbar { display: none; }
+.buyers-countries .chip { flex: none; white-space: nowrap; }
+.b-flag { font-size: 1.05em; }

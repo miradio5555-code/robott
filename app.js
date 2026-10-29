@@ -101,6 +101,35 @@
     try { return new Intl.DisplayNames([locale()], { type: "currency" }).of(code); } catch (e) { return code; }
   }
 
+  // ---------- Страны ----------
+  // Страна байера (workspaces.country): по ней админ сортирует байеров, а курс ULA видят только из Кыргызстана.
+  // ZZ — «другая страна». Названия стран браузер переводит сам (Intl).
+  var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ZZ"];
+
+  function countryName(code) {
+    if (!code) return "";
+    if (code === "ZZ") return t("country_other");
+    if (code === "KG") return t("country_kg");   // браузер пишет «Киргизия», а нужно «Кыргызстан»
+    try { return new Intl.DisplayNames([locale()], { type: "region" }).of(code); } catch (e) { return code; }
+  }
+  function countryFlag(code) {
+    if (!/^[A-Z]{2}$/.test(code || "") || code === "ZZ") return "🌍";
+    return String.fromCodePoint(127397 + code.charCodeAt(0), 127397 + code.charCodeAt(1));
+  }
+  function fillCountrySelect(sel, value) {
+    sel.innerHTML = '<option value="">' + esc(t("country_pick")) + "</option>" + COUNTRIES.map(function (c) {
+      return '<option value="' + c + '">' + countryFlag(c) + " " + esc(countryName(c)) + "</option>";
+    }).join("");
+    sel.value = COUNTRIES.indexOf(value) === -1 ? "" : value;
+  }
+  // догадка по коду телефона; +7 (Казахстан и Россия) не угадываем
+  var PHONE_COUNTRY = { "996": "KG", "998": "UZ", "992": "TJ", "993": "TM", "994": "AZ", "995": "GE", "374": "AM", "375": "BY", "380": "UA", "976": "MN", "971": "AE", "86": "CN", "90": "TR" };
+  function countryByPhone(phone) {
+    var d = String(phone || "").replace(/\D/g, "");
+    for (var n = 3; n >= 2; n--) if (PHONE_COUNTRY[d.slice(0, n)]) return PHONE_COUNTRY[d.slice(0, n)];
+    return "";
+  }
+
   // Валюта закупки у поставщика — только юань или доллар
   var PURCHASE_CURRENCIES = ["CNY", "USD"];
 
@@ -285,7 +314,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118s"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118t"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -826,12 +855,26 @@
     renderWsBanner();
     renderWarehouse();
     switchTab("orders");
-    await Promise.all([loadOrders(), loadSuppliers()]);
+    await Promise.all([loadOrders(), loadSuppliers(), loadCountry(ws)]);
     ULA.board.load();           // новости и курс ULA на главной
     ULA.exchange.loadCount();   // значок новых заявок на обмен в меню
     decideSimple();
     applySimpleMode();
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
+  }
+
+  // страна кабинета; если не указана, свой кабинет берёт её из анкеты регистрации или по коду телефона
+  async function loadCountry(ws) {
+    try {
+      var r = await db.from("workspaces").select("country").eq("id", ws.id).maybeSingle();
+      state.countryOk = !r.error;
+      if (r.error || !r.data) return;
+      ws.country = r.data.country || null;
+      if (ws.country || state.readOnly || state.myRole !== "owner") return;
+      var u = (await db.auth.getUser()).data.user, meta = (u && u.user_metadata) || {};
+      var guess = COUNTRIES.indexOf(String(meta.country || "").toUpperCase()) !== -1 ? String(meta.country).toUpperCase() : countryByPhone(state.me && state.me.phone);
+      if (guess && !(await db.from("workspaces").update({ country: guess }).eq("id", ws.id)).error) ws.country = guess;
+    } catch (e) { /* не важно: без страны сайт работает */ }
   }
 
   function renderWsBanner() {
@@ -1040,6 +1083,13 @@
     $("#invites").addEventListener("click", function (e) {
       var b = e.target.closest("[data-invite-del]");
       if (b) deleteInvite(b.getAttribute("data-invite-del"));
+    });
+    $("#buyers-countries").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-bc]");
+      if (!b) return;
+      var k = b.getAttribute("data-bc");
+      state.buyersCountry = k === "*" ? null : k;
+      renderBuyers();
     });
     $("#buyers").addEventListener("click", function (e) {
       var o = e.target.closest("[data-ws-open]");
@@ -2516,12 +2566,26 @@
         }).join("")
       : '<p class="muted">' + esc(t("b_invites_empty")) + "</p>";
 
-    $("#buyers").innerHTML = state.buyers.map(function (w) {
+    // фильтр по странам: «Все» и страны, где есть байеры (больше байеров — левее)
+    var byC = {};
+    state.buyers.forEach(function (w) { var k = w.country || ""; byC[k] = (byC[k] || 0) + 1; });
+    var keys = Object.keys(byC).sort(function (a, b) { return byC[b] - byC[a] || (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b); });
+    if (state.buyersCountry != null && !byC.hasOwnProperty(state.buyersCountry)) state.buyersCountry = null;
+    var hasC = state.buyers.some(function (w) { return w.country; });
+    $("#buyers-countries").classList.toggle("hidden", !hasC);
+    $("#buyers-countries").innerHTML = hasC ? ['<button type="button" class="chip' + (state.buyersCountry == null ? " active" : "") + '" data-bc="*">' +
+      esc(t("filter_all")) + ' <b>' + state.buyers.length + "</b></button>"].concat(keys.map(function (k) {
+        return '<button type="button" class="chip' + (state.buyersCountry === k ? " active" : "") + '" data-bc="' + esc(k) + '">' +
+          (k ? countryFlag(k) + " " + esc(countryName(k)) : esc(t("country_none"))) + ' <b>' + byC[k] + "</b></button>";
+      })).join("") : "";
+    var shown = state.buyersCountry == null ? state.buyers : state.buyers.filter(function (w) { return (w.country || "") === state.buyersCountry; });
+
+    $("#buyers").innerHTML = shown.map(function (w) {
       var mine = state.myWs && state.myWs.id === w.id;
       var canBlock = !mine && w.owner_id && w.owner_role !== "admin";
       return '<article class="client-row buyer-row">' +
         "<div>" +
-          '<div class="client-row-name">' + esc(w.name) + "</div>" +
+          '<div class="client-row-name">' + (w.country ? '<span class="b-flag" title="' + esc(countryName(w.country)) + '">' + countryFlag(w.country) + "</span> " : "") + esc(w.name) + "</div>" +
           '<div class="client-row-date">' + [w.owner_name, w.owner_email].filter(Boolean).map(esc).join(" · ") + "</div>" +
         "</div>" +
         '<div class="client-row-contacts">' + (w.owner_phone ? phoneLink(w.owner_phone) : '<span class="muted">—</span>') + "</div>" +
@@ -2604,16 +2668,28 @@
     $("#join-form").classList.toggle("hidden", !ok);
     if (!ok) return;
 
+    // страна: список на языке сайта; по коду телефона подставляем догадку, пока человек не выбрал сам
+    var cSel = $("#join-country"), cPicked = false;
+    fillCountrySelect(cSel, "");
+    cSel.addEventListener("change", function () { cPicked = true; });
+    $("#join-phone").addEventListener("input", function () {
+      if (cPicked) return;
+      var g = countryByPhone(cleanPhone(this.value));
+      if (g) cSel.value = g;
+    });
+
     $("#join-form").addEventListener("submit", async function (e) {
       e.preventDefault();
       var name = $("#join-name").value.trim();
       var phone = cleanPhone($("#join-phone").value);
       var wsName = $("#join-ws").value.trim();
+      var country = $("#join-country").value;
       var email = $("#join-email").value.trim();
       var pass = $("#join-password").value;
       if (name.length < 2) return setJoinError(t("e_name"), "#join-name");
       // телефон обязателен: от 9 до 15 цифр, можно с + в начале
       if (!/^\+?\d{9,15}$/.test(phone)) return setJoinError(t("e_phone"), "#join-phone");
+      if (!country) return setJoinError(t("e_country"), "#join-country");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setJoinError(t("e_email"), "#join-email");
       if (pass.length < 8) return setJoinError(t("e_password"), "#join-password");
       if (pass !== $("#join-password2").value) return setJoinError(t("e_password_match"), "#join-password2");
@@ -2633,8 +2709,8 @@
           options: {
             captchaToken: jTok || undefined,
             data: code
-              ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone, ref: refCode || undefined }
-              : { full_name: name, workspace_name: wsName || name, phone: phone, ref: refCode || undefined },
+              ? { invite_code: code, full_name: name, workspace_name: wsName || name, phone: phone, country: country, ref: refCode || undefined }
+              : { full_name: name, workspace_name: wsName || name, phone: phone, country: country, ref: refCode || undefined },
             emailRedirectTo: location.origin + location.pathname
           }
         });
@@ -3398,7 +3474,8 @@
   ULA.core = {
     $: $, $$: $$, esc: esc, toast: toast, handleError: handleError,
     money: money, numStr: numStr, parseNum: parseNum, locale: locale,
-    curName: curName, fillCurrencySelect: fillCurrencySelect, openModal: openModal,
+    curName: curName, fillCurrencySelect: fillCurrencySelect,
+    countryName: countryName, countryFlag: countryFlag, fillCountrySelect: fillCountrySelect, COUNTRIES: COUNTRIES, openModal: openModal,
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
