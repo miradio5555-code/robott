@@ -1763,3 +1763,51 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 29. Страна: берётся из регистрации, мусор отбрасывается, менять может только владелец, в списке у админа есть'
+
+-- ===== 30. Ошибки у пользователей =====
+reset role;
+reset request.uid;
+set role anon;
+do $$
+begin
+  if not public.report_client_error('TypeError: x is undefined', 'https://site/app.js?v=1', 10, 5, 'stack', '/robott/?order=SECRET', '20261118u', 'Chrome', 'ru') then
+    raise exception 'ПРОВАЛ: новая ошибка клиента без входа не записалась'; end if;
+  if public.report_client_error('TypeError: x is undefined', 'https://site/app.js?v=2', 10, 5) then
+    raise exception 'ПРОВАЛ: одинаковая ошибка посчиталась новой'; end if;
+  if public.report_client_error('') then raise exception 'ПРОВАЛ: пустая ошибка записалась'; end if;
+  begin perform 1 from public.client_errors; raise exception 'ПРОВАЛ: аноним читает ошибки';
+  exception when insufficient_privilege then null; end;
+  begin perform public.admin_clear_errors(); raise exception 'ПРОВАЛ: аноним очистил ошибки';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+do $$
+begin
+  perform public.report_client_error('TypeError: x is undefined', 'https://site/app.js', 10, 5);
+  if exists (select 1 from public.client_errors) then raise exception 'ПРОВАЛ: байер видит ошибки'; end if;
+  begin insert into public.client_errors (fp, message) values ('x', 'y'); raise exception 'ПРОВАЛ: байер пишет в таблицу напрямую';
+  exception when insufficient_privilege then null; end;
+  begin perform public.admin_clear_errors(); raise exception 'ПРОВАЛ: байер очистил ошибки';
+  exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
+  for i in 1..40 loop perform public.report_client_error('flood ' || i); end loop;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+do $$
+declare r public.client_errors%rowtype;
+begin
+  select * into r from public.client_errors where message = 'TypeError: x is undefined';
+  if r.hits <> 3 or r.anon_hits <> 2 or cardinality(r.user_ids) <> 1 then raise exception 'ПРОВАЛ: неверный счёт ошибок %', r.hits; end if;
+  if r.page like '%SECRET%' or r.source like '%?%' then raise exception 'ПРОВАЛ: секретная часть адреса сохранилась'; end if;
+  if (select count(*) from public.client_errors) > 30 then raise exception 'ПРОВАЛ: нет защиты от потока ошибок'; end if;
+  perform public.admin_clear_errors(r.id);
+  if exists (select 1 from public.client_errors where id = r.id) then raise exception 'ПРОВАЛ: админ не удалил ошибку'; end if;
+  perform public.admin_clear_errors();
+  if exists (select 1 from public.client_errors) then raise exception 'ПРОВАЛ: админ не очистил ошибки'; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 30. Ошибки: пишут все (одинаковые складываются, поток ограничен, без секретов в адресе), читает и очищает только админ'
