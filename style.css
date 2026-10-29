@@ -3168,3 +3168,19 @@ button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infin
 .fstep[data-fs="photos"] .fstep-sum::before { content: "📷 "; }
 .fstep[data-fs="sh-orders"] .fstep-sum::before { content: "📦 "; }
 @media (prefers-reduced-motion: reduce) { .fstep, .fstep-num { transition: none; } }
+
+/* ---------- Ошибки у пользователей (раздел «Байеры», js/errors.js) ---------- */
+#errors-box { margin: 0 0 16px; }
+.er-box { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.er-box > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; list-style: none; }
+.er-box > summary::-webkit-details-marker { display: none; }
+.er-title { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.er-count { min-width: 22px; padding: 1px 7px; border-radius: 99px; background: var(--red); color: #fff; font-size: 12px; text-align: center; }
+.er-ok { color: var(--green); font-size: 13px; }
+.er-hint { margin: 10px 0 4px; color: var(--muted); font-size: 13px; }
+.er-item { padding: 12px 0; border-top: 1px solid var(--line); }
+.er-item:first-of-type { border-top: 0; }
+.er-msg { margin: 0 0 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-word; }
+.er-meta { margin: 0 0 4px; color: var(--muted); font-size: 12px; word-break: break-word; }
+.er-stack summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 4px 0; }
+.er-stack pre { max-height: 180px; overflow: auto; margin: 4px 0 8px; padding: 8px; border-radius: 8px; background: var(--soft); font-size: 11px; white-space: pre-wrap; word-break: break-all; }

@@ -314,7 +314,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118u"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261118v"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -503,8 +503,7 @@
     document.addEventListener("click", function (e) {
       var b = e.target.closest("[data-lang]");
       if (!b) return;
-      setLang(b.getAttribute("data-lang"));
-      onLangChange();
+      setLang(b.getAttribute("data-lang"), onLangChange);
     });
 
     // закрытие окон
@@ -771,6 +770,11 @@
       history.replaceState(null, "", location.pathname + location.search);
       if (p.role === "admin") switchTab("support"); else ULA.support.open(null, null);
     }
+    // ссылка из Telegram «Ошибка на сайте … #/buyers» — открыть раздел «Байеры» со списком ошибок
+    if (location.hash === "#/buyers" && p.role === "admin") {
+      history.replaceState(null, "", location.pathname + location.search);
+      switchTab("buyers");
+    }
 
     if (teamMsg) toast(t(teamMsg), teamMsg === "tm_joined" ? "ok" : "error");
 
@@ -1032,7 +1036,7 @@
     // тема и язык меняются сразу, без кнопки «Сохранить»
     $("#settings-form").addEventListener("change", function (e) {
       if (e.target.name === "theme") applyTheme(e.target.value);
-      if (e.target.name === "s-lang") { setLang(e.target.value); onLangChange(); }
+      if (e.target.name === "s-lang") setLang(e.target.value, onLangChange);
     });
     $("#onboard-form").addEventListener("submit", saveOnboard);
     $("[data-onboard-logout]").addEventListener("click", function () { $("#logout-btn").click(); closeModal("modal-onboard"); });
@@ -2545,6 +2549,7 @@
     }
     $("#buyers-loading").classList.add("hidden");
     renderBuyers();
+    if (ULA.errors) ULA.errors.load();   // ошибки у пользователей (js/errors.js)
   }
 
   function inviteUrl(code) {

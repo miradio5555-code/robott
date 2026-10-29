@@ -1,5 +1,5 @@
 // ULA FACTORY — вьетнамский интерфейс (Tiếng Việt). Выбирается в «Настройки → Язык».
-// Подключается после i18n.js. Чего здесь нет — показывается по-английски, потом по-русски.
+// Подключает i18n.js (скачивается только выбранный язык). Новые фразы добавлять во все четыре словаря.
 I18N.vi = {
   app_title: "ULA Factory — đơn hàng từ Trung Quốc",
   login_title: "Đăng nhập",
@@ -1429,6 +1429,16 @@ I18N.vi = {
   fs_pr_main: "Tên và giá",
   fs_pr_main_sub: "Khách thấy gì trên cửa hàng",
   fs_pr_desc_sub: "Kích thước, màu, chất liệu — không bắt buộc",
+  er_title: "Lỗi trên thiết bị người dùng",
+  er_none: "không có ✓",
+  er_hint: "Trang web tự báo khi có lỗi ở người mua hoặc khách hàng. Gửi nội dung lỗi cho lập trình viên, khi sửa xong hãy bấm «Đã sửa».",
+  er_hits: "{n} lần",
+  er_people: "người mua: {n}",
+  er_clients: "ở khách hàng: {n}",
+  er_details: "Chi tiết cho lập trình viên",
+  er_fixed: "Đã sửa",
+  er_clear_all: "Xoá danh sách",
+  er_clear_q: "Xoá tất cả lỗi khỏi danh sách?",
   logo_title: "Logo",
   logo_hint: "Khách hàng sẽ thấy logo này thay cho \"ULA Factory\" trên trang đơn hàng, liên kết chung và cửa hàng. Nên dùng png/jpg vuông hoặc ngang.",
   logo_upload: "Tải logo lên",
