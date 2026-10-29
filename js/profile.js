@@ -114,6 +114,7 @@
         '<span class="pf-pic-t"><b>' + esc(t("pf_logo")) + "</b><small>" + esc(t("pf_logo_hint")) + "</small>" +
         '<span class="pf-pic-btns"><button type="button" class="btn btn-sm" data-pf-logo>' + esc(t(logo ? "pf_logo_change" : "pf_logo_up")) + "</button>" +
         (logo ? '<button type="button" class="btn btn-sm btn-ghost" data-pf-logo-del>' + esc(t("pf_remove")) + "</button>" : "") + "</span></span></div>";
+      if (state.countryOk) h += '<label class="field"><span>' + esc(t("join_country")) + '</span><select id="pf-country"></select></label>';
     }
     h += '<div class="pf-edit-actions"><button type="button" class="btn btn-ghost" data-pf-cancel>' + esc(t("pf_cancel")) + "</button>" +
       '<button type="button" class="btn btn-primary" data-pf-save' + (me.busy ? " disabled" : "") + ">" + esc(t("pf_save")) + "</button></div></div>";
@@ -150,6 +151,7 @@
 
   async function saveEdit() {
     var db = c.db(), name = ($("#pf-name").value || "").trim(), comp = $("#pf-company") ? $("#pf-company").value.trim() : null;
+    var country = $("#pf-country") ? $("#pf-country").value || null : undefined;
     me.busy = true;
     try {
       if (name !== (state.me.name || "")) {
@@ -160,8 +162,16 @@
       if (comp && state.ws && comp !== state.ws.name) {
         var w = await db.from("workspaces").update({ name: comp }).eq("id", state.ws.id).select(c.WS_FIELDS).single();
         if (w.error) throw w.error;
+        w.data.country = state.ws.country;
         state.ws = w.data;
         if (state.myWs && state.myWs.id === w.data.id) state.myWs = w.data;
+      }
+      // страна отдельно: колонка есть только после файла 37 (WS_FIELDS её не читает)
+      if (country !== undefined && state.ws && country !== (state.ws.country || null)) {
+        var cr = await db.from("workspaces").update({ country: country }).eq("id", state.ws.id);
+        if (cr.error) throw cr.error;
+        state.ws.country = country;
+        if (state.myWs && state.myWs.id === state.ws.id) state.myWs.country = country;
       }
       me.edit = false;
       c.toast(t("s_saved"), "ok");
@@ -189,7 +199,7 @@
     h += '<div class="pf-head">' +
       '<button type="button" class="pf-ava-wrap' + (me.busy ? " busy" : "") + '" data-pf-ava aria-label="' + esc(t(me.avatar ? "pf_photo_change" : "pf_photo_up")) + '"><span class="pf-ava">' + avatarHtml() + '</span><span class="pf-badge">' + U.icon("camera", 15) + "</span></button>" +
       '<h1 class="pf-name">' + esc(state.me.name || state.me.email || "") + "</h1>" +
-      '<p class="pf-sub">' + esc([state.ws && state.ws.name, roleLabel()].filter(Boolean).join(" · ")) + "</p>" +
+      '<p class="pf-sub">' + esc([state.ws && state.ws.name, roleLabel(), state.ws && state.ws.country ? c.countryFlag(state.ws.country) + " " + c.countryName(state.ws.country) : ""].filter(Boolean).join(" · ")) + "</p>" +
       (state.me.email ? '<p class="pf-mail">' + esc(state.me.email) + "</p>" : "") +
       (me.avatar ? '<button type="button" class="link-btn pf-photo-del" data-pf-photo-del>' + esc(t("pf_photo_del")) + "</button>" : "") +
       (me.edit ? "" : '<button type="button" class="btn btn-sm pf-edit-btn" data-pf-edit>' + esc(t("pf_edit")) + "</button>") +
@@ -248,6 +258,7 @@
     if (owner) h += '<button type="button" id="pf-settings" class="btn btn-block">' + U.icon("shield", 18) + " " + esc(t("pf_settings")) + "</button>";
 
     box.innerHTML = h;
+    if ($("#pf-country")) c.fillCountrySelect($("#pf-country"), state.ws.country);
   }
 
   function bind() {

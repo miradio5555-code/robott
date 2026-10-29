@@ -106,10 +106,12 @@
     }).join("") + "</div>";
   }
 
-  // Обмен «только для Кыргызстана»: курс ULA показываем байерам с сомами или киргизским телефоном
+  // Обмен «только для Кыргызстана»: курс ULA показываем байерам из Кыргызстана.
+  // Страна не указана (старый кабинет или база ещё без файла 37) — смотрим на киргизский телефон.
   function kgBuyer() {
-    var p = (state.me && state.me.phone) || "";
-    return isAdmin() || /^\+?996/.test(p) || (state.ws && state.ws.default_client_currency === "KGS");
+    if (isAdmin()) return true;
+    var country = state.ws && state.ws.country;
+    return country ? country === "KG" : /^\+?996/.test((state.me && state.me.phone) || "");
   }
 
   // ---------- Ступени курса ----------
