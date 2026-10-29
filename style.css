@@ -3137,3 +3137,34 @@ button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infin
 .buyers-countries::-webkit-scrollbar { display: none; }
 .buyers-countries .chip { flex: none; white-space: nowrap; }
 .b-flag { font-size: 1.05em; }
+
+/* ===== Формы шагами (заказ, партия, товар витрины): как в калькуляторе ===== */
+.fstep {
+  margin: 0 0 12px; padding: 14px; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--paper); transition: border-color .2s, background .2s;
+}
+.fstep:focus-within { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, var(--paper)); }
+.fstep.done { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.fstep-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.fstep-num {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary); color: var(--on-primary); font-weight: 800; font-size: 14px; font-style: normal;
+  transition: background .25s, transform .3s var(--ease);
+}
+.fstep-ico { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+.fstep-ico svg { width: 17px; height: 17px; }
+.fstep.done .fstep-num:not(.fstep-ico) { background: var(--green); color: #fff; font-size: 0; transform: scale(1.06); }
+.fstep.done .fstep-num:not(.fstep-ico)::before { content: "✓"; font-size: 16px; }
+.fstep-t { flex: 1; min-width: 0; display: grid; }
+.fstep-t b { font-size: 16px; }
+.fstep-t small { color: var(--muted); font-size: 13px; }
+.fstep-sum {
+  font-style: normal; font-weight: 800; font-size: 14px; white-space: nowrap; max-width: 45%;
+  overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+}
+.fstep-sum:empty { display: none; }
+.fstep .field:last-child, .fstep .grid-2:last-child .field, .fstep .grid-3:last-child .field { margin-bottom: 0; }
+.fstep .calc { margin-top: 12px; }
+.fstep[data-fs="photos"] .fstep-sum::before { content: "📷 "; }
+.fstep[data-fs="sh-orders"] .fstep-sum::before { content: "📦 "; }
+@media (prefers-reduced-motion: reduce) { .fstep, .fstep-num { transition: none; } }

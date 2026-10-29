@@ -10,7 +10,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <!-- в ссылках есть секретные номера (?order=, ?xr=) — не передавать адрес страницы другим сайтам -->
   <meta name="referrer" content="no-referrer">
-  <script src="js/head.js?v=20261118t"></script>
+  <script src="js/head.js?v=20261118u"></script>
   <title>ULA Factory</title>
   <link rel="icon" href="img/mark.svg" type="image/svg+xml">
   <link rel="icon" href="img/favicon.png" type="image/png" sizes="64x64">
@@ -25,7 +25,7 @@
   <!-- Шрифты Google подключает js/head.js «в фоне» -->
   <link rel="preload" href="fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261118t">
+  <link rel="stylesheet" href="style.css?v=20261118u">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -54,7 +54,7 @@
       <b class="intro-name">ULA <span>Factory</span></b>
     </div>
   </div>
-  <script src="js/boot.js?v=20261118t"></script>
+  <script src="js/boot.js?v=20261118u"></script>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -792,8 +792,9 @@
       </div>
 
       <div class="modal-body">
-        <fieldset class="adv">
-          <legend data-i18n="sec_main"></legend>
+        <fieldset class="adv fstep" data-fs="main">
+          <legend class="sr-only" data-i18n="sec_main"></legend>
+          <div class="fstep-head"><i class="fstep-num fstep-ico" data-ico="file"></i><span class="fstep-t"><b data-i18n="sec_main"></b><small data-i18n="fs_main_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_order_number"></span>
               <input id="f-order_number" type="text" readonly data-i18n-placeholder="auto_number"></label>
@@ -804,8 +805,9 @@
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend data-i18n="sec_client"></legend>
+        <fieldset class="fstep" data-fs="client">
+          <legend class="sr-only" data-i18n="sec_client"></legend>
+          <div class="fstep-head"><i class="fstep-num">1</i><span class="fstep-t"><b data-i18n="sec_client"></b><small data-i18n="fs_client_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_client"></span>
               <input id="f-client_name" type="text" required></label>
@@ -816,8 +818,9 @@
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend data-i18n="sec_product"></legend>
+        <fieldset class="fstep" data-fs="product">
+          <legend class="sr-only" data-i18n="sec_product"></legend>
+          <div class="fstep-head"><i class="fstep-num">2</i><span class="fstep-t"><b data-i18n="sec_product"></b><small data-i18n="fs_product_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <div class="grid-2">
             <label class="field"><span data-i18n="f_product_ru"></span>
               <input id="f-product_ru" type="text" required></label>
@@ -836,8 +839,9 @@
           <datalist id="supplier-options"></datalist>
         </fieldset>
 
-        <fieldset>
-          <legend data-i18n="sec_money"></legend>
+        <fieldset class="fstep" data-fs="goods">
+          <legend class="sr-only" data-i18n="q_s1"></legend>
+          <div class="fstep-head"><i class="fstep-num">3</i><span class="fstep-t"><b data-i18n="q_s1"></b><small data-i18n="q_s1_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
 
           <!-- Валюты выбирает сам байер: у поставщика (USD/CNY) и для клиента -->
           <div class="grid-2 adv">
@@ -847,8 +851,6 @@
               <select id="f-client_currency" class="currency-select"></select></label>
           </div>
 
-          <!-- Товар -->
-          <h4 class="money-sub" data-i18n="k_goods"></h4>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_qty"></span>
               <input id="f-quantity" type="text" inputmode="decimal"></label>
@@ -858,8 +860,12 @@
               <input id="f-exchange_rate" type="text" inputmode="decimal"></label>
           </div>
 
-          <!-- Доставка (карго): вес × тариф = сумма, затем перевод в валюту клиента -->
-          <h4 class="money-sub" data-i18n="k_delivery"></h4>
+        </fieldset>
+
+        <!-- Доставка (карго): вес × тариф = сумма, затем перевод в валюту клиента -->
+        <fieldset class="fstep" data-fs="delivery">
+          <legend class="sr-only" data-i18n="k_delivery"></legend>
+          <div class="fstep-head"><i class="fstep-num">4</i><span class="fstep-t"><b data-i18n="k_delivery"></b><small data-i18n="fs_delivery_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <p id="f-ship-note" class="fine-print flag-missing hidden"></p>
           <div class="grid-3">
             <label class="field"><span data-i18n="f_weight"></span>
@@ -876,8 +882,12 @@
               <input id="f-delivery_rate" type="text" inputmode="decimal"></label>
           </div>
 
-          <!-- Цена для клиента и оплата. Клиент видит только «к оплате», «оплачено», «осталось» -->
-          <h4 class="money-sub" data-i18n="k_payment"></h4>
+        </fieldset>
+
+        <!-- Цена для клиента и оплата. Клиент видит только «к оплате», «оплачено», «осталось» -->
+        <fieldset class="fstep" data-fs="price">
+          <legend class="sr-only" data-i18n="fs_price"></legend>
+          <div class="fstep-head"><i class="fstep-num">5</i><span class="fstep-t"><b data-i18n="fs_price"></b><small data-i18n="fs_price_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <div class="grid-3">
             <label class="field adv"><span data-i18n="f_markup"></span>
               <input id="f-markup" type="text" inputmode="decimal" placeholder="15">
@@ -901,8 +911,9 @@
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend data-i18n="sec_photos"></legend>
+        <fieldset class="fstep" data-fs="photos">
+          <legend class="sr-only" data-i18n="sec_photos"></legend>
+          <div class="fstep-head"><i class="fstep-num fstep-ico" data-ico="camera"></i><span class="fstep-t"><b data-i18n="sec_photos"></b><small data-i18n="fs_photos_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <label class="btn btn-file">
             <input id="f-photos" type="file" accept="image/*" multiple>
             <span data-i18n="add_photos"></span>
@@ -910,8 +921,9 @@
           <div id="photo-previews" class="photo-previews"></div>
         </fieldset>
 
-        <fieldset>
-          <legend data-i18n="sec_comments"></legend>
+        <fieldset class="fstep" data-fs="notes">
+          <legend class="sr-only" data-i18n="sec_comments"></legend>
+          <div class="fstep-head"><i class="fstep-num fstep-ico" data-ico="message"></i><span class="fstep-t"><b data-i18n="sec_comments"></b><small data-i18n="fs_notes_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
           <label class="field adv"><span data-i18n="f_delivery_info"></span>
             <textarea id="f-delivery_info" rows="2"></textarea></label>
           <label class="field"><span data-i18n="f_comment_client"></span>
@@ -1521,6 +1533,8 @@
         <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
       </div>
       <div class="modal-body">
+        <section class="fstep" data-fs="pr-photo">
+          <div class="fstep-head"><i class="fstep-num">1</i><span class="fstep-t"><b data-i18n="sec_photos"></b><small data-i18n="fs_pr_photo_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
         <div class="pr-photo-row">
           <div id="pr-preview" class="sp-photo pr-preview"></div>
           <div class="stack">
@@ -1529,6 +1543,9 @@
             <input id="pr-file" type="file" accept="image/*" class="hidden">
           </div>
         </div>
+        </section>
+        <section class="fstep" data-fs="pr-main">
+          <div class="fstep-head"><i class="fstep-num">2</i><span class="fstep-t"><b data-i18n="fs_pr_main"></b><small data-i18n="fs_pr_main_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
         <label class="field"><span data-i18n="sh2_f_title"></span>
           <input id="pr-title" type="text" maxlength="160" required></label>
         <div class="grid-2">
@@ -1537,9 +1554,13 @@
           <label class="field"><span data-i18n="f_client_currency"></span>
             <select id="pr-currency" class="currency-select"></select></label>
         </div>
-        <label class="field"><span data-i18n="sh2_f_desc"></span>
+        </section>
+        <section class="fstep" data-fs="pr-desc">
+          <div class="fstep-head"><i class="fstep-num">3</i><span class="fstep-t"><b data-i18n="sh2_f_desc"></b><small data-i18n="fs_pr_desc_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
+        <label class="field"><span class="sr-only" data-i18n="sh2_f_desc"></span>
           <textarea id="pr-desc" rows="3" maxlength="1500"></textarea></label>
         <label class="check-line"><input type="checkbox" id="pr-active"><span data-i18n="sh2_f_active"></span></label>
+        </section>
         <p id="pr-error" class="form-error hidden" role="alert"></p>
       </div>
       <div class="modal-foot">
@@ -1603,15 +1624,21 @@
         <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
       </div>
       <div id="sh-body" class="modal-body">
+        <section class="fstep" data-fs="sh-main">
+          <div class="fstep-head"><i class="fstep-num">1</i><span class="fstep-t"><b data-i18n="fs_sh_main"></b><small data-i18n="fs_sh_main_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
         <div class="grid-2">
           <label class="field"><span data-i18n="sh_f_name"></span>
             <input id="sh-name" type="text" maxlength="120" autocomplete="off" data-i18n-placeholder="sh_f_name_ph"></label>
           <label class="field"><span data-i18n="sh_f_cargo"></span>
             <input id="sh-cargo" type="text" maxlength="120" autocomplete="off"></label>
         </div>
-        <div class="grid-3">
           <label class="field"><span data-i18n="sh_f_date"></span>
             <input id="sh-date" type="date"></label>
+        </section>
+
+        <section class="fstep" data-fs="sh-cost">
+          <div class="fstep-head"><i class="fstep-num">2</i><span class="fstep-t"><b data-i18n="k_delivery"></b><small data-i18n="fs_sh_cost_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
+        <div class="grid-2">
           <label class="field"><span data-i18n="f_delivery_currency"></span>
             <select id="sh-cur" class="currency-select"></select></label>
           <label class="field"><span id="sh-lbl-tariff"></span>
@@ -1625,13 +1652,12 @@
             <input id="sh-total" type="text" inputmode="decimal">
             <p class="field-hint" data-i18n="sh_f_total_hint"></p></label>
         </div>
-        <label class="field"><span data-i18n="sh_f_notes"></span>
-          <textarea id="sh-notes" rows="2" maxlength="1000"></textarea></label>
-
         <div id="sh-summary" class="sh-summary" aria-live="polite"></div>
         <div id="sh-warns" aria-live="polite"></div>
+        </section>
 
-        <h4 class="money-sub" data-i18n="sh_orders_title"></h4>
+        <section class="fstep" data-fs="sh-orders">
+          <div class="fstep-head"><i class="fstep-num">3</i><span class="fstep-t"><b data-i18n="sh_orders_title"></b><small data-i18n="fs_sh_orders_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
         <div id="sh-orders" class="sh-orders"></div>
         <button id="sh-add-toggle" class="btn" type="button" data-write data-i18n="sh_add"></button>
         <div id="sh-picker" class="sh-picker hidden">
@@ -1639,6 +1665,10 @@
           <div id="sh-pick-list" class="sh-pick-list"></div>
           <button id="sh-pick-apply" class="btn btn-primary" type="button"></button>
         </div>
+        </section>
+
+        <label class="field"><span data-i18n="sh_f_notes"></span>
+          <textarea id="sh-notes" rows="2" maxlength="1000"></textarea></label>
 
         <div id="sh-status-box" class="sh-status-box hidden" data-write>
           <h4 class="money-sub" data-i18n="sh_status_title"></h4>
@@ -1730,40 +1760,41 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261118t"></script>
-  <script src="i18n.js?v=20261118t"></script>
-  <script src="i18n.vi.js?v=20261118t"></script>
+  <script src="config.js?v=20261118u"></script>
+  <script src="i18n.js?v=20261118u"></script>
+  <script src="i18n.vi.js?v=20261118u"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261118t"></script>
+  <script src="app.js?v=20261118u"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261118t"></script>
-  <script src="js/support.js?v=20261118t"></script>
-  <script src="js/notify.js?v=20261118t"></script>
-  <script src="js/icons.js?v=20261118t"></script>
-  <script src="js/xlsx.js?v=20261118t"></script>
-  <script src="js/analytics.js?v=20261118t"></script>
-  <script src="js/bulk.js?v=20261118t"></script>
-  <script src="js/onboarding.js?v=20261118t"></script>
-  <script src="js/tgws.js?v=20261118t"></script>
-  <script src="js/mfa.js?v=20261118t"></script>
-  <script src="js/captcha.js?v=20261118t"></script>
-  <script src="js/tour.js?v=20261118t"></script>
-  <script src="js/recovery.js?v=20261118t"></script>
-  <script src="js/shop.js?v=20261118t"></script>
-  <script src="js/broadcast.js?v=20261118t"></script>
-  <script src="js/tools.js?v=20261118t"></script>
-  <script src="js/expenses.js?v=20261118t"></script>
-  <script src="js/exchange.js?v=20261118t"></script>
-  <script src="js/board.js?v=20261118t"></script>
-  <script src="js/import.js?v=20261118t"></script>
-  <script src="js/requests.js?v=20261118t"></script>
-  <script src="js/team.js?v=20261118t"></script>
-  <script src="js/shipments.js?v=20261118t"></script>
-  <script src="js/report.js?v=20261118t"></script>
-  <script src="js/debts.js?v=20261118t"></script>
-  <script src="js/profile.js?v=20261118t"></script>
-  <script src="js/quote.js?v=20261118t"></script>
-  <script src="js/client.js?v=20261118t"></script>
-  <script src="js/pwa.js?v=20261118t"></script>
+  <script src="js/fx.js?v=20261118u"></script>
+  <script src="js/support.js?v=20261118u"></script>
+  <script src="js/notify.js?v=20261118u"></script>
+  <script src="js/icons.js?v=20261118u"></script>
+  <script src="js/xlsx.js?v=20261118u"></script>
+  <script src="js/analytics.js?v=20261118u"></script>
+  <script src="js/bulk.js?v=20261118u"></script>
+  <script src="js/onboarding.js?v=20261118u"></script>
+  <script src="js/tgws.js?v=20261118u"></script>
+  <script src="js/mfa.js?v=20261118u"></script>
+  <script src="js/captcha.js?v=20261118u"></script>
+  <script src="js/tour.js?v=20261118u"></script>
+  <script src="js/recovery.js?v=20261118u"></script>
+  <script src="js/shop.js?v=20261118u"></script>
+  <script src="js/broadcast.js?v=20261118u"></script>
+  <script src="js/tools.js?v=20261118u"></script>
+  <script src="js/expenses.js?v=20261118u"></script>
+  <script src="js/exchange.js?v=20261118u"></script>
+  <script src="js/board.js?v=20261118u"></script>
+  <script src="js/import.js?v=20261118u"></script>
+  <script src="js/requests.js?v=20261118u"></script>
+  <script src="js/team.js?v=20261118u"></script>
+  <script src="js/shipments.js?v=20261118u"></script>
+  <script src="js/report.js?v=20261118u"></script>
+  <script src="js/debts.js?v=20261118u"></script>
+  <script src="js/profile.js?v=20261118u"></script>
+  <script src="js/formsteps.js?v=20261118u"></script>
+  <script src="js/quote.js?v=20261118u"></script>
+  <script src="js/client.js?v=20261118u"></script>
+  <script src="js/pwa.js?v=20261118u"></script>
 </body>
 </html>
