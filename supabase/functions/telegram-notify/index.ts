@@ -225,6 +225,30 @@ Deno.serve(async (req) => {
       return json({ ok: true, sent });
     }
 
+    // ---------- ошибка у пользователя → админу (без входа: сайт сообщает сам, js/errors.js) ----------
+    // «забираем» ещё не отправленные ошибки одним действием: повторный вызов уже ничего не найдёт,
+    // поэтому лишние вызовы не приводят к лишним сообщениям
+    if (action === "client_error") {
+      const chatId = await getSetting("telegram_chat_id");
+      if (!chatId) return json({ ok: true, sent: 0 });
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: rows } = await db.from("client_errors")
+        .update({ notified_at: new Date().toISOString() })
+        .is("notified_at", null).gte("last_seen", since)
+        .select("message, source, line, page, app_version, browser, hits, user_ids, anon_hits");
+      if (!rows || !rows.length) return json({ ok: true, sent: 0 });
+      const lines = rows.slice(0, 5).map((r: any) => {
+        const file = r.source ? String(r.source).split("/").pop() + (r.line ? ":" + r.line : "") : "";
+        const who = (r.user_ids?.length ? "байеров: " + r.user_ids.length : "") + (r.anon_hits ? (r.user_ids?.length ? ", " : "") + "у клиентов: " + r.anon_hits : "");
+        return ["❗ " + String(r.message).slice(0, 300), [r.page, file, r.app_version ? "v" + r.app_version : "", who].filter(Boolean).join(" · ")].join("\n");
+      });
+      const text = ["⚠️ Ошибка на сайте у пользователя", "", ...lines,
+        ...(rows.length > 5 ? ["", "…и ещё " + (rows.length - 5)] : []),
+        "", "Список: " + SITE_URL + "#/buyers"].join("\n").slice(0, 3500);
+      const r = await tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true });
+      return json({ ok: true, sent: r.ok ? 1 : 0 });
+    }
+
     // ---------- страница заказа клиента (без входа, по секретной ссылке) ----------
     if (action === "client_info" || action === "client_connect" || action === "client_disconnect") {
       const tok = String(body.token ?? "");
