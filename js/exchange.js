@@ -26,7 +26,7 @@
   var $ = c.$, esc = c.esc, toast = c.toast, money = c.money, num = c.num, parseNum = c.parseNum, state = c.state;
 
   var MAX_TIERS = 10;
-  var fx = { platform: null, list: [], filter: "active", loading: false,
+  var fx = { platform: null, list: [], filter: "active", loading: false, rcpt: { file: null, local: "" },
     kyc: undefined, kycFiles: {}, kycBusy: false, kycList: [], kycFilter: "pending",
     events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {}, sub: "", sent: false, setOpen: undefined };
 
@@ -260,6 +260,34 @@
     return html + "</section>";
   }
 
+  // ---------- Чек об оплате: сначала платят, потом прикрепляют чек и отправляют заявку ----------
+  var RCPT_OK = /^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf)$/;
+  function rcptPick(holder, file) {
+    if (!file) return false;
+    if (!RCPT_OK.test(file.type || "")) { toast(t("fx_e_rcpt_type"), "error"); return false; }
+    if (file.size > 20 * 1024 * 1024) { toast(t("sp_too_big"), "error"); return false; }
+    rcptDrop(holder);
+    holder.file = file;
+    holder.local = /^image\/(jpeg|png|webp|gif)$/.test(file.type) ? URL.createObjectURL(file) : "";
+    return true;
+  }
+  function rcptDrop(holder) {
+    if (holder.local) URL.revokeObjectURL(holder.local);
+    holder.file = null; holder.local = "";
+  }
+  // блок «Чек»: кнопка «Прикрепить» или превью с «Заменить» и ×
+  function rcptHtml(holder, pickAttr, delAttr) {
+    if (!holder.file) {
+      return '<button type="button" class="fx-rcpt-add" ' + pickAttr + ">" + U.icon("camera", 20) + "<span>" + esc(t("fx_attach")) + "</span></button>";
+    }
+    return '<div class="fx-rcpt">' +
+      (holder.local ? '<img src="' + esc(holder.local) + '" alt="">' : '<i class="fx-rcpt-pdf">PDF</i>') +
+      '<span class="fx-rcpt-n">' + esc(holder.file.name || t("fx_receipt")) + "</span>" +
+      '<button type="button" class="btn btn-sm" ' + pickAttr + ">" + esc(t("fx_replace")) + "</button>" +
+      '<button type="button" class="fx-rcpt-x" ' + delAttr + ' aria-label="×">×</button></div>';
+  }
+  function stepHead(n, text) { return '<h4 class="fx-stepn"><i>' + n + "</i>" + esc(text) + "</h4>"; }
+
   // ---------- Страница байера: две вкладки ----------
   // «Обмен в ULA» — сам обменять сом на юани (заявка уходит администрации); «Мой обмен» — обмен для клиентов байера
   function buyerSub() {
@@ -289,11 +317,16 @@
         '<span class="rc-big"><b>' + esc(rateStr(tiers[0].rate)) + "</b> " + esc(t("rc_per")) + "</span></div></div>" +
       (fresh ? "" : '<p class="fx-date old">' + esc(dateLine(p.updated_at)) + "</p>") +
       calcHtml("fxp", minOf(tiers)) +
-      '<button id="fxp-send" class="btn btn-primary btn-block" type="button">' + esc(t("fx_ask_admin")) + "</button>" +
+      stepHead(1, t("fx_s1_admin")) +
+      (p.note
+        ? '<div class="fx-req"><p class="fx-note">' + esc(p.note) + '</p><button type="button" class="btn btn-sm" data-fx-copyreq>' + esc(t("fx_copy")) + "</button></div>"
+        : '<p class="muted fx-req-none">' + esc(t("fx_req_chat")) + ' <button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></p>") +
+      stepHead(2, t("fx_s2")) +
+      '<input id="fxp-file" type="file" accept="image/*,.pdf" hidden>' + rcptHtml(fx.rcpt, "data-fx-rpick", "data-fx-rdel") +
+      stepHead(3, t("fx_s3_admin")) +
+      '<button id="fxp-send" class="btn btn-primary btn-block" type="button">' + esc(t("fx_send_rcpt")) + "</button>" +
       (fx.sent ? '<div class="fx-sent">' + U.icon("check", 16) + "<span>" + esc(t("fx_sent_admin")) + '</span><button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></div>" : "") +
-      '<details class="rc-more"><summary>' + esc(t("fx_all_tiers")) + '</summary><div id="fxp-tiers">' + tiersHtml(p.tiers, 0) + "</div>" +
-        (p.note ? '<p class="fx-note">' + esc(p.note) + "</p>" : "") + "</details>" +
-      '<ol class="fx-steps"><li>' + esc(t("fx_step1")) + "</li><li>" + esc(t("fx_step2")) + "</li><li>" + esc(t("fx_step3")) + "</li></ol>" +
+      '<details class="rc-more"><summary>' + esc(t("fx_all_tiers")) + '</summary><div id="fxp-tiers">' + tiersHtml(p.tiers, 0) + "</div></details>" +
     "</section>";
   }
 
@@ -799,10 +832,21 @@
     var rate = rateFor(tiers, cny);
     if (!rate) { toast(t("fx_e_min", { n: money(minOf(tiers)) }), "error"); return; }
     var som = somFor(tiers, cny);
+    if (!fx.rcpt.file) { toast(t("fx_e_receipt"), "error"); var rb = $("[data-fx-rpick]"); if (rb) rb.scrollIntoView({ block: "center" }); return; }
     var text = t("fx_admin_msg", { cny: money(cny), som: money(som), r: rateStr(rate) });
     var btn = $("#fxp-send");
     btn.disabled = true;
-    var res = await c.db().rpc("support_send", { p_body: text, p_meta: { kind: "fx", cny: cny, som: som, rate: rate } });
+    var sent;
+    try {
+      var rf = fx.rcpt.file;
+      sent = await U.support.uploadFiles({ files: [{ file: rf, name: rf.name || t("fx_receipt"), type: rf.type, size: rf.size }] });
+    } catch (err) {
+      console.error(err);
+      btn.disabled = false;
+      toast(t("fx_e_upload"), "error");
+      return;
+    }
+    var res = await c.db().rpc("support_send", { p_body: text, p_meta: { kind: "fx", cny: cny, som: som, rate: rate, receipt: true }, p_files: sent });
     btn.disabled = false;
     if (res.error) {
       if (/too_many_messages/.test(res.error.message || "")) toast(t("support_too_many"), "error");
@@ -811,6 +855,7 @@
     }
     try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
     $("#fxp-cny").value = "";
+    rcptDrop(fx.rcpt);
     fx.sent = true;
     render();
     toast(t("fx_sent_admin"), "ok");
@@ -849,6 +894,10 @@
     });
     box.addEventListener("change", function (e) {
       if (e.target.id === "fx-file") { onFile(e.target.files && e.target.files[0]); return; }
+      if (e.target.id === "fxp-file") {
+        if (rcptPick(fx.rcpt, e.target.files && e.target.files[0])) { fx.sent = false; render(); }
+        return;
+      }
       var key = e.target.getAttribute && e.target.getAttribute("data-kyc-file");
       if (!key || !e.target.files || !e.target.files[0]) return;
       var file = e.target.files[0];
@@ -865,6 +914,9 @@
       var sb = e.target.closest("[data-fx-sub]");
       if (sb) { fx.sub = sb.getAttribute("data-fx-sub"); fx.sent = false; render(); return; }
       if (e.target.closest("[data-fx-chat]")) { U.support.open(); return; }
+      if (e.target.closest("[data-fx-rpick]")) { var rf = $("#fxp-file"); if (rf) rf.click(); return; }
+      if (e.target.closest("[data-fx-rdel]")) { rcptDrop(fx.rcpt); render(); return; }
+      if (e.target.closest("[data-fx-copyreq]")) { c.copyText((fx.platform && fx.platform.note) || "").then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); return; }
       var el;
       if ((el = e.target.closest("[data-fx-send]"))) { toast(t("fx_send_pick"), "ok"); pickFile("sent", el.getAttribute("data-fx-send")); return; }
       if ((el = e.target.closest("[data-fx-dattach]"))) { pickFile("msg", el.getAttribute("data-fx-dattach")); return; }
@@ -931,7 +983,7 @@
   function mountPublic(slot, data, kind, token) {
     if (!slot) return;
     if (!data || !sortTiers(data.tiers).length) { slot.innerHTML = ""; return; }
-    if (pub.token !== token || pub.kind !== kind) { pub.step = "calc"; pub.error = ""; pub.req = null; }
+    if (pub.token !== token || pub.kind !== kind) { pub.step = "calc"; pub.error = ""; pub.req = null; rcptDrop(pub); }
     pub.fx = data; pub.kind = kind; pub.token = token;
     renderPublic(slot);
     slot.oninput = function (e) {
@@ -941,7 +993,9 @@
       else if (e.target.id === "fxc-comment") pub.comment = e.target.value;
     };
     slot.onchange = function (e) {
-      if (e.target.id === "fxc-file" && e.target.files && e.target.files[0]) uploadProof(slot, e.target.files[0]);
+      if (e.target.id !== "fxc-file" || !e.target.files || !e.target.files[0]) return;
+      if (pub.step === "form") { if (rcptPick(pub, e.target.files[0])) { pub.error = ""; renderPublic(slot); } }
+      else uploadProof(slot, e.target.files[0]);
     };
     slot.onclick = function (e) {
       var b = e.target.closest("[data-fxc]");
@@ -955,7 +1009,9 @@
         var n = slot.querySelector("#fxc-name"); if (n) n.focus();
       } else if (a === "back") { pub.step = "calc"; pub.error = ""; renderPublic(slot); }
       else if (a === "pick") { var f = slot.querySelector("#fxc-file"); if (f) f.click(); }
-      else if (a === "again") { pub.step = "calc"; pub.cny = ""; pub.comment = ""; pub.req = null; renderPublic(slot); }
+      else if (a === "unfile") { rcptDrop(pub); renderPublic(slot); }
+      else if (a === "copyreq") { c.copyText((pub.fx && pub.fx.note) || "").then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); }
+      else if (a === "again") { pub.step = "calc"; pub.cny = ""; pub.comment = ""; pub.req = null; rcptDrop(pub); renderPublic(slot); }
     };
     slot.onsubmit = function (e) {
       if (e.target.id === "fxc-form") { e.preventDefault(); sendPublic(slot); }
@@ -1003,13 +1059,20 @@
       var cny = parseNum(pub.cny);
       html += '<div class="fx-sumbox"><span>' + esc(t("fx_to_pay")) + "</span><b>" + esc(money(somFor(f.tiers, cny))) + " " + esc(t("fx_som_short")) + "</b>" +
           "<small>¥ " + esc(money(cny)) + "</small></div>" +
+        stepHead(1, t("fx_s1")) +
+        (f.note
+          ? '<div class="fx-req"><p class="fx-note">' + esc(f.note) + '</p><button type="button" class="btn btn-sm" data-fxc="copyreq">' + esc(t("fx_copy")) + "</button></div>"
+          : '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
         '<form id="fxc-form" novalidate autocomplete="on">' +
+        stepHead(2, t("fx_s2")) +
+        '<input id="fxc-file" type="file" accept="image/*,.pdf" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
+        stepHead(3, t("fx_s3")) +
         '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="fxc-name" type="text" autocomplete="name" maxlength="120" value="' + esc(pub.name) + '"></label>' +
         '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(pub.phone) + '"></label>' +
         '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="fxc-comment" rows="2" maxlength="500" placeholder="' + esc(t("fx_comment_ph")) + '">' + esc(pub.comment) + "</textarea></label>" +
         '<div class="hp" aria-hidden="true"><label>Website<input id="fxc-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
         (pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "") +
-        '<button class="btn btn-primary btn-block" type="submit"' + (pub.busy ? " disabled" : "") + ">" + esc(t(pub.busy ? "rq_sending" : "fx_pub_send")) + "</button>" +
+        '<button class="btn btn-primary btn-block" type="submit"' + (pub.busy ? " disabled" : "") + ">" + esc(t(pub.busy ? "rq_sending" : "fx_send_rcpt")) + "</button>" +
         '<button type="button" class="btn btn-ghost btn-block" data-fxc="back">← ' + esc(t("fx_back")) + "</button>" +
         '<p class="fine-print">' + esc(t("rq_consent")) + ' <a href="privacy.html">' + esc(t("legal_privacy")) + "</a>.</p>" +
         "</form>";
@@ -1029,6 +1092,7 @@
     var name = pub.name.trim(), phone = c.cleanPhone(pub.phone);
     if (name.length < 2) { pub.error = t("e_name"); return renderPublic(slot); }
     if (!/^\+?\d{9,15}$/.test(phone)) { pub.error = t("e_phone"); return renderPublic(slot); }
+    if (!pub.file) { pub.error = t("fx_e_receipt"); return renderPublic(slot); }
     pub.error = ""; pub.busy = true; renderPublic(slot);
     try {
       var hp = slot.querySelector("#fxc-website");
@@ -1043,6 +1107,11 @@
       pub.step = "pay";
       // сообщить байеру в Telegram (если подключён)
       try { if (r.id) c.db().functions.invoke("telegram-notify", { body: { action: "exchange_notify", id: r.id } }).catch(function () {}); } catch (e) { /* ignore */ }
+      // чек уже выбран: сразу прикладываем к заявке. Не получилось — клиент увидит «Прикрепить чек» ещё раз
+      if (r.id) {
+        try { await sendProof(r.id, pub.file); pub.step = "done"; rcptDrop(pub); }
+        catch (e2) { console.error(e2); pub.error = proofErr(e2); }
+      }
     } catch (err) {
       console.error(err);
       pub.error = errText(err);

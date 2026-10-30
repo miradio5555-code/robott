@@ -668,7 +668,7 @@
   }
 
   U.support = {
-    open: openSupport, loadThreads: loadSupportThreads, checkUnread: checkSupportUnread,
+    open: openSupport, uploadFiles: uploadFiles, loadThreads: loadSupportThreads, checkUnread: checkSupportUnread,
     startPolling: startSupportPolling, stopPolling: stopSupportPolling,
     rememberError: rememberError, bind: bind
   };
