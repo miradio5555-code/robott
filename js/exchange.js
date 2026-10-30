@@ -432,8 +432,12 @@
 
   function linkHtml() {
     var tok = state.ws && state.ws.request_token, url = fxUrl(tok);
+    var off = !(state.ws && state.ws.fx_on), canOn = canOwn() && kycOk();
     return '<div class="fx-link">' +
       "<h4>" + esc(t("fx_link_title")) + "</h4>" +
+      // обмен выключен — по ссылке клиент увидит «Обмен недоступен»: предупреждаем и даём включить одной кнопкой
+      (url && off ? '<div class="fx-off-warn"><p>⚠️ ' + esc(t(canOn ? "fx_off_warn" : "fx_off_warn_kyc")) + "</p>" +
+        (canOn ? '<button id="fx-turn-on" class="btn btn-sm btn-primary" type="button">' + esc(t("fx_turn_on")) + "</button>" : "") + "</div>" : "") +
       '<p class="muted">' + esc(t("fx_link_hint")) + "</p>" +
       (url
         ? '<input id="fx-link-input" class="fx-link-input" type="text" readonly value="' + esc(url) + '">' +
@@ -1073,9 +1077,15 @@
       var kn = e.target.closest("[data-kyc-no]");
       if (kn) { kycDecide(kn.getAttribute("data-kyc-no"), false); return; }
       if (e.target.closest("#fx-link-make")) { makeLink(); return; }
+      if (e.target.closest("#fx-turn-on")) {
+        var on = $("#fxm-on"), form = $("#fxm-form");
+        if (on && form) { on.checked = true; if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true })); }
+        return;
+      }
       if (e.target.closest("#fx-link-copy")) {
         var ok = await c.copyText($("#fx-link-input").value);
-        toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
+        if (ok && !(state.ws && state.ws.fx_on)) toast(t("fx_off_copied"), "error");
+        else toast(ok ? t("copied") : t("error_generic"), ok ? "ok" : "error");
         return;
       }
       var add = e.target.closest("[data-fx-addrow]");
@@ -1534,7 +1544,7 @@
     if (page.state === "loading") { box.innerHTML = '<div class="state-box">' + esc(t("loading")) + "</div>"; return; }
     if (page.state !== "ok") {
       box.innerHTML = '<section class="client-block notfound"><h1>' + esc(t(page.state === "error" ? "rq_err_title" : "fx_page_none")) + "</h1>" +
-        '<p class="muted">' + esc(t(page.state === "error" ? "rq_err_load" : "fx_e_off")) + "</p></section>";
+        '<p class="muted">' + esc(t(page.state === "error" ? "rq_err_load" : "fx_e_off_hint")) + "</p></section>";
       return;
     }
     box.innerHTML = '<section class="sp-head"><h1 class="rq-title">' + esc(d.name || t("fx_pub_title")) + "</h1>" +
