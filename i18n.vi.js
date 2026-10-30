@@ -1330,6 +1330,8 @@ I18N.vi = {
   rc_main: "tỷ giá từ {n} ¥",
   rc_calc: "Bạn cần bao nhiêu tệ?",
   rc_go: "Đổi tiền",
+  rc_more: "Chi tiết: mọi tỷ giá, biểu đồ, tính toán",
+  rc_per: "som cho 1 ¥",
   rc_edit: "Sửa tỷ giá",
   rc_warn_old: "Tỷ giá hôm nay chưa cập nhật — người mua hộ thấy tỷ giá cũ",
   rc_warn_none: "Chưa có tỷ giá — người mua hộ không thấy",

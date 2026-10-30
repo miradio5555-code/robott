@@ -1358,15 +1358,21 @@
         (moved ? "<s>" + esc(rateStr(o)) + "</s>" : "") +
         '<b class="' + (moved ? (r < o ? "down" : "up") : "") + '">' + esc(rateStr(r)) + "</b></span></div>";
     }).join("");
+    // Сверху одна строка: курс первой ступени, дата и «Обменять». Ступени, график и расчёт — под «Подробнее».
+    var r0 = num(tiers[0].rate), o0 = old[num(tiers[0].from)], moved0 = o0 != null && o0 !== r0;
     return '<section class="rate-card">' +
-      '<div class="rc-head"><h3>' + esc(t("rc_title")) + '</h3><span class="rc-date' + (fresh ? "" : " old") + '">' + esc(dateLine(p.updated_at)) + "</span></div>" +
+      '<div class="rc-top"><span class="rc-ico" aria-hidden="true">¥</span>' +
+        '<div class="rc-main"><span class="rc-label">' + esc(t("rc_title")) + ' · <span class="rc-date' + (fresh ? "" : " old") + '">' + esc(c.fmtDate(p.updated_at)) + "</span></span>" +
+          '<span class="rc-big"><b class="' + (moved0 ? (r0 < o0 ? "down" : "up") : "") + '">' + esc(rateStr(r0)) + "</b> " + esc(t("rc_per")) + "</span></div>" +
+        '<button type="button" class="btn btn-primary btn-sm" data-rc="' + (admin ? "edit" : "go") + '">' + esc(t(admin ? "rc_edit" : "rc_go")) + "</button></div>" +
       warn +
-      '<div class="rc-table"><div class="rc-th"><span>' + esc(t("rc_sum")) + "</span><span>" + esc(t("rc_rate")) + "</span></div>" + rows + "</div>" +
-      (p.note ? '<p class="rc-note">' + esc(p.note) + "</p>" : "") +
-      chartHtml() +
-      '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
-        '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
-      '<button type="button" class="btn btn-primary btn-block" data-rc="' + (admin ? "edit" : "go") + '">' + esc(t(admin ? "rc_edit" : "rc_go")) + "</button>" +
+      '<details class="rc-more"><summary>' + esc(t("rc_more")) + "</summary>" +
+        '<div class="rc-table"><div class="rc-th"><span>' + esc(t("rc_sum")) + "</span><span>" + esc(t("rc_rate")) + "</span></div>" + rows + "</div>" +
+        (p.note ? '<p class="rc-note">' + esc(p.note) + "</p>" : "") +
+        chartHtml() +
+        '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
+          '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
+      "</details>" +
     "</section>";
   }
 

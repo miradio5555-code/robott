@@ -40,10 +40,10 @@
     return location.origin + location.pathname + "?ref=w" + String(state.myWs.id).replace(/-/g, "") + "#/join";
   }
   function inviteHtml() {
-    return '<div class="bd-news bd-invite"><div class="bd-head"><h3>' + U.icon("users", 16) + esc(t("ref_inv_t")) + "</h3></div>" +
-      '<p class="bd-text">' + esc(t("ref_inv_b")) + "</p>" +
-      '<div class="bd-actions"><button type="button" class="btn btn-sm btn-primary" data-board="refcopy">' + esc(t("ref_inv_copy")) + "</button>" +
-      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(t("ref_inv_wa_text", { url: inviteUrl() })) + '">' + esc(t("ref_inv_wa")) + "</a></div></div>";
+    return '<div class="bd-card bd-invite"><span class="bd-ico" aria-hidden="true">' + U.icon("users", 18) + "</span>" +
+      '<div class="bd-main"><h3>' + esc(t("ref_inv_t")) + '</h3><p class="bd-text">' + esc(t("ref_inv_b")) + "</p>" +
+      '<div class="bd-actions"><button type="button" class="btn btn-sm" data-board="refcopy">' + esc(t("ref_inv_copy")) + "</button>" +
+      '<a class="btn btn-sm btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(t("ref_inv_wa_text", { url: inviteUrl() })) + '">' + esc(t("ref_inv_wa")) + "</a></div></div></div>";
   }
 
   function render() {
@@ -52,11 +52,12 @@
     var admin = isAdmin(), mine = seen();
     var list = bd.news.filter(function (n) { return admin || mine.indexOf(n.id) === -1; });
     var html = bd.rate + list.map(function (n) {
-      return '<div class="bd-news"><div class="bd-head"><h3>' + U.icon("bell", 16) + esc(t("board_news_title")) + "</h3><span>" + esc(c.fmtDate(n.created_at)) + "</span></div>" +
+      return '<div class="bd-card bd-news"><span class="bd-ico" aria-hidden="true">' + U.icon("bell", 18) + "</span>" +
+        '<div class="bd-main"><h3>' + esc(t("board_news_title")) + " <span>" + esc(c.fmtDate(n.created_at)) + "</span></h3>" +
         '<p class="bd-text">' + esc(n.body) + "</p>" +
         (admin ? '<button type="button" class="btn btn-ghost btn-sm" data-board="del" data-id="' + n.id + '">' + esc(t("board_news_del")) + "</button>"
                : '<button type="button" class="btn btn-sm" data-board="ok" data-id="' + n.id + '">' + esc(t("board_news_ok")) + "</button>") +
-        "</div>";
+        "</div></div>";
     }).join("");
     if (!admin && state.myWs && state.myWs.id && state.myRole !== "staff") html += inviteHtml();
     if (admin) {
@@ -66,10 +67,12 @@
         '<button type="button" class="btn btn-primary btn-sm" data-board="post">' + esc(t("board_news_post")) + "</button></details>";
     }
     box.classList.toggle("hidden", !html);
-    var keep = $("#bd-text") ? $("#bd-text").value : "", wasOpen = !!box.querySelector("details[open]");
+    var keep = $("#bd-text") ? $("#bd-text").value : "", wasOpen = !!box.querySelector(".bd-post[open]");
+    var rcOpen = !!box.querySelector(".rc-more[open]");
     var cny = $("#rc-cny") ? $("#rc-cny").value : "";
     box.innerHTML = html;
-    if ($("#bd-text")) { $("#bd-text").value = keep; if (wasOpen) box.querySelector("details").open = true; }
+    if ($("#bd-text")) { $("#bd-text").value = keep; if (wasOpen) box.querySelector(".bd-post").open = true; }
+    if (rcOpen && box.querySelector(".rc-more")) box.querySelector(".rc-more").open = true;
     if (cny && $("#rc-cny")) { $("#rc-cny").value = cny; U.exchange.homeCalc(); }
   }
 

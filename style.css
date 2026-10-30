@@ -2759,30 +2759,43 @@ html[data-theme="dark"] .tg-tag { color: #5cc3f0; }
 .pwa-update .btn { min-height: 36px; flex: none; }
 
 /* Главная: новости и курс ULA */
-.home-board { display: grid; gap: 12px; margin: 0 0 14px; }
+.home-board { display: grid; gap: 8px; margin: 0 0 14px; }
 .home-board.hidden { display: none; }
-.bd-news, .bd-post { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
-.bd-news { border-left: 4px solid var(--red); }
-.bd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
-.bd-head h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 16px; font-weight: 600; }
-.bd-head span { font-size: 13px; color: var(--muted); }
-.bd-text { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Все карточки на главной — одного вида: значок слева, текст, кнопки. Компактно. */
+.bd-card, .bd-post, .rate-card { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.bd-card { display: flex; align-items: flex-start; gap: 12px; }
+.bd-ico, .rc-ico { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--soft); color: var(--ink); }
+.bd-news .bd-ico { background: var(--red-tint); color: var(--red); }
+.bd-main { flex: 1; min-width: 0; }
+.bd-main h3 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+.bd-main h3 span { font-size: 13px; font-weight: 400; color: var(--muted); }
+.bd-text { margin: 0 0 8px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bd-invite .bd-text { color: var(--muted); }
 .bd-post summary { cursor: pointer; font-weight: 600; }
 .bd-post textarea { width: 100%; margin: 10px 0; }
 
 /* Карточка «Курс юаня» на главной */
-.rate-card { padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 1px 2px rgba(21,20,23,.04); }
-.rc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-.rc-head h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--muted); }
-.rc-date { font-size: 13px; color: var(--green); }
+.rc-top { display: flex; align-items: center; gap: 12px; }
+.rc-ico { background: var(--green-tint); color: var(--green); font-weight: 700; font-size: 17px; }
+.rc-main { flex: 1; min-width: 0; display: grid; }
+.rc-label { font-size: 13px; color: var(--muted); }
+.rc-big { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.rc-big b { font-size: 19px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rc-big b.down { color: var(--green); }
+.rc-big b.up { color: var(--red); }
+.rc-top .btn { flex: none; }
+.rc-date { color: var(--green); }
+.rc-more { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.rc-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); list-style-position: inside; }
+.rc-more[open] summary { margin-bottom: 8px; }
 .rc-date.old { color: var(--red); }
-.rc-warn { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--red-tint); color: var(--red); font-size: 14px; font-weight: 500; }
+.rc-warn { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--red-tint); color: var(--red); font-size: 14px; font-weight: 500; }
 .rc-warn .ico { flex: none; }
 .rc-table { display: grid; }
 .rc-th, .rc-tr { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 12px; }
 .rc-th { padding-bottom: 6px; font-size: 13px; color: var(--muted); }
 .rc-th span:last-child { text-align: right; }
-.rc-tr { padding: 9px 0; border-top: 1px solid var(--line); font-size: 17px; }
+.rc-tr { padding: 7px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .rc-val { display: flex; gap: 10px; justify-content: flex-end; align-items: baseline; font-variant-numeric: tabular-nums; }
 .rc-val s { color: var(--red); font-size: 15px; }
 .rc-val b { font-weight: 600; }

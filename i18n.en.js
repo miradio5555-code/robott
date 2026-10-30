@@ -1350,6 +1350,8 @@ I18N.en = {
   rc_main: "rate from ¥{n}",
   rc_calc: "How much yuan do you need?",
   rc_go: "Exchange",
+  rc_more: "Details: all rates, chart, calculator",
+  rc_per: "som per 1 ¥",
   rc_edit: "Change rate",
   rc_warn_old: "Today's rate isn't updated — buyers see the old one",
   rc_warn_none: "The rate isn't set yet — buyers don't see it",
