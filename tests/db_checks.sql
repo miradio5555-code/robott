@@ -1833,3 +1833,53 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 31. Чат поддержки: байер видит имя и фото админа (без почты и телефона), аноним — нет'
+
+-- ===== 32. Файлы в чате поддержки =====
+reset role;
+-- b1 загрузил скриншот в свою папку, c1 — в свою
+insert into storage.objects (bucket_id, name) values
+  ('support-files', '00000000-0000-0000-0000-0000000000b1/shot1.jpg'),
+  ('support-files', '00000000-0000-0000-0000-0000000000c1/x.jpg'),
+  ('support-files', '00000000-0000-0000-0000-0000000000b1/answer.pdf');
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+do $$
+declare v uuid; r public.support_messages%rowtype;
+begin
+  v := public.support_send('', '{}'::jsonb, '[{"path":"00000000-0000-0000-0000-0000000000b1/shot1.jpg","name":"Скрин.jpg","type":"image/jpeg","size":12345}]'::jsonb);
+  select * into r from public.support_messages where id = v;
+  if jsonb_array_length(r.files) <> 1 or r.files->0->>'name' <> 'Скрин.jpg' then raise exception 'ПРОВАЛ: файл не сохранился в сообщении'; end if;
+  begin perform public.support_send('', '{}'::jsonb, '[]'::jsonb); raise exception 'ПРОВАЛ: пустое сообщение без файла записалось';
+  exception when others then if sqlerrm <> 'empty_message' then raise; end if; end;
+  begin perform public.support_send('чужой', '{}'::jsonb, '[{"path":"00000000-0000-0000-0000-0000000000c1/x.jpg"}]'::jsonb); raise exception 'ПРОВАЛ: байер прикрепил файл из чужой папки';
+  exception when others then if sqlerrm <> 'bad_file' then raise; end if; end;
+  begin perform public.support_send('нет файла', '{}'::jsonb, '[{"path":"00000000-0000-0000-0000-0000000000b1/none.jpg"}]'::jsonb); raise exception 'ПРОВАЛ: прикреплён незагруженный файл';
+  exception when others then if sqlerrm <> 'file_not_uploaded' then raise; end if; end;
+  begin perform public.support_send('путь', '{}'::jsonb, '[{"path":"00000000-0000-0000-0000-0000000000b1/../x.jpg"}]'::jsonb); raise exception 'ПРОВАЛ: принят странный путь';
+  exception when others then if sqlerrm <> 'bad_file' then raise; end if; end;
+  -- хранилище: своё видно, чужое — нет; в чужую папку не загрузить
+  if not exists (select 1 from storage.objects where bucket_id = 'support-files' and name like '%b1/shot1.jpg') then raise exception 'ПРОВАЛ: байер не видит свой файл'; end if;
+  if exists (select 1 from storage.objects where bucket_id = 'support-files' and name like '%c1/%') then raise exception 'ПРОВАЛ: байер видит чужой файл'; end if;
+  begin insert into storage.objects (bucket_id, name) values ('support-files', '00000000-0000-0000-0000-0000000000c1/hack.jpg'); raise exception 'ПРОВАЛ: байер загрузил в чужую папку';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+do $$
+declare v uuid;
+begin
+  if (select count(*) from storage.objects where bucket_id = 'support-files') < 3 then raise exception 'ПРОВАЛ: админ не видит файлы поддержки'; end if;
+  v := public.admin_support_reply('00000000-0000-0000-0000-0000000000b1', 'Смотрите инструкцию', '[{"path":"00000000-0000-0000-0000-0000000000b1/answer.pdf","name":"Инструкция.pdf","type":"application/pdf","size":1000}]'::jsonb);
+  if (select jsonb_array_length(files) from public.support_messages where id = v) <> 1 then raise exception 'ПРОВАЛ: админ не прикрепил файл'; end if;
+end $$;
+reset role;
+set role anon;
+do $$
+begin
+  if exists (select 1 from storage.objects where bucket_id = 'support-files') then raise exception 'ПРОВАЛ: аноним видит файлы поддержки'; end if;
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 32. Файлы в чате: только из своей папки и только загруженные, чужие файлы не видны, без входа — ничего'
