@@ -3690,11 +3690,12 @@ body.readonly .ha-grid { display: none; }
   .bottom-nav.has-plus::before {
     -webkit-mask: radial-gradient(circle 37px at 50% 0, transparent 36px, #000 37px);
     mask: radial-gradient(circle 37px at 50% 0, transparent 36px, #000 37px); }
-  .bn-item.active { background: none; color: var(--red); }
+  /* цвета логотипа: оранжевый круг «+», активный раздел — тёмно-оранжевый (читается на белом) */
+  .bn-item.active { background: none; color: #D84F1C; }
   .bn-plus { align-content: end; padding-bottom: 7px; }
   .bn-plus-c { position: absolute; left: 50%; top: -28px; transform: translateX(-50%); display: grid; place-items: center;
-    width: 58px; height: 58px; border-radius: 50%; background: var(--red); color: #fff;
-    box-shadow: 0 8px 18px color-mix(in srgb, var(--red) 45%, transparent); transition: transform .2s var(--ease); }
+    width: 58px; height: 58px; border-radius: 50%; background: #FF6A3D; color: #fff;
+    box-shadow: 0 8px 18px rgba(255,106,61,.45); transition: transform .2s var(--ease); }
   .bn-plus:active .bn-plus-c { transform: translateX(-50%) scale(.92); }
   .bn-plus span { color: var(--muted); }
   /* у байера «+» внизу заменяет плавающую кнопку */
