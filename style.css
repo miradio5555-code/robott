@@ -3745,3 +3745,11 @@ body.readonly .ha-grid { display: none; }
 .fx-qr small { font-size: 12px; }
 .fx-qr-ed { margin: 4px 0; }
 .fx-qr-ed .fx-rcpt img { object-fit: contain; background: #fff; }
+
+/* ---------- Ступени курса: мелко, все видны, нужная подсвечена ---------- */
+.fx-tiers-c .fx-tiers { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin: 10px 0; }
+.fx-tiers-c .fx-tier { flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 9px; border-radius: 10px; font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.fx-tiers-c .fx-tier b { font-size: 14px; color: var(--ink); }
+.fx-tiers-c .fx-tier.on { color: #1E9E62; }
+.rate-card .fx-tiers-c .fx-tiers { margin: 10px 0 0; }
+.rate-card .rc-calc { margin: 10px 0 0; }

@@ -378,7 +378,8 @@
     return '<section class="an-card fx-card fx-hero">' +
       '<div class="fx-hero-top"><span class="rc-ico" aria-hidden="true">¥</span><div class="fx-hero-main">' +
         '<span class="rc-label">' + esc(t("fx_ula_title")) + ' · <span class="rc-date' + (fresh ? "" : " old") + '">' + esc(c.fmtDate(p.updated_at)) + "</span></span>" +
-        '<span class="rc-big"><b>' + esc(rateStr(tiers[0].rate)) + "</b> " + esc(t("rc_per")) + "</span></div></div>" +
+        '<span class="rc-big"><b id="fxp-rate">' + esc(rateStr(tiers[0].rate)) + "</b> " + esc(t("rc_per")) + "</span></div></div>" +
+      '<div id="fxp-tiers" class="fx-tiers-c">' + tiersHtml(p.tiers, 0) + "</div>" +
       (p.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(p.eta) })) + "</p>" : "") +
       (fresh ? "" : '<p class="fx-date old">' + esc(dateLine(p.updated_at)) + "</p>") +
       calcHtml("fxp", minOf(tiers)) +
@@ -390,7 +391,6 @@
       stepHead(3, t("fx_s3_admin")) +
       '<button id="fxp-send" class="btn btn-primary btn-block" type="button">' + esc(t("fx_send_rcpt")) + "</button>" +
       (fx.sent ? '<div class="fx-sent">' + U.icon("check", 16) + "<span>" + esc(t("fx_sent_admin")) + '</span><button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></div>" : "") +
-      '<details class="rc-more"><summary>' + esc(t("fx_all_tiers")) + '</summary><div id="fxp-tiers">' + tiersHtml(p.tiers, 0) + "</div></details>" +
     "</section>";
   }
 
@@ -807,6 +807,9 @@
     out.textContent = (som == null ? "—" : money(som)) + " " + t("fx_som_short");
     var tb = $("#fxp-tiers");
     if (tb) tb.innerHTML = tiersHtml(tiers, cny);
+    // курс сверху — для введённой суммы (пока суммы нет или она меньше минимальной — самый первый)
+    var rt = $("#fxp-rate"), first = sortTiers(tiers)[0];
+    if (rt && first) rt.textContent = rateStr((cny > 0 && rateFor(tiers, cny)) || first.rate);
   }
 
   async function open() {
@@ -1148,7 +1151,7 @@
     html += (f.updated_at ? '<p class="fx-date ' + (isToday(f.updated_at) ? "" : "old") + '">' + esc(dateLine(f.updated_at)) + "</p>" : "") +
       (f.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(f.eta) })) + "</p>" : "") +
       '<p class="kyc-pub">' + U.icon("shield", 16) + esc(t("kyc_pub_badge")) + "</p>" +
-      '<div class="fx-tiers-wrap">' + tiersHtml(f.tiers, parseNum(pub.cny) || 0) + "</div>";
+      '<div class="fx-tiers-wrap fx-tiers-c">' + tiersHtml(f.tiers, parseNum(pub.cny) || 0) + "</div>";
     if (pub.step === "form") {
       var cny = parseNum(pub.cny);
       html += '<div class="fx-sumbox"><span>' + esc(t("fx_to_pay")) + "</span><b>" + esc(money(somFor(f.tiers, cny))) + " " + esc(t("fx_som_short")) + "</b>" +
@@ -1571,16 +1574,15 @@
     return '<section class="rate-card">' +
       '<div class="rc-top"><span class="rc-ico" aria-hidden="true">¥</span>' +
         '<div class="rc-main"><span class="rc-label">' + esc(t("rc_title")) + ' · <span class="rc-date' + (fresh ? "" : " old") + '">' + esc(c.fmtDate(p.updated_at)) + "</span></span>" +
-          '<span class="rc-big"><b class="' + (moved0 ? (r0 < o0 ? "down" : "up") : "") + '">' + esc(rateStr(r0)) + "</b> " + esc(t("rc_per")) + "</span></div>" +
+          '<span class="rc-big"><b id="rc-rate" class="' + (moved0 ? (r0 < o0 ? "down" : "up") : "") + '">' + esc(rateStr(r0)) + "</b> " + esc(t("rc_per")) + "</span></div>" +
         '<button type="button" class="btn btn-primary btn-sm" data-rc="' + (admin ? "edit" : "go") + '">' + esc(t(admin ? "rc_edit" : "rc_go")) + "</button></div>" +
       warn +
-      '<details class="rc-more"><summary>' + esc(t("rc_more")) + "</summary>" +
-        '<div class="rc-table"><div class="rc-th"><span>' + esc(t("rc_sum")) + "</span><span>" + esc(t("rc_rate")) + "</span></div>" + rows + "</div>" +
-        (splitNote(p.note).text ? '<p class="rc-note">' + esc(splitNote(p.note).text) + "</p>" : "") +
-        chartHtml() +
-        '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
-          '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
-      "</details>" +
+      '<div id="rc-tiers" class="fx-tiers-c">' + tiersHtml(p.tiers, 0) + "</div>" +
+      '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
+        '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
+      (splitNote(p.note).text || chartHtml().indexOf("rc-empty") < 0
+        ? '<details class="rc-more"><summary>' + esc(t("rc_more")) + "</summary>" +
+            (splitNote(p.note).text ? '<p class="rc-note">' + esc(splitNote(p.note).text) + "</p>" : "") + chartHtml() + "</details>" : "") +
     "</section>";
   }
 
@@ -1595,6 +1597,10 @@
     var inp = $("#rc-cny"), out = $("#rc-som");
     if (!inp || !out) return;
     var cny = parseNum(inp.value) || 0, tiers = fx.platform && fx.platform.tiers;
+    var tb = $("#rc-tiers"), rt = $("#rc-rate"), first = sortTiers(tiers)[0];
+    if (tb) tb.innerHTML = tiersHtml(tiers, cny);
+    // курс сверху — для введённой суммы (без суммы или меньше минимальной — самый первый)
+    if (rt && first) rt.textContent = rateStr((cny > 0 && rateFor(tiers, cny)) || first.rate);
     if (!(cny > 0)) { out.textContent = "—"; return; }
     var som = somFor(tiers, cny);
     out.textContent = som == null ? t("fx_e_min", { n: money(minOf(tiers)) }) : money(som) + " " + t("fx_som_short");
