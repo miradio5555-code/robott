@@ -54,9 +54,9 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select nullif(pub, '') from public.push_keys where id = 1;
-$;
+$$;
 revoke all on function public.push_public_key() from public, anon;
 grant execute on function public.push_public_key() to authenticated;
 
