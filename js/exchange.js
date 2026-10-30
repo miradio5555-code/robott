@@ -454,7 +454,14 @@
     return '<details class="an-card fx-card fx-set"' + (setOpen ? " open" : "") + '><summary>' + esc(t("fx_my_title")) + "</summary>" +
       '<p class="muted">' + esc(t("fx_my_hint")) + "</p>" +
       (own && !isAdmin() ? kycHtml() : "") +
-      (w.fx_tiers ? '<p class="fx-date ' + (isToday(w.fx_updated_at) ? "" : "old") + '">' + esc(dateLine(w.fx_updated_at)) + "</p>" : "") +
+      // до проверки инструменты закрыты: иначе байер отправит ссылку, а клиент увидит «недоступен»
+      (own && !isAdmin() && !kycOk() && !w.fx_on
+        ? '<div class="fx-locked">🔒 ' + esc(t("fx_locked")) + "<ul><li>" + esc(t("fx_locked_1")) + "</li><li>" + esc(t("fx_locked_2")) + "</li><li>" + esc(t("fx_locked_3")) + "</li></ul></div></details>"
+        : myTools(w, own, canOn));
+  }
+
+  function myTools(w, own, canOn) {
+    return (w.fx_tiers ? '<p class="fx-date ' + (isToday(w.fx_updated_at) ? "" : "old") + '">' + esc(dateLine(w.fx_updated_at)) + "</p>" : "") +
       '<form id="fxm-form" class="fx-form" novalidate>' +
         '<label class="check-line"><input id="fxm-on" type="checkbox"' + (w.fx_on ? " checked" : "") + (canOn ? "" : " disabled") + "> <span>" + esc(t("fx_on_label")) + "</span></label>" +
         editorHtml("fxm", w.fx_tiers, !own) +
@@ -473,7 +480,11 @@
   function kycHtml() {
     var k = fx.kyc;
     if (k === undefined) return "";
-    if (k && k.status === "approved") return '<p class="kyc-ok">' + U.icon("check", 16) + esc(t("kyc_ok")) + "</p>";
+    if (k && k.status === "approved") {
+      // проверку прошли, а обмен ещё не включён — показать, что делать дальше
+      if (!(state.ws && state.ws.fx_on)) return '<div class="fx-next"><b>✅ ' + esc(t("fx_next_title")) + "</b><ol><li>" + esc(t("fx_next_1")) + "</li><li>" + esc(t("fx_next_2")) + "</li><li>" + esc(t("fx_next_3")) + "</li></ol></div>";
+      return '<p class="kyc-ok">' + U.icon("check", 16) + esc(t("kyc_ok")) + "</p>";
+    }
     var html = '<div class="kyc-box"><h4>' + U.icon("id", 18) + esc(t("kyc_title")) + "</h4>";
     if (k && k.status === "pending") {
       return html + '<p class="kyc-wait">⏳ ' + esc(t("kyc_pending", { d: c.fmtDate(k.submitted_at) })) + "</p></div>";
@@ -608,6 +619,12 @@
     var res = await c.db().rpc("admin_kyc_decide", { p_user: uid, p_ok: ok, p_reason: reason });
     if (res.error) { c.handleError(res.error); return; }
     toast(t(ok ? "kyc_ok_done" : "kyc_no_done"), "ok");
+    // байеру — сообщение в чат поддержки и push: проверка пройдена (что делать дальше) или причина отказа
+    try {
+      var msg = ok ? t("kyc_msg_ok") : t("kyc_msg_no", { r: reason });
+      var sr = await c.db().rpc("admin_support_reply", { p_user: uid, p_body: msg });
+      if (!sr.error && U.alerts) U.alerts.push({ action: "support", user: uid });
+    } catch (e2) { /* не важно */ }
     await loadKycList();
     render();
   }

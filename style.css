@@ -3764,3 +3764,10 @@ body.readonly .ha-grid { display: none; }
 .fx-off-warn { margin: 8px 0 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #F59E0B 14%, transparent); border: 1px solid color-mix(in srgb, #F59E0B 40%, transparent); }
 .fx-off-warn p { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
 .fx-off-warn p:last-child { margin: 0; }
+
+/* Обмен байера: закрыто до проверки / что делать после проверки */
+.fx-locked, .fx-next { margin: 10px 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+.fx-locked { background: color-mix(in srgb, var(--muted, #888) 12%, transparent); }
+.fx-next { background: color-mix(in srgb, #22C55E 13%, transparent); border: 1px solid color-mix(in srgb, #22C55E 38%, transparent); }
+.fx-locked ul, .fx-next ol { margin: 6px 0 0; padding-left: 20px; }
+.fx-locked li, .fx-next li { margin: 3px 0; }
