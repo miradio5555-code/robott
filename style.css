@@ -3704,3 +3704,24 @@ body.readonly .ha-grid { display: none; }
 
 /* На телефоне «Новый заказ» — круглая «+» в нижнем меню, большую кнопку на главной прячем (на компьютере она остаётся) */
 @media (max-width: 640px) { .ha-main { display: none; } }
+
+/* ---------- Обмен у байера: две вкладки, «Обмен в ULA» первой ---------- */
+.fx-subtabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--soft); }
+.fx-subtabs button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 12px; background: none;
+  color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; line-height: 1.2; cursor: pointer; }
+.fx-subtabs button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.fx-tab-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; line-height: 20px; }
+.fx-hero-top { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.fx-hero-main { display: grid; min-width: 0; }
+.fx-hero .rc-big b { font-size: 26px; }
+.fx-hero .fx-calc { margin: 14px 0; padding: 12px; border-radius: 14px; background: var(--soft); }
+.fx-sent { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--green-tint); color: var(--green); font-size: 14px; font-weight: 500; }
+.fx-sent span { flex: 1; min-width: 160px; }
+.fx-hero .rc-more { margin-top: 14px; }
+.fx-hero .fx-steps { margin: 14px 0 0; padding: 12px; border-radius: 14px; background: var(--soft); font-size: 14px; color: var(--muted); display: grid; gap: 8px; list-style: none; counter-reset: fxs; }
+.fx-hero .fx-steps li { position: relative; display: block; min-height: 24px; padding: 0 0 0 34px; counter-increment: fxs; line-height: 1.35; }
+.fx-hero .fx-steps li::before { content: counter(fxs); position: absolute; left: 4px; top: -1px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; }
+.fx-hero .fx-steps li::after { content: none; }
+/* настройки «Моего обмена» — сворачиваются */
+.fx-set > summary { cursor: pointer; font-size: 15px; font-weight: 600; list-style-position: inside; }
+.fx-set[open] > summary { margin-bottom: 6px; }

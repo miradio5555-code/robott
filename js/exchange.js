@@ -28,7 +28,7 @@
   var MAX_TIERS = 10;
   var fx = { platform: null, list: [], filter: "active", loading: false,
     kyc: undefined, kycFiles: {}, kycBusy: false, kycList: [], kycFilter: "pending",
-    events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {} };
+    events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {}, sub: "", sent: false, setOpen: undefined };
 
   function isAdmin() { return !!(state.me && state.me.role === "admin"); }
   function canOwn() { return !state.readOnly && state.myRole === "owner"; }
@@ -260,6 +260,43 @@
     return html + "</section>";
   }
 
+  // ---------- Страница байера: две вкладки ----------
+  // «Обмен в ULA» — сам обменять сом на юани (заявка уходит администрации); «Мой обмен» — обмен для клиентов байера
+  function buyerSub() {
+    var ula = kgBuyer(), mine = !!state.ws;
+    if (!ula) return "mine";
+    if (!mine) return "ula";
+    return fx.sub || "ula";
+  }
+
+  function subTabsHtml(sub) {
+    if (!kgBuyer() || !state.ws) return "";
+    var n = countActive();
+    return '<div class="fx-subtabs" role="tablist">' +
+      '<button type="button" role="tab" data-fx-sub="ula" class="' + (sub === "ula" ? "on" : "") + '">' + esc(t("fx_tab_ula")) + "</button>" +
+      '<button type="button" role="tab" data-fx-sub="mine" class="' + (sub === "mine" ? "on" : "") + '">' + esc(t("fx_tab_mine")) +
+        (n ? '<b class="fx-tab-n">' + n + "</b>" : "") + "</button></div>";
+  }
+
+  function ulaHtml() {
+    var p = fx.platform || {}, tiers = sortTiers(p.tiers), fresh = tiers.length && isToday(p.updated_at);
+    if (!tiers.length) {
+      return '<section class="an-card fx-card"><h3>' + esc(t("fx_ula_title")) + '</h3><p class="muted">' + esc(t("fx_platform_none")) + "</p></section>";
+    }
+    return '<section class="an-card fx-card fx-hero">' +
+      '<div class="fx-hero-top"><span class="rc-ico" aria-hidden="true">¥</span><div class="fx-hero-main">' +
+        '<span class="rc-label">' + esc(t("fx_ula_title")) + ' · <span class="rc-date' + (fresh ? "" : " old") + '">' + esc(c.fmtDate(p.updated_at)) + "</span></span>" +
+        '<span class="rc-big"><b>' + esc(rateStr(tiers[0].rate)) + "</b> " + esc(t("rc_per")) + "</span></div></div>" +
+      (fresh ? "" : '<p class="fx-date old">' + esc(dateLine(p.updated_at)) + "</p>") +
+      calcHtml("fxp", minOf(tiers)) +
+      '<button id="fxp-send" class="btn btn-primary btn-block" type="button">' + esc(t("fx_ask_admin")) + "</button>" +
+      (fx.sent ? '<div class="fx-sent">' + U.icon("check", 16) + "<span>" + esc(t("fx_sent_admin")) + '</span><button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></div>" : "") +
+      '<details class="rc-more"><summary>' + esc(t("fx_all_tiers")) + '</summary><div id="fxp-tiers">' + tiersHtml(p.tiers, 0) + "</div>" +
+        (p.note ? '<p class="fx-note">' + esc(p.note) + "</p>" : "") + "</details>" +
+      '<ol class="fx-steps"><li>' + esc(t("fx_step1")) + "</li><li>" + esc(t("fx_step2")) + "</li><li>" + esc(t("fx_step3")) + "</li></ol>" +
+    "</section>";
+  }
+
   function calcHtml(id, min) {
     return '<div class="fx-calc">' +
       '<label class="field"><span>' + esc(t("fx_cny")) + '</span><input id="' + id + '-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(min || 1000)) + '"></label>' +
@@ -283,7 +320,8 @@
   function myHtml() {
     var w = state.ws || {}, own = canOwn();
     var canOn = own && (kycOk() || w.fx_on);
-    return '<section class="an-card fx-card"><h3>' + esc(t("fx_my_title")) + "</h3>" +
+    var setOpen = fx.setOpen === undefined ? !w.fx_on : fx.setOpen;
+    return '<details class="an-card fx-card fx-set"' + (setOpen ? " open" : "") + '><summary>' + esc(t("fx_my_title")) + "</summary>" +
       '<p class="muted">' + esc(t("fx_my_hint")) + "</p>" +
       (own && !isAdmin() ? kycHtml() : "") +
       (w.fx_tiers ? '<p class="fx-date ' + (isToday(w.fx_updated_at) ? "" : "old") + '">' + esc(dateLine(w.fx_updated_at)) + "</p>" : "") +
@@ -296,7 +334,7 @@
         "</select></label>" +
         '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxm-note" rows="3" maxlength="500" placeholder="' + esc(t("fx_note_ph")) + '"' + (own ? "" : " disabled") + ">" + esc(w.fx_note || "") + "</textarea></label>" +
         (own ? '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button>" : '<p class="fine-print">' + esc(t("fx_readonly")) + "</p>") +
-      "</form>" + linkHtml() + "</section>";
+      "</form>" + linkHtml() + "</details>";
   }
 
   // ---------- Проверка личности: байер ----------
@@ -655,9 +693,10 @@
     // набранный текст в спорах не теряется при перерисовке
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { fx.keep[ta.getAttribute("data-fx-dmsg")] = ta.value; });
     var keepCny = $("#fxp-cny") ? $("#fxp-cny").value : "";
-    box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' +
-      (isAdmin() ? disputesAdminHtml() : "") +
-      (state.ws ? requestsHtml() + (isAdmin() ? "" : myHtml()) : "") + (isAdmin() ? kycAdminHtml() : "") + (kgBuyer() ? platformHtml() : "");
+    var sub = buyerSub();
+    box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' + (isAdmin()
+      ? disputesAdminHtml() + (state.ws ? requestsHtml() : "") + kycAdminHtml() + (kgBuyer() ? platformHtml() : "")
+      : subTabsHtml(sub) + (sub === "ula" ? ulaHtml() : (state.ws ? requestsHtml() + myHtml() : "")));
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
     if (keepCny && $("#fxp-cny")) $("#fxp-cny").value = keepCny;   // набранная сумма не теряется при перерисовке
     updateCalc();
@@ -673,6 +712,8 @@
   }
 
   async function open() {
+    fx.sent = false;
+    if (fx.prefill) fx.sub = "ula";
     render();
     await Promise.all([loadPlatform(), state.ws ? loadRequests() : Promise.resolve(), loadKyc(),
       isAdmin() ? loadKycList() : Promise.resolve(), isAdmin() ? loadDisputes() : Promise.resolve()]);
@@ -770,7 +811,8 @@
     }
     try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
     $("#fxp-cny").value = "";
-    updateCalc();
+    fx.sent = true;
+    render();
     toast(t("fx_sent_admin"), "ok");
   }
 
@@ -796,6 +838,10 @@
     box.addEventListener("input", function (e) {
       if (e.target.id === "fxp-cny") updateCalc();
     });
+    // «toggle» не всплывает — ловим на спуске; запоминаем, раскрыты ли настройки «Моего обмена»
+    box.addEventListener("toggle", function (e) {
+      if (e.target.classList && e.target.classList.contains("fx-set")) fx.setOpen = e.target.open;
+    }, true);
     box.addEventListener("submit", function (e) {
       if (e.target.id === "fxm-form") saveMine(e);
       else if (e.target.id === "fxa-form") saveAdmin(e);
@@ -816,6 +862,9 @@
     });
     box.addEventListener("click", async function (e) {
       if (e.target.closest("#fxp-send")) { askAdmin(); return; }
+      var sb = e.target.closest("[data-fx-sub]");
+      if (sb) { fx.sub = sb.getAttribute("data-fx-sub"); fx.sent = false; render(); return; }
+      if (e.target.closest("[data-fx-chat]")) { U.support.open(); return; }
       var el;
       if ((el = e.target.closest("[data-fx-send]"))) { toast(t("fx_send_pick"), "ok"); pickFile("sent", el.getAttribute("data-fx-send")); return; }
       if ((el = e.target.closest("[data-fx-dattach]"))) { pickFile("msg", el.getAttribute("data-fx-dattach")); return; }
