@@ -3771,3 +3771,11 @@ body.readonly .ha-grid { display: none; }
 .fx-next { background: color-mix(in srgb, #22C55E 13%, transparent); border: 1px solid color-mix(in srgb, #22C55E 38%, transparent); }
 .fx-locked ul, .fx-next ol { margin: 6px 0 0; padding-left: 20px; }
 .fx-locked li, .fx-next li { margin: 3px 0; }
+
+/* Карточка «Включить уведомления» на главной */
+.push-card { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px;
+  background: color-mix(in srgb, #F97316 12%, var(--card, #fff)); border: 1px solid color-mix(in srgb, #F97316 35%, transparent); }
+.push-card .push-ico { font-size: 22px; line-height: 1; }
+.push-card b { display: block; font-size: 15px; }
+.push-card p { margin: 3px 0 8px; font-size: 13px; line-height: 1.4; color: var(--muted, #777); }
+.push-card p:last-child { margin-bottom: 0; }
