@@ -74,13 +74,10 @@
     return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
   }
   function sentUrl(path) { return c.db().storage.from("fx-sent").getPublicUrl(path).data.publicUrl; }
-  // Фото и скриншоты грузятся без сжатия, в оригинальном качестве. Сжимаем только то, что иначе не пройдёт:
-  // файл больше 5 МБ или формат, который хранилище не принимает (HEIC, GIF).
-  var IMG_LIMIT = 5 * 1024 * 1024 - 1024;
+  // Фото и скриншоты сжимаются перед загрузкой (до ~400 КБ, текст на чеке остаётся читаемым): так они занимают мало места
   async function prepImg(file) {
     if (!/^image\//.test(file.type || "")) throw new Error("bad_type");
-    var blob = file;
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > IMG_LIMIT) blob = await c.shrinkImage(file, 4096, IMG_LIMIT, true);
+    var blob = await c.shrinkImage(file, 1600, 400 * 1024, true);
     if (blob.size > 5 * 1024 * 1024) throw new Error("too_big");
     return blob;
   }
@@ -853,17 +850,26 @@
     var text = t("fx_admin_msg", { cny: money(cny), som: money(som), r: rateStr(rate) });
     var btn = $("#fxp-send");
     btn.disabled = true;
-    var sent;
+    var sent, noReceipt = false;
     try {
       var rf = fx.rcpt.file;
       sent = await U.support.uploadFiles({ files: [{ file: rf, name: rf.name || t("fx_receipt"), type: rf.type, size: rf.size }] });
     } catch (err) {
       console.error(err);
-      btn.disabled = false;
-      toast(t(/bucket|not.?found|404/i.test(String((err && (err.message || err.error)) || "")) ? "fx_e_upload_off" : "fx_e_upload"), "error");
-      return;
+      if (/bucket|not.?found|404/i.test(String((err && (err.message || err.error)) || ""))) {
+        // файлы в чате ещё не включены (файл 40): не оставляем байера ни с чем — отправляем заявку без файла
+        if (!window.confirm(t("fx_send_no_file"))) { btn.disabled = false; return; }
+        noReceipt = true;
+        text += "\n" + t("fx_no_file_note");
+      } else {
+        btn.disabled = false;
+        toast(t("fx_e_upload"), "error");
+        return;
+      }
     }
-    var res = await c.db().rpc("support_send", { p_body: text, p_meta: { kind: "fx", cny: cny, som: som, rate: rate, receipt: true }, p_files: sent });
+    var args = { p_body: text, p_meta: { kind: "fx", cny: cny, som: som, rate: rate, receipt: !noReceipt } };
+    if (!noReceipt) args.p_files = sent;
+    var res = await c.db().rpc("support_send", args);
     btn.disabled = false;
     if (res.error) {
       if (/too_many_messages/.test(res.error.message || "")) toast(t("support_too_many"), "error");
