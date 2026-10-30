@@ -26,9 +26,18 @@
   var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // на страницах для клиентов (витрина, заказ, заявка) заставку не показываем
   var pub = /[?&](order|c|shop|xr|fx|request)=/.test(location.search);
-  function done() { if (el.parentNode) el.parentNode.removeChild(el); }
+  // когда экран начинает разъезжаться — сообщить сайту, чтобы блоки «выехали» (app.js, showView)
+  var opened = false;
+  function open() {
+    if (opened) return;
+    opened = true;
+    el.classList.remove("play-on");
+    document.dispatchEvent(new Event("ula-intro-done"));
+  }
+  function done() { open(); if (el.parentNode) el.parentNode.removeChild(el); }
   if (seen || calm || pub) { done(); return; }
-  el.classList.add("play");
+  el.classList.add("play", "play-on");
   el.addEventListener("click", done);
+  setTimeout(open, 1850);
   setTimeout(done, 2600);
 })();
