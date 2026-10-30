@@ -26,7 +26,7 @@
   var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // на страницах для клиентов (витрина, заказ, заявка) заставку не показываем
   var pub = /[?&](order|c|shop|xr|fx|request)=/.test(location.search);
-  // когда экран начинает разъезжаться — сообщить сайту, чтобы блоки «выехали» (app.js, showView)
+  // когда знак «пролетает» и фон растворяется — сообщить сайту, чтобы блоки «выехали» (app.js, showView)
   var opened = false;
   function open() {
     if (opened) return;
