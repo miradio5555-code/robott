@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
         "🏢 " + (ws?.name || "—"),
         "✉️ " + (user.email || "—"),
         "",
-        ...rows.map((r) => "💬 " + String(r.body).slice(0, 1500)),
+        ...rows.map((r) => "💬 " + String(r.body || "📎 фото / файл (откройте чат на сайте)").slice(0, 1500)),
         ...(errors.length ? ["", "⚠️ Ошибки на странице:", ...errors.slice(-3)] : []),
         "",
         "Ответить: " + SITE_URL + "#/support",
