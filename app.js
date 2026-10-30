@@ -219,12 +219,36 @@
 
   function isStaff() { return !!state.myRole && state.myRole === "staff"; }
 
+  // Живое появление: класс снимаем и ставим заново — анимация в style.css проигрывается ещё раз
+  function playIn(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    // потом убрать класс, иначе карточки «прыгали» бы при каждом поиске и фильтре
+    clearTimeout(el._inTimer);
+    el._inTimer = setTimeout(function () { el.classList.remove(cls); }, 1400);
+  }
+  var shownView = "", shownTab = "";
+
   function showView(name) {
     var boot = document.getElementById("boot");
     if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
     ["config", "login", "join", "admin", "client", "request", "shop"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
+    if (name !== shownView) {
+      shownView = name;
+      shownTab = "";
+      if (document.querySelector("#intro.play-on")) {
+        // ещё идёт заставка — блоки выедут, когда она откроется
+        document.addEventListener("ula-intro-done", function () {
+          if (shownView !== name) return;
+          playIn($("#view-" + name), "view-in");
+          if (name === "admin" && state.tab) playIn($("#tab-" + state.tab), "tab-in");
+        }, { once: true });
+      } else playIn($("#view-" + name), "view-in");
+    }
     // пришёл по приглашению помощника — подсказать, что делать
     if (name === "login" && ULA.team) $("#login-team-note").classList.toggle("hidden", !ULA.team.pendingCode());
   }
@@ -314,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261119a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261119b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1899,6 +1923,7 @@
     $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
+    if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     // нижнее меню: у байера — его главные разделы, у админа платформы — Байеры, Поддержка, Обмен
     var bnTabs = !isAdmin ? ["orders", "clients", "shop", "debts"]
