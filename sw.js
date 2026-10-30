@@ -65,6 +65,15 @@ function versionOf(html) {
   return m ? m[1] : "";
 }
 
+// Пришло push-уведомление от сервера (сайт может быть закрыт)
+self.addEventListener("push", function (e) {
+  var d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { /* ignore */ }
+  e.waitUntil(self.registration.showNotification(d.title || "ULA Factory", {
+    body: d.body || "", tag: d.tag || "ula", renotify: true, icon: "img/icon-192.png", badge: "img/icon-192.png"
+  }));
+});
+
 // Нажали на уведомление — открыть сайт (или вернуться в уже открытый)
 self.addEventListener("notificationclick", function (e) {
   e.notification.close();

@@ -380,7 +380,11 @@
     // сообщить админу в Telegram (если подключено); ошибка здесь не мешает байеру
     if (!p.forUser) {
       try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
-    } else threadsSoon();
+      if (U.alerts) U.alerts.push({ action: "support" });
+    } else {
+      if (U.alerts) U.alerts.push({ action: "support", user: p.forUser });
+      threadsSoon();
+    }
   }
 
   // На телефоне окно чата — во весь экран. Когда выезжает клавиатура, окно сжимается до видимой части,

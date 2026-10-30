@@ -517,6 +517,7 @@
       try {
         await c.db().rpc("support_send", { p_body: t("kyc_admin_msg", { name: name }), p_meta: { kind: "kyc" } });
         c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {});
+        if (U.alerts) U.alerts.push({ action: "kyc" });
       } catch (e) { /* не важно */ }
       Object.keys(fx.kycFiles).forEach(function (k) { URL.revokeObjectURL(fx.kycFiles[k].url); });
       fx.kycFiles = {};
@@ -963,6 +964,7 @@
       return;
     }
     try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
+    if (U.alerts) U.alerts.push({ action: "support" });
     $("#fxp-cny").value = "";
     rcptDrop(fx.rcpt);
     fx.sent = true;
@@ -1223,7 +1225,7 @@
       if (r.id) rememberReq(r.id);
       pub.step = "pay";
       // сообщить байеру в Telegram (если подключён)
-      try { if (r.id) c.db().functions.invoke("telegram-notify", { body: { action: "exchange_notify", id: r.id } }).catch(function () {}); } catch (e) { /* ignore */ }
+      try { if (r.id) c.db().functions.invoke("telegram-notify", { body: { action: "exchange_notify", id: r.id } }).catch(function () {}); if (U.alerts) U.alerts.push({ action: "exchange", id: r.id }); } catch (e) { /* ignore */ }
       // чек уже выбран: сразу прикладываем к заявке. Не получилось — клиент увидит «Прикрепить чек» ещё раз
       if (r.id) {
         try { await sendProof(r.id, pub.file); pub.step = "done"; rcptDrop(pub); }
@@ -1256,7 +1258,7 @@
     if (up.error) throw up.error;
     var at = await c.db().rpc("fx_attach_proof", { p_id: id, p_path: path });
     if (at.error) throw at.error;
-    try { c.db().functions.invoke("telegram-notify", { body: { action: "exchange_paid", id: id } }).catch(function () {}); } catch (e) { /* ignore */ }
+    try { c.db().functions.invoke("telegram-notify", { body: { action: "exchange_paid", id: id } }).catch(function () {}); if (U.alerts) U.alerts.push({ action: "exchange_paid", id: id }); } catch (e) { /* ignore */ }
   }
   function proofErr(err) {
     var m = String((err && err.message) || "");

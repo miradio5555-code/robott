@@ -71,6 +71,33 @@
     mark();
   }
 
+  // ---------- push: подписка телефона (сервер шлёт, даже когда сайт закрыт) ----------
+  function b64(s) {
+    var p = "=".repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(r.length);
+    for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i);
+    return a;
+  }
+  function subscribe() {
+    try {
+      var key = window.CARGO_CONFIG && window.CARGO_CONFIG.VAPID_PUBLIC_KEY;
+      var st = U.core && U.core.state;
+      if (!key || !st || !st.me || !U.core.db() || !("PushManager" in window) || !navigator.serviceWorker) return;
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (s) {
+          return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
+        });
+      }).then(function (s) {
+        var j = s.toJSON();
+        return U.core.db().from("push_subs").upsert({ endpoint: j.endpoint, user_id: st.me.id, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
+      }).catch(function () { /* файл 43 ещё не запущен или браузер не умеет — звук на открытом сайте работает и так */ });
+    } catch (e) { /* ignore */ }
+  }
+  // попросить сервер разослать push (после записи в базу); ошибка не мешает
+  function push(body) {
+    try { U.core.db().functions.invoke("push-notify", { body: body }).catch(function () {}); } catch (e) { /* ignore */ }
+  }
+
   // первое нажатие: включить звук и один раз спросить разрешение на уведомления
   function onTap() {
     unlock();
@@ -81,10 +108,13 @@
       if (localStorage.getItem(ASK_KEY) === "1") return;
       if (!U.core || !U.core.state || !U.core.state.me) { asked = false; return; }   // только после входа
       localStorage.setItem(ASK_KEY, "1");
-      Notification.requestPermission();
+      Notification.requestPermission().then(subscribe);
     } catch (e) { /* ignore */ }
   }
   ["pointerdown", "keydown"].forEach(function (ev) { document.addEventListener(ev, onTap, { passive: true }); });
 
-  U.alerts = { ping: ping, mute: function (on) { try { localStorage.setItem(MUTE_KEY, on ? "1" : "0"); } catch (e) { /* ignore */ } } };
+  // разрешение уже есть — подписаться (или обновить подписку) через несколько секунд после входа
+  setInterval(function () { if (!document.hidden && !U.alerts._sub) { var st = U.core && U.core.state; if (st && st.me) { U.alerts._sub = 1; subscribe(); } } }, 4000);
+
+  U.alerts = { ping: ping, push: push, subscribe: subscribe, mute: function (on) { try { localStorage.setItem(MUTE_KEY, on ? "1" : "0"); } catch (e) { /* ignore */ } } };
 })(window.ULA);
