@@ -3403,3 +3403,113 @@ html[data-theme="dark"] .sp-row.theirs .sp-bubble { background: #262628; }
 .support-thread-last { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .support-thread-last .badge-inline { margin-left: auto; flex: none; background: #0A84FF; }
 @media (prefers-reduced-motion: reduce) { .sp-log { scroll-behavior: auto; } }
+
+/* =====================================================
+   ЧАТ ПОДДЕРЖКИ В СТИЛЕ WHATSAPP
+   Телефон: во весь экран, кнопка «назад», окно сжимается над клавиатурой (--sp-vh из js/support.js).
+   Фон с узором, свои сообщения — зелёные, входящие — белые, «хвостик» у первого сообщения группы,
+   прочитанные — синие ✓✓. Цвета — в переменных --wa-* (светлая и тёмная тема).
+   ===================================================== */
+.sp-modal {
+  --wa-bg: #EFEAE2; --wa-head: #FFFFFF; --wa-in: #FFFFFF; --wa-out: #D9FDD3; --wa-text: #111B21; --wa-meta: #667781;
+  --wa-read: #53BDEB; --wa-green: #00A884; --wa-bar: #F0F2F5; --wa-input: #FFFFFF; --wa-chip: #FFFFFF; --wa-chip-text: #54656F;
+  --wa-doodle: rgba(11, 20, 26, .045);
+}
+html[data-theme="dark"] .sp-modal {
+  --wa-bg: #0B141A; --wa-head: #202C33; --wa-in: #202C33; --wa-out: #005C4B; --wa-text: #E9EDEF; --wa-meta: rgba(233, 237, 239, .6);
+  --wa-bar: #202C33; --wa-input: #2A3942; --wa-chip: #182229; --wa-chip-text: #8696A0; --wa-doodle: rgba(255, 255, 255, .03);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="dark"]) .sp-modal {
+    --wa-bg: #0B141A; --wa-head: #202C33; --wa-in: #202C33; --wa-out: #005C4B; --wa-text: #E9EDEF; --wa-meta: rgba(233, 237, 239, .6);
+    --wa-bar: #202C33; --wa-input: #2A3942; --wa-chip: #182229; --wa-chip-text: #8696A0; --wa-doodle: rgba(255, 255, 255, .03);
+  }
+}
+.sp-modal .modal-sheet { background: var(--wa-bg); color: var(--wa-text); }
+
+/* шапка */
+.sp-head { min-height: 60px; padding: 8px 8px 8px 14px; gap: 10px; background: var(--wa-head); border-bottom: 1px solid color-mix(in srgb, var(--wa-meta) 18%, transparent); }
+.sp-head-t h2 { color: var(--wa-text); font-size: 16.5px; }
+.sp-status, .sp-status.on { color: var(--wa-meta); }
+.sp-status.on .sp-dots, .sp-status:has(.sp-dots) { color: var(--wa-green); }
+html[data-theme="dark"] .sp-status.on { color: var(--wa-meta); }
+.sp-head .sp-ava { width: 40px; height: 40px; }
+.sp-back { display: none; flex: none; place-items: center; width: 36px; height: 44px; margin-right: -6px; border: 0; background: none; color: var(--wa-green); cursor: pointer; }
+.sp-close { color: var(--wa-meta); }
+
+/* переписка: фон с узором */
+.sp-log { gap: 2px; padding: 10px 6% 10px; background-color: var(--wa-bg);
+  background-image:
+    radial-gradient(circle at 20px 20px, var(--wa-doodle) 3px, transparent 3.5px),
+    radial-gradient(circle at 70px 60px, transparent 7px, var(--wa-doodle) 7.5px, var(--wa-doodle) 9px, transparent 9.5px),
+    radial-gradient(circle at 100px 15px, var(--wa-doodle) 2px, transparent 2.5px);
+  background-size: 120px 90px; }
+@media (max-width: 640px) { .sp-log { padding: 8px 10px; } }
+
+.sp-day { margin: 12px 0 8px; }
+.sp-day span { padding: 5px 12px; border-radius: 8px; background: var(--wa-chip); color: var(--wa-chip-text); font-size: 12.5px; font-weight: 500;
+  text-transform: none; box-shadow: 0 1px .5px rgba(11, 20, 26, .13); -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* пузырьки */
+.sp-row { padding: 0 8px; }
+.sp-row.head { margin-top: 8px; }
+.sp-row.tail { margin-bottom: 0; }
+.sp-bubble, .sp-row.mine .sp-bubble, .sp-row.theirs .sp-bubble,
+.sp-row.mine.tail .sp-bubble, .sp-row.theirs.tail .sp-bubble,
+.sp-row.mine:not(.tail) .sp-bubble, .sp-row.theirs:not(.tail) .sp-bubble {
+  max-width: 82%; padding: 6px 8px 7px 9px; border-radius: 8px; color: var(--wa-text);
+  font-size: 15.5px; line-height: 1.38; box-shadow: 0 1px .5px rgba(11, 20, 26, .13);
+}
+.sp-row.mine .sp-bubble { background: var(--wa-out); }
+.sp-row.theirs .sp-bubble, html[data-theme="dark"] .sp-row.theirs .sp-bubble { background: var(--wa-in); }
+@media (prefers-color-scheme: dark) { html:not([data-theme="light"]):not([data-theme="dark"]) .sp-row.theirs .sp-bubble { background: var(--wa-in); } }
+@media (max-width: 640px) { .sp-bubble, .sp-row.mine .sp-bubble, .sp-row.theirs .sp-bubble { font-size: 16px; } }
+/* «хвостик» у первого сообщения группы */
+.sp-row.head.mine .sp-bubble { border-top-right-radius: 0; }
+.sp-row.head.theirs .sp-bubble { border-top-left-radius: 0; }
+.sp-row.head .sp-bubble::before { content: ""; position: absolute; top: 0; width: 8px; height: 13px; }
+.sp-row.head.mine .sp-bubble::before { right: -8px; background: var(--wa-out); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.sp-row.head.theirs .sp-bubble::before { left: -8px; background: var(--wa-in); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+
+/* время и галочки */
+.sp-meta { margin: 8px 0 -4px 12px; color: var(--wa-meta); opacity: 1; font-size: 11px; }
+.sp-tick { color: var(--wa-meta); }
+.sp-tick.read { color: var(--wa-read); }
+.sp-tick .ico { width: 15px; height: 15px; }
+.sp-tick .ico + .ico { margin-left: -10px; }
+.sp-typing { color: var(--wa-meta); }
+
+/* поле ввода */
+.sp-composer { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: var(--wa-bar); border-top: 0; }
+.sp-note { color: var(--wa-meta); text-align: center; }
+.sp-input { align-items: flex-end; gap: 6px; }
+.sp-input textarea, .sp-input textarea:focus { min-height: 44px !important; padding: 11px 16px; border: 0; border-radius: 22px !important;
+  background: var(--wa-input); color: var(--wa-text); box-shadow: 0 1px .5px rgba(11, 20, 26, .1); font-size: 16px; }
+.sp-input textarea::placeholder { color: var(--wa-meta); }
+.sp-send { width: 44px; height: 44px; background: var(--wa-green); }
+.sp-send svg { margin-left: -2px; }
+.sp-input textarea:placeholder-shown + .sp-send { opacity: .55; transform: none; }
+
+/* телефон: во весь экран, выезжает справа, как переход в чат */
+@media (max-width: 640px) {
+  .sp-modal .modal-backdrop { display: none; }
+  .sp-modal .modal-sheet { position: fixed; left: 0; right: 0; top: var(--sp-top, 0); height: var(--sp-vh, 100dvh); max-height: none; border-radius: 0; }
+  .sp-modal.open .modal-sheet { animation: sp-push .32s cubic-bezier(.2, .8, .2, 1); }
+  .sp-modal .sp-head { padding-top: calc(8px + env(safe-area-inset-top)); padding-left: 4px; }
+  .sp-back { display: grid; }
+  .sp-close { display: none; }
+}
+@keyframes sp-push { from { transform: translateX(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* список обращений у админа — как список чатов */
+.support-threads { gap: 0; }
+.support-thread, .support-thread:hover, .support-thread.unread { padding: 10px 6px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.support-thread:hover { background: var(--hover); }
+.support-thread .sp-ava { width: 48px; height: 48px; font-size: 17px; }
+.support-thread-top b { font-size: 16px; }
+.support-thread.unread .support-thread-top small { color: #00A884; font-weight: 600; }
+.support-thread-last .badge-inline { background: #00A884; color: #fff; }
+/* открыто окно (чат и др.) — плашка «Вышло обновление» не закрывает поле ввода, покажется после закрытия */
+body.no-scroll .pwa-update { display: none; }
+/* сообщения внизу экрана — над полем ввода чата */
+body:has(.sp-modal.open) .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
