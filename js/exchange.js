@@ -26,7 +26,7 @@
   var $ = c.$, esc = c.esc, toast = c.toast, money = c.money, num = c.num, parseNum = c.parseNum, state = c.state;
 
   var MAX_TIERS = 10;
-  var fx = { platform: null, list: [], filter: "active", loading: false, rcpt: { file: null, local: "" },
+  var fx = { platform: null, list: [], filter: "active", loading: false, rcpt: { file: null, local: "" }, qrEdit: {},
     kyc: undefined, kycFiles: {}, kycBusy: false, kycList: [], kycFilter: "pending",
     events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {}, sub: "", sent: false, setOpen: undefined };
 
@@ -245,7 +245,7 @@
     if (sortTiers(tiers).length) {
       html += '<p class="fx-date ' + (isToday(p.updated_at) ? "" : "old") + '">' + esc(dateLine(p.updated_at)) + "</p>" +
         '<div id="fxp-tiers">' + tiersHtml(tiers, 0) + "</div>" +
-        (p.note ? '<p class="fx-note">' + esc(p.note) + "</p>" : "");
+        (splitNote(p.note).text ? '<p class="fx-note">' + esc(splitNote(p.note).text) + "</p>" : "");
       if (!isAdmin()) {
         html += calcHtml("fxp", minOf(tiers)) +
           '<button id="fxp-send" class="btn btn-primary btn-block" type="button">' + esc(t("fx_ask_admin")) + "</button>";
@@ -259,11 +259,70 @@
         '<label class="field"><span>' + esc(t("fx_ula_eta_label")) + '</span><select id="fxa-eta"><option value="">—</option>' +
           ETAS.map(function (m) { return '<option value="' + m + '"' + (Number(p.eta) === m ? " selected" : "") + ">" + esc(etaName(m)) + "</option>"; }).join("") +
         "</select></label>" +
-        '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxa-note" rows="2" maxlength="500">' + esc(p.note || "") + "</textarea></label>" +
+        qrEditorHtml("a", p.note, true) +
+        '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxa-note" rows="2" maxlength="440">' + esc(splitNote(p.note).text) + "</textarea></label>" +
         '<label class="check-line"><input id="fxa-news" type="checkbox" checked> <span>' + esc(t("fx_notify_label")) + "</span></label>" +
         '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button></form>";
     }
     return html + "</section>";
+  }
+
+  // ---------- Реквизиты: текст и QR-код ----------
+  // QR-код лежит в открытом хранилище «fx-qr»; его путь записан в конце текста реквизитов как [[qr:путь]]
+  // (так он сам доезжает до всех страниц, где показываются реквизиты, без правки базы).
+  var QR_RE = /\n?\[\[qr:([A-Za-z0-9\/._-]+)\]\]\s*$/;
+  function splitNote(note) {
+    var s = String(note || ""), m = QR_RE.exec(s);
+    return m ? { text: s.replace(QR_RE, "").trim(), qr: m[1] } : { text: s.trim(), qr: "" };
+  }
+  function joinNote(text, qr) {
+    text = String(text || "").trim().slice(0, qr ? 440 : 500);
+    return (text + (qr ? "\n[[qr:" + qr + "]]" : "")).trim() || null;
+  }
+  function qrUrl(path) {
+    var base = String(((window.CARGO_CONFIG || {}).SUPABASE_URL) || "").replace(/\/+$/, "");
+    return base + "/storage/v1/object/public/fx-qr/" + String(path).split("/").map(encodeURIComponent).join("/");
+  }
+  // блок реквизитов для плательщика: QR (нажать — увеличить) и текст; copyAttr — атрибут кнопки «Копировать»
+  function reqHtml(note, copyAttr, title) {
+    var n = splitNote(note);
+    if (!n.text && !n.qr) return "";
+    return '<div class="fx-req">' + (title ? "<h3>" + esc(title) + "</h3>" : "") +
+      (n.qr ? '<button type="button" class="fx-qr" data-fx-qr="' + esc(qrUrl(n.qr)) + '"><img src="' + esc(qrUrl(n.qr)) + '" alt="QR" loading="lazy"><small>' + esc(t("fx_qr_scan")) + "</small></button>" : "") +
+      (n.text ? '<p class="fx-note">' + esc(n.text) + "</p>" : "") +
+      (n.text && copyAttr ? '<button type="button" class="btn btn-sm" ' + copyAttr + ">" + esc(t("fx_copy")) + "</button>" : "") + "</div>";
+  }
+  // поле «QR-код для оплаты» в настройках: kind "a" — курс ULA (админ), "m" — мой обмен (байер)
+  function qrCur(kind, saved) { return fx.qrEdit[kind] !== undefined ? fx.qrEdit[kind] : splitNote(saved).qr; }
+  function qrEditorHtml(kind, saved, canEdit) {
+    var cur = qrCur(kind, saved);
+    return '<div class="field fx-qr-ed" id="fx-qr-ed-' + kind + '"><span>' + esc(t("fx_qr_label")) + "</span>" +
+      '<input id="fx-qr-file-' + kind + '" type="file" accept="image/*" hidden>' +
+      (cur
+        ? '<div class="fx-rcpt"><img src="' + esc(qrUrl(cur)) + '" alt="QR"><span class="fx-rcpt-n">QR</span>' +
+            (canEdit ? '<button type="button" class="btn btn-sm" data-fx-qrpick="' + kind + '">' + esc(t("fx_replace")) + '</button><button type="button" class="fx-rcpt-x" data-fx-qrdel="' + kind + '" aria-label="×">×</button>' : "") + "</div>"
+        : (canEdit ? '<button type="button" class="fx-rcpt-add" data-fx-qrpick="' + kind + '">' + U.icon("qr", 20) + "<span>" + esc(t("fx_qr_add")) + "</span></button>" : '<p class="fine-print">—</p>')) +
+      "</div>";
+  }
+  async function qrUpload(kind, file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || "")) { toast(t("fx_e_rcpt_img"), "error"); return; }
+    try {
+      var blob = await c.shrinkImage(file, 900, 250 * 1024, true);   // QR должен остаться читаемым: крупно и без сильного сжатия
+      var path = state.me.id + "/qr-" + rnd(10) + ".jpg";
+      var up = await c.db().storage.from("fx-qr").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+      if (up.error) throw up.error;
+      fx.qrEdit[kind] = path;
+      qrRefresh(kind);
+    } catch (err) {
+      console.error(err);
+      toast(t(/bucket|not.?found|404/i.test(String((err && (err.message || err.error)) || "")) ? "fx_qr_off" : "fx_e_upload"), "error");
+    }
+  }
+  // перерисовать только блок QR, чтобы не стереть то, что уже набрано в форме
+  function qrRefresh(kind) {
+    var el = $("#fx-qr-ed-" + kind);
+    if (el) el.outerHTML = qrEditorHtml(kind, kind === "a" ? (fx.platform && fx.platform.note) : (state.ws && state.ws.fx_note), kind === "a" ? isAdmin() : canOwn());
   }
 
   // ---------- Чек об оплате: сначала платят, потом прикрепляют чек и отправляют заявку ----------
@@ -324,9 +383,8 @@
       (fresh ? "" : '<p class="fx-date old">' + esc(dateLine(p.updated_at)) + "</p>") +
       calcHtml("fxp", minOf(tiers)) +
       stepHead(1, t("fx_s1_admin")) +
-      (p.note
-        ? '<div class="fx-req"><p class="fx-note">' + esc(p.note) + '</p><button type="button" class="btn btn-sm" data-fx-copyreq>' + esc(t("fx_copy")) + "</button></div>"
-        : '<p class="muted fx-req-none">' + esc(t("fx_req_chat")) + ' <button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></p>") +
+      (reqHtml(p.note, "data-fx-copyreq")
+        || '<p class="muted fx-req-none">' + esc(t("fx_req_chat")) + ' <button type="button" class="btn btn-sm" data-fx-chat>' + esc(t("fx_open_chat")) + "</button></p>") +
       stepHead(2, t("fx_s2")) +
       '<input id="fxp-file" type="file" accept="image/*,.pdf" hidden>' + rcptHtml(fx.rcpt, "data-fx-rpick", "data-fx-rdel") +
       stepHead(3, t("fx_s3_admin")) +
@@ -371,7 +429,8 @@
         '<label class="field"><span>' + esc(t("fx_eta_label")) + '</span><select id="fxm-eta"' + (own ? "" : " disabled") + '><option value="">—</option>' +
           ETAS.map(function (m) { return '<option value="' + m + '"' + (Number(w.fx_eta) === m ? " selected" : "") + ">" + esc(etaName(m)) + "</option>"; }).join("") +
         "</select></label>" +
-        '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxm-note" rows="3" maxlength="500" placeholder="' + esc(t("fx_note_ph")) + '"' + (own ? "" : " disabled") + ">" + esc(w.fx_note || "") + "</textarea></label>" +
+        qrEditorHtml("m", w.fx_note, own) +
+        '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxm-note" rows="3" maxlength="440" placeholder="' + esc(t("fx_note_ph")) + '"' + (own ? "" : " disabled") + ">" + esc(splitNote(w.fx_note).text) + "</textarea></label>" +
         (own ? '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button>" : '<p class="fine-print">' + esc(t("fx_readonly")) + "</p>") +
       "</form>" + linkHtml() + "</details>";
   }
@@ -771,13 +830,14 @@
     if (!tiers) return;
     var on = $("#fxm-on").checked;
     if (on && !tiers.length) { toast(t("fx_e_rate"), "error"); return; }
-    var v = { fx_on: on, fx_tiers: tiers.length ? tiers : null, fx_note: $("#fxm-note").value.trim().slice(0, 500) || null,
+    var v = { fx_on: on, fx_tiers: tiers.length ? tiers : null, fx_note: joinNote($("#fxm-note").value, qrCur("m", state.ws && state.ws.fx_note)),
       fx_eta: Number($("#fxm-eta").value) || null };
     try {
       var res = await c.db().from("workspaces").update(v).eq("id", state.ws.id).select(c.WS_FIELDS).single();
       if (res.error) throw res.error;
       state.ws = res.data;
       if (state.myWs && state.myWs.id === res.data.id) state.myWs = res.data;
+      delete fx.qrEdit.m;
       toast(t("fx_saved"), "ok");
       render();
     } catch (err) {
@@ -810,7 +870,8 @@
     var jump = bigJump(tiers);
     if (jump && !window.confirm(t("fx_big_change", jump))) return;
     var changed = !sameTiers(tiers, fx.platform && fx.platform.tiers), tell = $("#fxa-news") && $("#fxa-news").checked;
-    var note = $("#fxa-note").value.trim();
+    var noteText = $("#fxa-note").value.trim();
+    var note = joinNote(noteText, qrCur("a", fx.platform && fx.platform.note)) || "";
     var eta = $("#fxa-eta") && $("#fxa-eta").value ? Number($("#fxa-eta").value) : null;
     var base = { p_tiers: tiers.length ? tiers : null, p_note: note || null };
     var res = await c.db().rpc("admin_set_platform_fx", Object.assign({ p_eta: eta }, base));
@@ -821,12 +882,13 @@
     }
     if (res.error) { c.handleError(res.error); return; }
     if (etaLost) toast(t("fx_eta_need41"), "error");
+    delete fx.qrEdit.a;
     await loadPlatform();
     if (U.board) U.board.load();
     if (!(changed && tell && tiers.length)) { if (!etaLost) toast(t("fx_saved"), "ok"); render(); return; }
     // новость «Новый курс» на сайте и в Telegram
     var lines = sortTiers(tiers).map(function (x) { return t("fx_from", { n: money(x.from) }) + " — " + rateStr(x.rate) + " " + t("fx_som_short"); });
-    var text = t("fx_news_text", { lines: lines.join("\n") }) + (note ? "\n\n" + note : "");
+    var text = t("fx_news_text", { lines: lines.join("\n") }) + (noteText ? "\n\n" + noteText : "");
     if (U.board) await U.board.publish(text, true);
     if (!etaLost) toast(t("fx_saved_news"), "ok");
     render();
@@ -917,6 +979,7 @@
     });
     box.addEventListener("change", function (e) {
       if (e.target.id === "fx-file") { onFile(e.target.files && e.target.files[0]); return; }
+      if (e.target.id === "fx-qr-file-a" || e.target.id === "fx-qr-file-m") { qrUpload(e.target.id.slice(-1), e.target.files && e.target.files[0]); return; }
       if (e.target.id === "fxp-file") {
         if (rcptPick(fx.rcpt, e.target.files && e.target.files[0], true)) { fx.sent = false; render(); }
         return;
@@ -937,9 +1000,15 @@
       var sb = e.target.closest("[data-fx-sub]");
       if (sb) { fx.sub = sb.getAttribute("data-fx-sub"); fx.sent = false; render(); return; }
       if (e.target.closest("[data-fx-chat]")) { U.support.open(); return; }
+      var qp = e.target.closest("[data-fx-qrpick]");
+      if (qp) { var qf = $("#fx-qr-file-" + qp.getAttribute("data-fx-qrpick")); if (qf) qf.click(); return; }
+      var qd = e.target.closest("[data-fx-qrdel]");
+      if (qd) { fx.qrEdit[qd.getAttribute("data-fx-qrdel")] = ""; qrRefresh(qd.getAttribute("data-fx-qrdel")); return; }
+      var qv = e.target.closest("[data-fx-qr]");
+      if (qv) { c.openLightbox([qv.getAttribute("data-fx-qr")], 0); return; }
       if (e.target.closest("[data-fx-rpick]")) { var rf = $("#fxp-file"); if (rf) rf.click(); return; }
       if (e.target.closest("[data-fx-rdel]")) { rcptDrop(fx.rcpt); render(); return; }
-      if (e.target.closest("[data-fx-copyreq]")) { c.copyText((fx.platform && fx.platform.note) || "").then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); return; }
+      if (e.target.closest("[data-fx-copyreq]")) { c.copyText(splitNote(fx.platform && fx.platform.note).text).then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); return; }
       var el;
       if ((el = e.target.closest("[data-fx-send]"))) { toast(t("fx_send_pick"), "ok"); pickFile("sent", el.getAttribute("data-fx-send")); return; }
       if ((el = e.target.closest("[data-fx-dattach]"))) { pickFile("msg", el.getAttribute("data-fx-dattach")); return; }
@@ -1021,6 +1090,8 @@
       else uploadProof(slot, e.target.files[0]);
     };
     slot.onclick = function (e) {
+      var qv = e.target.closest("[data-fx-qr]");
+      if (qv) { c.openLightbox([qv.getAttribute("data-fx-qr")], 0); return; }
       var b = e.target.closest("[data-fxc]");
       if (!b) return;
       var a = b.getAttribute("data-fxc");
@@ -1033,7 +1104,7 @@
       } else if (a === "back") { pub.step = "calc"; pub.error = ""; renderPublic(slot); }
       else if (a === "pick") { var f = slot.querySelector("#fxc-file"); if (f) f.click(); }
       else if (a === "unfile") { rcptDrop(pub); renderPublic(slot); }
-      else if (a === "copyreq") { c.copyText((pub.fx && pub.fx.note) || "").then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); }
+      else if (a === "copyreq") { c.copyText(splitNote(pub.fx && pub.fx.note).text).then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); }
       else if (a === "again") { pub.step = "calc"; pub.cny = ""; pub.comment = ""; pub.req = null; rcptDrop(pub); renderPublic(slot); }
     };
     slot.onsubmit = function (e) {
@@ -1061,7 +1132,7 @@
           trackBtn +
           '<button type="button" class="btn btn-ghost btn-block" data-fxc="again">' + esc(t("fx_pub_again")) + "</button>";
       } else {
-        html += (req.note ? '<div class="fx-req"><h3>' + esc(t("fx_requisites")) + '</h3><p class="fx-note">' + esc(req.note) + "</p></div>" : "") +
+        html += reqHtml(req.note, "", t("fx_requisites")) +
           '<p class="muted">' + esc(t("fx_pay_hint")) + "</p>" +
           '<input id="fxc-file" type="file" accept="image/*" hidden>' +
           (pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "") +
@@ -1083,9 +1154,8 @@
       html += '<div class="fx-sumbox"><span>' + esc(t("fx_to_pay")) + "</span><b>" + esc(money(somFor(f.tiers, cny))) + " " + esc(t("fx_som_short")) + "</b>" +
           "<small>¥ " + esc(money(cny)) + "</small></div>" +
         stepHead(1, t("fx_s1")) +
-        (f.note
-          ? '<div class="fx-req"><p class="fx-note">' + esc(f.note) + '</p><button type="button" class="btn btn-sm" data-fxc="copyreq">' + esc(t("fx_copy")) + "</button></div>"
-          : '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
+        (reqHtml(f.note, 'data-fxc="copyreq"')
+          || '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
         '<form id="fxc-form" novalidate autocomplete="on">' +
         stepHead(2, t("fx_s2")) +
         '<input id="fxc-file" type="file" accept="image/*" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
@@ -1273,7 +1343,7 @@
       }).join("") + "</ol>";
     }
     if (s.status === "new") {
-      html += (s.note ? '<div class="fx-req"><h3>' + esc(t("fx_requisites")) + '</h3><p class="fx-note">' + esc(s.note) + "</p></div>" : "") +
+      html += reqHtml(s.note, "", t("fx_requisites")) +
         (s.can_upload
           ? '<p class="muted">' + esc(t("fx_pay_hint")) + "</p>" +
             '<input id="fxs-file" type="file" accept="image/*" hidden>' +
@@ -1506,7 +1576,7 @@
       warn +
       '<details class="rc-more"><summary>' + esc(t("rc_more")) + "</summary>" +
         '<div class="rc-table"><div class="rc-th"><span>' + esc(t("rc_sum")) + "</span><span>" + esc(t("rc_rate")) + "</span></div>" + rows + "</div>" +
-        (p.note ? '<p class="rc-note">' + esc(p.note) + "</p>" : "") +
+        (splitNote(p.note).text ? '<p class="rc-note">' + esc(splitNote(p.note).text) + "</p>" : "") +
         chartHtml() +
         '<div class="rc-calc"><label class="field"><span>' + esc(t("rc_calc")) + '</span><input id="rc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(tiers) || 1000)) + '"></label>' +
           '<div class="rc-out"><span>' + esc(t("fx_pay")) + '</span><b id="rc-som">—</b></div></div>' +
