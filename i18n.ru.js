@@ -20,6 +20,14 @@ I18N.ru = {
 
   // Разделы кабинета
   nav_orders: "Заказы",
+  nav_home: "Главная",
+  home_place: "Разместить заказ",
+  home_new_d: "Товар, цена, доставка, оплата",
+  home_link_d: "Клиент сам оставит заявку",
+  home_import_d: "Много заказов сразу",
+  home_quote_d: "Сколько взять с клиента",
+  home_money: "Деньги по заказам",
+  home_all_orders: "Все заказы ({n}) ›",
   nav_menu: "Разделы",
   nav_clients: "Клиенты",
   nav_suppliers: "Поставщики",

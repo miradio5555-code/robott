@@ -1,7 +1,7 @@
 // =====================================================
 // ULA FACTORY — главная страница: новости платформы и курс ULA на сегодня.
 //
-// Вверху страницы «Заказы» байер видит:
+// На вкладке «Главная» байер видит:
 //   • новости, которые опубликовал админ (за последние 30 дней). «Понятно» прячет новость у этого человека;
 //   • карточку «Курс юаня» (только тем, кому обмен нужен — её рисует exchange.js).
 // Админ видит те же новости с кнопкой «Удалить» и форму «Опубликовать новость»;
@@ -46,12 +46,18 @@
       '<a class="btn btn-sm btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(t("ref_inv_wa_text", { url: inviteUrl() })) + '">' + esc(t("ref_inv_wa")) + "</a></div></div></div>";
   }
 
+  // Положить карточку на её место на главной (пустое место прячем)
+  function fill(box, html) {
+    box.classList.toggle("hidden", !html);
+    box.innerHTML = html;
+  }
+
   function render() {
-    var box = $("#home-board");
+    var box = $("#home-news"), rateBox = $("#home-rate"), invBox = $("#home-invite");
     if (!box) return;
     var admin = isAdmin(), mine = seen();
     var list = bd.news.filter(function (n) { return admin || mine.indexOf(n.id) === -1; });
-    var html = bd.rate + list.map(function (n) {
+    var html = list.map(function (n) {
       return '<div class="bd-card bd-news"><span class="bd-ico" aria-hidden="true">' + U.icon("bell", 18) + "</span>" +
         '<div class="bd-main"><h3>' + esc(t("board_news_title")) + " <span>" + esc(c.fmtDate(n.created_at)) + "</span></h3>" +
         '<p class="bd-text">' + esc(n.body) + "</p>" +
@@ -59,20 +65,20 @@
                : '<button type="button" class="btn btn-sm" data-board="ok" data-id="' + n.id + '">' + esc(t("board_news_ok")) + "</button>") +
         "</div></div>";
     }).join("");
-    if (!admin && state.myWs && state.myWs.id && state.myRole !== "staff") html += inviteHtml();
     if (admin) {
       html += '<details class="bd-post"><summary>' + esc(t("board_news_add")) + "</summary>" +
         '<textarea id="bd-text" rows="3" maxlength="1000" placeholder="' + esc(t("board_news_ph")) + '"></textarea>' +
         '<label class="check-line"><input id="bd-tg" type="checkbox" checked> <span>' + esc(t("board_news_tg")) + "</span></label>" +
         '<button type="button" class="btn btn-primary btn-sm" data-board="post">' + esc(t("board_news_post")) + "</button></details>";
     }
-    box.classList.toggle("hidden", !html);
     var keep = $("#bd-text") ? $("#bd-text").value : "", wasOpen = !!box.querySelector(".bd-post[open]");
-    var rcOpen = !!box.querySelector(".rc-more[open]");
+    var rcOpen = !!rateBox.querySelector(".rc-more[open]");
     var cny = $("#rc-cny") ? $("#rc-cny").value : "";
-    box.innerHTML = html;
+    fill(box, html);
+    fill(rateBox, bd.rate);
+    fill(invBox, !admin && state.myWs && state.myWs.id && state.myRole !== "staff" ? inviteHtml() : "");
     if ($("#bd-text")) { $("#bd-text").value = keep; if (wasOpen) box.querySelector(".bd-post").open = true; }
-    if (rcOpen && box.querySelector(".rc-more")) box.querySelector(".rc-more").open = true;
+    if (rcOpen && rateBox.querySelector(".rc-more")) rateBox.querySelector(".rc-more").open = true;
     if (cny && $("#rc-cny")) { $("#rc-cny").value = cny; U.exchange.homeCalc(); }
   }
 
@@ -109,7 +115,7 @@
   }
 
   function bind() {
-    var box = $("#home-board");
+    var box = $("#tab-home");
     box.addEventListener("input", function (e) { if (e.target.id === "rc-cny") U.exchange.homeCalc(); });
     box.addEventListener("click", function (e) {
       if (U.exchange.homeClick(e)) return;   // карточка курса: график 7/30 дней, «Обменять»

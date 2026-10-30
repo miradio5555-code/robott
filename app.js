@@ -32,7 +32,7 @@
     clientState: "loading", // loading | ok | notfound | error
 
     // кабинет: открытая вкладка
-    tab: "orders",
+    tab: "home",
 
     // кто вошёл и какой кабинет открыт
     me: null,               // { id, email, role: "admin"|"buyer", name }
@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261121a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261122a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -882,7 +882,7 @@
     $("#search").value = ""; $("#date-from").value = ""; $("#date-to").value = "";
     renderWsBanner();
     renderWarehouse();
-    switchTab("orders");
+    switchTab("home");
     await Promise.all([loadOrders(), loadSuppliers(), loadCountry(ws)]);
     ULA.board.load();           // новости и курс ULA на главной
     ULA.exchange.loadCount();   // значок новых заявок на обмен в меню
@@ -972,9 +972,18 @@
     // значки у разделов меню (группы «Главное», «Деньги», «Инструменты» всегда раскрыты)
     $$(".section-menu .tab-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 19); });
     $$("#bottom-nav .bn-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 24); });
+    $$("#tab-home .ha-ico[data-ico]").forEach(function (i) { i.innerHTML = ULA.icon(i.getAttribute("data-ico"), 22); });
+
+    // Главная: «Новый заказ» и «Ссылка для заявок» — те же кнопки, что на странице заказов; плитки и «Все заказы» открывают разделы
+    $("#home-new").addEventListener("click", function () { openOrderForm(null); });
+    $("#home-link").addEventListener("click", function () { $("#req-link-btn").click(); });
+    $("#tab-home").addEventListener("click", function (e) {
+      var g = e.target.closest("[data-go-tab]");
+      if (g) switchTab(g.getAttribute("data-go-tab"));
+    });
 
     // склад: на телефоне свёрнут в одну строку, нажатие на заголовок раскрывает контакты
-    $("#wh-title").addEventListener("click", function () { $("#tab-orders .warehouse").classList.toggle("open"); });
+    $("#wh-title").addEventListener("click", function () { $("#tab-home .warehouse").classList.toggle("open"); });
     $("#as-toggle").addEventListener("click", function () {
       var box = $("#assistant");
       var collapsed = !box.classList.contains("collapsed");
@@ -1593,6 +1602,7 @@
       }).join("<br>");
     }
     $("#sum-orders").textContent = money(state.orders.length);
+    $("#home-all-orders").textContent = t("home_all_orders", { n: money(state.orders.length) });
     $("#sum-total").innerHTML = lines(total);
     $("#sum-paid").innerHTML = lines(paid);
     $("#sum-debt").innerHTML = lines(debt);
@@ -1907,8 +1917,9 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
+    state.tab = name === "home" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
+    $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
     $("#tab-shop").classList.toggle("hidden", state.tab !== "shop");
@@ -1925,9 +1936,9 @@
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
-    // нижнее меню: у байера — его главные разделы, у админа платформы — Байеры, Поддержка, Обмен
-    var bnTabs = !isAdmin ? ["orders", "clients", "shop", "debts"]
-      : state.ws ? ["orders", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
+    // нижнее меню: у байера — Главная и его главные разделы (Витрина — в «Ещё»), у админа платформы — Байеры, Поддержка, Обмен
+    var bnTabs = !isAdmin ? ["home", "orders", "clients", "debts"]
+      : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
     $$("#bottom-nav [data-tab]").forEach(function (b) { b.classList.toggle("hidden", bnTabs.indexOf(b.getAttribute("data-tab")) === -1); });
     $$(".tab").forEach(function (b) {
       // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
@@ -1965,7 +1976,7 @@
     var ico = $("#section-menu-ico");
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
-      var ICONS = { exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
+      var ICONS = { home: "home", exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
         suppliers: "factory", shipments: "truck", buyers: "users", support: "message", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
@@ -2020,7 +2031,7 @@
   // «Что сделать сегодня» стоит первым и раскрыт, лишние кнопки (Выбрать, Из Excel) спрятаны. Остальное — кнопкой «Показать все разделы»
   // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
-  var SIMPLE_TABS = ["orders", "clients", "shop", "debts", "profile"];
+  var SIMPLE_TABS = ["home", "orders", "clients", "shop", "debts", "profile"];
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
@@ -2057,14 +2068,13 @@
     }
     var cb = $("#s-simple");
     if (cb) cb.checked = on;
-    var as = $("#assistant"), sum = $("#tab-orders .summary"), wh = $("#tab-orders .warehouse");
-    if (as && sum && wh) {
-      if (on) sum.parentNode.insertBefore(as, sum); else wh.parentNode.insertBefore(as, wh.nextSibling);
+    var as = $("#assistant");
+    if (as) {
       var asc = null;
       try { asc = localStorage.getItem("cc_as_collapsed"); } catch (e) { /* ignore */ }
       if (asc === null) { as.classList.toggle("collapsed", !on); $("#as-toggle").setAttribute("aria-expanded", String(on)); }
     }
-    if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report") switchTab("orders");
+    if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report") switchTab("home");
   }
 
   function applyOptionalTabs() {
@@ -2418,6 +2428,7 @@
   }
 
   function setHintFilter(key) {
+    if (key && state.tab !== "orders") switchTab("orders");
     state.hintFilter = key;
     state.status = "all";
     state.limit = PAGE_SIZE;

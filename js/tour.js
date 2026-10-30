@@ -12,16 +12,16 @@
   var $ = c.$, esc = c.esc, state = c.state;
 
   // Шаги: sel — что подсвечивать (список запасных вариантов через запятую в порядке важности),
-  // menu — для показа нужно открыть меню разделов.
+  // menu — для показа нужно открыть меню разделов, tab — вкладка, на которой стоит элемент.
   var STEPS = [
     { id: "welcome" },
     { id: "menu", sel: ["#section-menu-btn"] },
-    { id: "wh", sel: ["#tab-orders .warehouse"] },
-    { id: "link", sel: ["#req-link-btn"] },
-    { id: "new", sel: ["#new-order", "#fab"] },
-    { id: "chips", sel: ["#chips"] },
-    { id: "card", sel: ["#orders .card"] },
-    { id: "bulk", sel: ["#bulk-btn"] },
+    { id: "new", sel: ["#home-new"], tab: "home" },
+    { id: "link", sel: ["#home-link"], tab: "home" },
+    { id: "wh", sel: ["#tab-home .warehouse"], tab: "home" },
+    { id: "chips", sel: ["#chips"], tab: "orders" },
+    { id: "card", sel: ["#orders .card"], tab: "orders" },
+    { id: "bulk", sel: ["#bulk-btn"], tab: "orders" },
     { id: "menu2", sel: ["#section-menu .section-menu-list"], menu: true },
     { id: "fx", sel: ["#section-menu [data-tab=\"exchange\"]"], menu: true },
     { id: "settings", sel: ["#settings-btn"], menu: true },
@@ -54,6 +54,7 @@
     var list = [];
     STEPS.forEach(function (s) {
       if (!s.sel) { list.push(s); return; }
+      if (s.tab && state.tab !== s.tab) c.switchTab(s.tab);
       if (s.menu) setMenu(true);
       var el = null;
       for (var k = 0; k < s.sel.length && !el; k++) {
@@ -109,6 +110,7 @@
     if (i >= tr.list.length) { finish(); return; }
     tr.i = i;
     var s = tr.list[i];
+    if (s.tab && state.tab !== s.tab) c.switchTab(s.tab);
     setMenu(!!s.menu);
     var el = s.sel ? targetOf(s) : null;
     if (el && !s.menu) el.scrollIntoView({ block: "center", behavior: "auto" });
@@ -164,12 +166,13 @@
     if (tr.on) return;
     if (!state.ws) return;
     ensureDom();
-    c.switchTab("orders");
+    c.switchTab("home");
     document.querySelectorAll(".modal.open").forEach(function (m) { c.closeModal(m.id); });
     window.scrollTo(0, 0);
     // подождать, пока вкладка «Заказы» нарисуется
     setTimeout(function () {
       tr.list = buildList();
+      if (state.tab !== "home") c.switchTab("home");
       if (tr.list.length < 3) return;
       tr.on = true;
       $("#tour").classList.remove("hidden");

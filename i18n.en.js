@@ -17,6 +17,22 @@ I18N.en = {
   lib_missing: "supabase.js didn't load. Make sure it is in the same folder as index.html.",
 
   nav_orders: "Orders",
+
+  nav_home: "Home",
+
+  home_place: "Place an order",
+
+  home_new_d: "Product, price, delivery, payment",
+
+  home_link_d: "Clients send requests themselves",
+
+  home_import_d: "Many orders at once",
+
+  home_quote_d: "What to charge the client",
+
+  home_money: "Money from orders",
+
+  home_all_orders: "All orders ({n}) ›",
   nav_menu: "Sections",
   nav_clients: "Clients",
   nav_suppliers: "Suppliers",

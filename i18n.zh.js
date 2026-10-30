@@ -17,6 +17,22 @@ I18N.zh = {
   lib_missing: "supabase.js 文件未加载。请确认它与 index.html 放在同一文件夹。",
 
   nav_orders: "订单",
+
+  nav_home: "首页",
+
+  home_place: "下单",
+
+  home_new_d: "商品、价格、运费、付款",
+
+  home_link_d: "客户自己提交需求",
+
+  home_import_d: "一次导入多个订单",
+
+  home_quote_d: "向客户报多少钱",
+
+  home_money: "订单金额",
+
+  home_all_orders: "全部订单（{n}）›",
   nav_menu: "菜单",
   nav_clients: "客户",
   nav_suppliers: "供应商",

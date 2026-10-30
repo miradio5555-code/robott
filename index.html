@@ -10,7 +10,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <!-- в ссылках есть секретные номера (?order=, ?xr=) — не передавать адрес страницы другим сайтам -->
   <meta name="referrer" content="no-referrer">
-  <script src="js/head.js?v=20261121a"></script>
+  <script src="js/head.js?v=20261122a"></script>
   <title>ULA Factory</title>
   <link rel="icon" href="img/mark-dark.svg?r=8" type="image/svg+xml">
   <link rel="icon" href="img/favicon.png?r=8" type="image/png" sizes="64x64">
@@ -25,7 +25,7 @@
   <!-- Шрифты Google подключает js/head.js «в фоне» -->
   <link rel="preload" href="fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261121a">
+  <link rel="stylesheet" href="style.css?v=20261122a">
 </head>
 <body>
   <!-- Пока сайт загружается — «Загрузка…». Если браузер не справился — подсказка вместо белого экрана. -->
@@ -54,7 +54,7 @@
       <b class="intro-name">ULA <span>Factory</span></b>
     </div>
   </div>
-  <script src="js/boot.js?v=20261121a"></script>
+  <script src="js/boot.js?v=20261122a"></script>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -211,7 +211,8 @@
             <nav class="tabs section-menu-list" aria-label="Sections">
             <button type="button" class="tab menu-profile" data-group="main" data-tab="profile"><span id="mp-ava" class="mp-ava"></span><span class="mp-t"><b id="mp-name"></b><small data-i18n="pf_title"></small></span><span class="mp-chev">›</span></button>
             <div class="menu-group mg-main" data-group-toggle="main" role="presentation"><span data-i18n="menu_main"></span></div>
-            <button type="button" class="tab active" data-group="main" data-tab="orders" aria-current="page"><i class="tab-ico" data-ico="package"></i><span data-i18n="nav_orders"></span></button>
+            <button type="button" class="tab active" data-group="main" data-tab="home" aria-current="page"><i class="tab-ico" data-ico="home"></i><span data-i18n="nav_home"></span></button>
+            <button type="button" class="tab" data-group="main" data-tab="orders"><i class="tab-ico" data-ico="package"></i><span data-i18n="nav_orders"></span></button>
             <button type="button" class="tab" data-group="main" data-tab="clients"><i class="tab-ico" data-ico="users"></i><span data-i18n="nav_clients"></span></button>
             <button type="button" class="tab" data-group="main" data-tab="shop"><i class="tab-ico" data-ico="store"></i><span data-i18n="nav_shop"></span></button>
             <button type="button" class="tab" data-group="main" data-tab="debts"><i class="tab-ico" data-ico="wallet"></i><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
@@ -603,29 +604,33 @@
       <div id="suppliers-empty" class="state-box hidden"></div>
     </main>
 
-    <!-- ============ РАЗДЕЛ: ЗАКАЗЫ ============ -->
-    <main id="tab-orders" class="container">
+    <!-- ============ РАЗДЕЛ: ГЛАВНАЯ ============ -->
+    <!-- Всё важное на одном экране, по порядку: новости, первые шаги, «Разместить заказ», деньги,
+         «Что сделать сегодня», курс юаня, склад в Китае, пригласить друга. Сами заказы — во вкладке «Заказы». -->
+    <main id="tab-home" class="container">
+      <div class="page-head"><div><h1 class="page-title" data-i18n="nav_home"></h1></div></div>
 
-      <!-- 1. Заголовок страницы и главная кнопка -->
-      <div class="page-head">
-        <div>
-          <h1 class="page-title" data-i18n="nav_orders"></h1>
-          <p class="page-sub"><span data-i18n="sum_orders"></span>: <b id="sum-orders">0</b></p>
-        </div>
-        <div class="head-actions">
-          <button id="req-link-btn" class="btn btn-sm btn-pill owner-only" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span data-i18n="rl_btn"></span></button>
-          <button id="bulk-btn" class="btn btn-sm btn-pill" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg><span id="bulk-btn-text" data-i18n="bulk_select"></span></button>
-          <button id="import-btn" class="btn btn-sm btn-pill" type="button" data-import-open data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span data-i18n="im_btn"></span></button>
-          <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
-        </div>
-      </div>
+      <!-- 1. Новости платформы (js/board.js) -->
+      <section id="home-news" class="home-board hidden" aria-label="news"></section>
 
-      <section id="home-board" class="home-board hidden" aria-label="news"></section>
-
+      <!-- 2. Первые шаги новичка (js/onboarding.js) -->
       <section id="onboard-card" class="onboard-card hidden" aria-label="onboarding"></section>
 
-      <!-- 2. Главные цифры -->
-      <section class="summary" aria-label="summary">
+      <!-- 3. Разместить заказ: новый заказ и другие способы -->
+      <section class="home-act" aria-labelledby="ha-title">
+        <h2 id="ha-title" class="home-h" data-i18n="home_place"></h2>
+        <div class="ha-grid">
+          <button id="home-new" class="ha-tile ha-main" type="button" data-write><i class="ha-ico" data-ico="plus"></i><b data-i18n="new_order"></b><small data-i18n="home_new_d"></small></button>
+          <button id="home-link" class="ha-tile owner-only" type="button" data-write><i class="ha-ico" data-ico="link"></i><b data-i18n="rl_btn"></b><small data-i18n="home_link_d"></small></button>
+          <button id="home-import" class="ha-tile" type="button" data-import-open data-write><i class="ha-ico" data-ico="file"></i><b data-i18n="im_btn"></b><small data-i18n="home_import_d"></small></button>
+          <button id="home-quote" class="ha-tile" type="button" data-go-tab="quote"><i class="ha-ico" data-ico="calc"></i><b data-i18n="nav_quote"></b><small data-i18n="home_quote_d"></small></button>
+        </div>
+      </section>
+
+      <!-- 4. Деньги по всем заказам -->
+      <section class="home-money" aria-labelledby="hm-title">
+        <div class="home-sec-head"><h2 id="hm-title" class="home-h" data-i18n="home_money"></h2><button id="home-all-orders" class="link-btn home-more" type="button" data-go-tab="orders"></button></div>
+        <section class="summary" aria-label="summary">
         <div class="summary-item">
           <span class="summary-label" data-i18n="sum_total"></span>
           <span id="sum-total" class="summary-value">0</span>
@@ -644,8 +649,23 @@
         </div>
       </section>
       <p class="fine-print" data-i18n="sum_note"></p>
+      </section>
 
-      <!-- 3. Склад в Китае — компактная полоска -->
+      <!-- 5. Умный помощник: сам находит проблемы в заказах -->
+      <section id="assistant" class="assistant" aria-labelledby="as-title">
+        <button id="as-toggle" class="assistant-head" type="button" aria-expanded="true">
+          <span class="as-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></span>
+          <span id="as-title" class="as-title" data-i18n="as_title"></span>
+          <span id="as-count" class="as-count"></span>
+          <span class="as-caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="as-list" class="assistant-list"></div>
+      </section>
+
+      <!-- 6. Курс юаня (js/exchange.js) -->
+      <section id="home-rate" class="home-slot hidden" aria-label="rate"></section>
+
+      <!-- 7. Склад в Китае -->
       <section class="warehouse" aria-labelledby="wh-title">
         <div class="warehouse-text">
           <h2 id="wh-title"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="warehouse_title"></span></h2>
@@ -658,18 +678,28 @@
         </div>
       </section>
 
-      <!-- 4. Умный помощник: сам находит проблемы в заказах -->
-      <section id="assistant" class="assistant" aria-labelledby="as-title">
-        <button id="as-toggle" class="assistant-head" type="button" aria-expanded="true">
-          <span class="as-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></span>
-          <span id="as-title" class="as-title" data-i18n="as_title"></span>
-          <span id="as-count" class="as-count"></span>
-          <span class="as-caret" aria-hidden="true">▾</span>
-        </button>
-        <div id="as-list" class="assistant-list"></div>
-      </section>
+      <!-- 8. Пригласить друга-байера (js/board.js) -->
+      <section id="home-invite" class="home-slot hidden" aria-label="invite"></section>
+    </main>
 
-      <!-- 5. Поиск, даты и статусы -->
+    <!-- ============ РАЗДЕЛ: ЗАКАЗЫ ============ -->
+    <main id="tab-orders" class="container hidden">
+
+      <!-- 1. Заголовок страницы и главная кнопка -->
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="nav_orders"></h1>
+          <p class="page-sub"><span data-i18n="sum_orders"></span>: <b id="sum-orders">0</b></p>
+        </div>
+        <div class="head-actions">
+          <button id="req-link-btn" class="btn btn-sm btn-pill owner-only" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span data-i18n="rl_btn"></span></button>
+          <button id="bulk-btn" class="btn btn-sm btn-pill" type="button" data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg><span id="bulk-btn-text" data-i18n="bulk_select"></span></button>
+          <button id="import-btn" class="btn btn-sm btn-pill" type="button" data-import-open data-write><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span data-i18n="im_btn"></span></button>
+          <button id="new-order" class="btn btn-primary toolbar-new" type="button" data-write>+ <span data-i18n="new_order"></span></button>
+        </div>
+      </div>
+
+      <!-- 2. Поиск, даты и статусы -->
       <section class="list-controls">
         <div class="search-row">
           <input id="search" class="search" type="search" data-i18n-placeholder="search_placeholder" autocomplete="off">
@@ -699,7 +729,7 @@
         <button id="hint-filter-clear" class="btn btn-ghost" type="button" aria-label="×">×</button>
       </div>
 
-      <!-- 6. Список заказов -->
+      <!-- 3. Список заказов -->
       <div id="loading" class="state-box hidden" data-i18n="loading"></div>
       <div id="orders" class="orders"></div>
       <div id="empty" class="state-box hidden"></div>
@@ -718,6 +748,7 @@
     <button id="fab" class="fab" type="button" aria-label="+" data-write>+</button>
     <!-- Нижнее меню на телефоне: главные разделы в один тап -->
     <nav id="bottom-nav" class="bottom-nav" aria-label="Sections">
+      <button type="button" class="tab bn-item" data-tab="home"><i class="bn-ico" data-ico="home"></i><span data-i18n="nav_home"></span></button>
       <button type="button" class="tab bn-item" data-tab="orders"><i class="bn-ico" data-ico="package"></i><span data-i18n="nav_orders"></span></button>
       <button type="button" class="tab bn-item" data-tab="clients"><i class="bn-ico" data-ico="users"></i><span data-i18n="nav_clients"></span></button>
       <button type="button" class="tab bn-item" data-tab="shop"><i class="bn-ico" data-ico="store"></i><span data-i18n="nav_shop"></span></button>
@@ -1768,41 +1799,41 @@
 
   <!-- ?v=… — номер версии. При каждом обновлении сайта меняйте его (например на дату),
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
-  <script src="config.js?v=20261121a"></script>
-  <script src="js/errors.js?v=20261121a"></script>
-  <script src="i18n.js?v=20261121a"></script>
+  <script src="config.js?v=20261122a"></script>
+  <script src="js/errors.js?v=20261122a"></script>
+  <script src="i18n.js?v=20261122a"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20261121a"></script>
+  <script src="app.js?v=20261122a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
-  <script src="js/fx.js?v=20261121a"></script>
-  <script src="js/support.js?v=20261121a"></script>
-  <script src="js/notify.js?v=20261121a"></script>
-  <script src="js/icons.js?v=20261121a"></script>
-  <script src="js/xlsx.js?v=20261121a"></script>
-  <script src="js/analytics.js?v=20261121a"></script>
-  <script src="js/bulk.js?v=20261121a"></script>
-  <script src="js/onboarding.js?v=20261121a"></script>
-  <script src="js/tgws.js?v=20261121a"></script>
-  <script src="js/mfa.js?v=20261121a"></script>
-  <script src="js/captcha.js?v=20261121a"></script>
-  <script src="js/tour.js?v=20261121a"></script>
-  <script src="js/recovery.js?v=20261121a"></script>
-  <script src="js/shop.js?v=20261121a"></script>
-  <script src="js/broadcast.js?v=20261121a"></script>
-  <script src="js/tools.js?v=20261121a"></script>
-  <script src="js/expenses.js?v=20261121a"></script>
-  <script src="js/exchange.js?v=20261121a"></script>
-  <script src="js/board.js?v=20261121a"></script>
-  <script src="js/import.js?v=20261121a"></script>
-  <script src="js/requests.js?v=20261121a"></script>
-  <script src="js/team.js?v=20261121a"></script>
-  <script src="js/shipments.js?v=20261121a"></script>
-  <script src="js/report.js?v=20261121a"></script>
-  <script src="js/debts.js?v=20261121a"></script>
-  <script src="js/profile.js?v=20261121a"></script>
-  <script src="js/formsteps.js?v=20261121a"></script>
-  <script src="js/quote.js?v=20261121a"></script>
-  <script src="js/client.js?v=20261121a"></script>
-  <script src="js/pwa.js?v=20261121a"></script>
+  <script src="js/fx.js?v=20261122a"></script>
+  <script src="js/support.js?v=20261122a"></script>
+  <script src="js/notify.js?v=20261122a"></script>
+  <script src="js/icons.js?v=20261122a"></script>
+  <script src="js/xlsx.js?v=20261122a"></script>
+  <script src="js/analytics.js?v=20261122a"></script>
+  <script src="js/bulk.js?v=20261122a"></script>
+  <script src="js/onboarding.js?v=20261122a"></script>
+  <script src="js/tgws.js?v=20261122a"></script>
+  <script src="js/mfa.js?v=20261122a"></script>
+  <script src="js/captcha.js?v=20261122a"></script>
+  <script src="js/tour.js?v=20261122a"></script>
+  <script src="js/recovery.js?v=20261122a"></script>
+  <script src="js/shop.js?v=20261122a"></script>
+  <script src="js/broadcast.js?v=20261122a"></script>
+  <script src="js/tools.js?v=20261122a"></script>
+  <script src="js/expenses.js?v=20261122a"></script>
+  <script src="js/exchange.js?v=20261122a"></script>
+  <script src="js/board.js?v=20261122a"></script>
+  <script src="js/import.js?v=20261122a"></script>
+  <script src="js/requests.js?v=20261122a"></script>
+  <script src="js/team.js?v=20261122a"></script>
+  <script src="js/shipments.js?v=20261122a"></script>
+  <script src="js/report.js?v=20261122a"></script>
+  <script src="js/debts.js?v=20261122a"></script>
+  <script src="js/profile.js?v=20261122a"></script>
+  <script src="js/formsteps.js?v=20261122a"></script>
+  <script src="js/quote.js?v=20261122a"></script>
+  <script src="js/client.js?v=20261122a"></script>
+  <script src="js/pwa.js?v=20261122a"></script>
 </body>
 </html>
