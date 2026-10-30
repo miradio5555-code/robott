@@ -228,7 +228,7 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 }
 .brand-name b { color: var(--red); font-weight: 700; }
 
-.logo-full { display: block; width: 168px; height: auto; margin: -4px auto 18px; }
+.logo-full { display: block; width: 96px; height: auto; margin: -4px auto 18px; border-radius: 50%; }
 
 .topbar {
   position: sticky;
@@ -1201,7 +1201,6 @@ html[data-theme="dark"] .st-in_transit       { --st: #6CB8F5; --st-bg: rgba(108,
 html[data-theme="dark"] .st-arrived          { --st: #4CC38A; --st-bg: rgba(76, 195, 138, 0.16); }
 html[data-theme="dark"] .st-delivered        { --st: #B4B8C2; --st-bg: rgba(180, 184, 194, 0.14); }
 html[data-theme="dark"] .st-cancelled        { --st: #8E9099; --st-bg: rgba(142, 144, 153, 0.14); }
-html[data-theme="dark"] .logo-full { background: #fff; border-radius: 12px; padding: 6px; }
 html[data-theme="dark"] .client-hero,
 html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
 @media (prefers-color-scheme: dark) {
@@ -1215,7 +1214,6 @@ html[data-theme="dark"] .warehouse { border: 1px solid var(--line); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-arrived          { --st: #4CC38A; --st-bg: rgba(76, 195, 138, 0.16); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-delivered        { --st: #B4B8C2; --st-bg: rgba(180, 184, 194, 0.14); }
   html:not([data-theme="light"]):not([data-theme="dark"]) .st-cancelled        { --st: #8E9099; --st-bg: rgba(142, 144, 153, 0.14); }
-  html:not([data-theme="light"]):not([data-theme="dark"]) .logo-full { background: #fff; border-radius: 12px; padding: 6px; }
 }
 
 /* =====================================================
@@ -2195,7 +2193,7 @@ body.touring .section-menu .tab.mg-hidden { display: flex !important; }
 .auth-aside { display: none; }
 .auth-panel { align-self: center; justify-self: center; width: 100%; max-width: 440px; margin: 24px 16px; padding: 32px 28px 26px;
   border-radius: 22px; box-shadow: var(--shadow-md); animation: ula-sheet .35s var(--ease); }
-.auth-panel .logo-full { width: 132px; margin: -6px auto 14px; border-radius: 16px; }
+.auth-panel .logo-full { width: 120px; margin: -6px auto 14px; border-radius: 50%; }
 .auth-panel h1 { font-family: var(--font-display); font-size: 24px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 6px; }
 .auth-panel > .muted, .auth-panel form > .muted { margin-bottom: 22px; font-size: 14px; }
 .auth-panel .field { margin-bottom: 14px; }

@@ -31,7 +31,7 @@
     urls: {},          // подписанные ссылки на файлы: путь → { url, until }
     noFiles: false     // файл 40 ещё не запущен — скрепку не показываем
   };
-  var BRAND = '<img src="img/mark-dark.svg?r=7" alt="">';   // знак ULA Factory (тёмная плитка)
+  var BRAND = '<img src="img/mark-dark.svg?r=8" alt="">';   // знак ULA Factory (тёмная плитка)
   var BUCKET = "support-files", MAX_FILES = 6, MAX_SIZE = 20 * 1024 * 1024;
   var OK_TYPES = /^(image\/(jpeg|png|webp|gif|heic|heif)|video\/(mp4|quicktime|webm)|application\/pdf|text\/(plain|csv)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)|vnd\.ms-excel))$/;
 
