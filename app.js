@@ -279,7 +279,7 @@
     else document.documentElement.removeAttribute("data-theme");
     var dark = th === "dark" || (th === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", dark ? "#18171B" : "#151417");
+    if (meta) meta.setAttribute("content", dark ? "#1C1C1E" : "#FFFFFF");
   }
 
   // ---------- Вход через Google ----------
@@ -314,7 +314,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261118v"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261119a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 

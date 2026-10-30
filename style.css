@@ -31,42 +31,46 @@
   unicode-range: U+0000-00FF; }
 
 :root {
-  --paper: #EEF0F2;        /* фон страницы */
+  --paper: #F2F2F7;        /* фон страницы (серый фон iPhone) */
   --surface: #FFFFFF;      /* карточки и окна */
-  --line: #E1E3E7;         /* тонкие линии */
-  --line-strong: #C8CBD1;  /* рамки полей */
-  --ink: #151417;          /* основной текст и кнопки (чёрный из логотипа) */
-  --ink-soft: #2C2B30;     /* кнопка при наведении */
-  --muted: #5D606A;        /* второстепенный текст */
+  --line: #E5E5EA;         /* тонкие линии */
+  --line-strong: #D2D2D7;  /* рамки полей */
+  --ink: #1D1D1F;          /* основной текст и кнопки (почти чёрный, как у Apple) */
+  --ink-soft: #333336;     /* кнопка при наведении */
+  --muted: #6E6E73;        /* второстепенный текст */
   --red: #A30F1F;          /* красный из логотипа */
   --red-deep: #7D0B17;
-  --red-tint: #FAEAEC;
-  --green: #146C43;
-  --green-tint: #E2F3EA;
+  --red-tint: #FFECEC;
+  --green: #1F7A3A;
+  --green-tint: #E5F6EA;
+  --fill: #E9E9EE;         /* серая кнопка (как второстепенные кнопки iPhone) */
+  --fill-2: #DEDEE3;       /* серая кнопка при наведении */
+  --seg-on: #FFFFFF;       /* выбранный пункт в переключателе */
 
-  --primary: #151417;      /* главная кнопка */
-  --primary-hover: #2C2B30;
+  --primary: #1D1D1F;      /* главная кнопка */
+  --primary-hover: #333336;
   --on-primary: #FFFFFF;   /* текст на главной кнопке */
-  --hero: #151417;         /* чёрные блоки: склад, шапка заказа у клиента */
-  --hover: #F5F6F8;        /* фон при наведении */
+  --hero: #1D1D1F;         /* чёрные блоки: склад, шапка заказа у клиента */
+  --hover: #F5F5F7;        /* фон при наведении */
   --field: #FFFFFF;        /* фон полей ввода */
-  --topbar: rgba(255, 255, 255, 0.97);
-  --soft: #FAFAFB;         /* мягкий фон блоков */
+  --topbar: rgba(255, 255, 255, 0.82);   /* шапка: полупрозрачная, как в iPhone */
+  --soft: #F5F5F7;         /* мягкий фон блоков */
   --danger-line: #E9C3C8;
   --invalid: #FFFBFB;
-  --placeholder: #A2A5AD;
-  --backdrop: rgba(21, 20, 23, 0.55);
-  --focus-ring: rgba(21, 20, 23, 0.12);
+  --placeholder: #A1A1A6;
+  --backdrop: rgba(0, 0, 0, 0.4);
+  --focus-ring: rgba(0, 113, 227, 0.25);
   color-scheme: light;
 
-  --r-xl: 18px;
-  --r-lg: 14px;
-  --r-md: 10px;
+  --r-xl: 22px;
+  --r-lg: 16px;
+  --r-md: 12px;
   --r-sm: 8px;
 
-  --font: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+  /* На iPhone и Mac — родной шрифт Apple (San Francisco), на остальных — Onest */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Onest", system-ui, "Segoe UI", Roboto, "Helvetica Neue",
           "PingFang SC", "Microsoft YaHei", "Noto Sans SC", Arial, sans-serif;
-  --font-display: "Onest", var(--font);   /* заголовки и крупные цифры: тот же шрифт, только жирнее */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Onest", var(--font);   /* заголовки и крупные цифры */
   --font-brand: "Unbounded", var(--font); /* только надпись ULA Factory */
 }
 
@@ -118,12 +122,12 @@ img { max-width: 100%; }
   gap: 8px;
   min-height: 46px;
   padding: 8px 18px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid transparent;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--fill);
   color: var(--ink);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
   text-align: center;
   text-decoration: none;
@@ -131,13 +135,13 @@ img { max-width: 100%; }
   position: relative;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
-.btn:hover { background: var(--hover); color: var(--ink); }
+.btn:hover { background: var(--fill-2); color: var(--ink); }
 .btn:disabled { opacity: 0.55; cursor: default; }
 
 .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: var(--on-primary); }
 
-.btn-danger { color: var(--red); border-color: var(--danger-line); }
+.btn-danger { color: var(--red); background: var(--red-tint); }
 .btn-danger:hover { background: var(--red-tint); color: var(--red-deep); }
 
 .btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
@@ -1126,60 +1130,66 @@ body.readonly [data-write] { display: none !important; }
    «Авто» — как в телефоне/компьютере.
    ===================================================== */
 html[data-theme="dark"] {
-  --paper: #0F0F12;
-  --surface: #18171B;
-  --line: #2A292F;
-  --line-strong: #3B3A41;
-  --ink: #ECECEF;
-  --ink-soft: #D6D6DB;
-  --muted: #9A9CA6;
+  --paper: #000000;
+  --surface: #1C1C1E;
+  --line: #38383A;
+  --line-strong: #48484A;
+  --ink: #F5F5F7;
+  --ink-soft: #E5E5EA;
+  --muted: #98989D;
   --red: #E5485B;
   --red-deep: #FF7A89;
   --red-tint: #3A1419;
   --green: #4CC38A;
   --green-tint: #11301F;
-  --primary: #ECECEF;
+  --primary: #F5F5F7;
   --primary-hover: #FFFFFF;
   --on-primary: #151417;
-  --hero: #222126;
-  --hover: #222127;
-  --field: #131216;
-  --topbar: rgba(24, 23, 27, 0.95);
-  --soft: #1D1C21;
+  --hero: #1C1C1E;
+  --hover: #2C2C2E;
+  --field: #2C2C2E;
+  --topbar: rgba(28, 28, 30, 0.8);
+  --soft: #2C2C2E;
+  --fill: #2C2C2E;
+  --fill-2: #3A3A3C;
+  --seg-on: #636366;
   --danger-line: #5A242B;
   --invalid: #2A1316;
-  --placeholder: #6D6F78;
-  --backdrop: rgba(0, 0, 0, 0.65);
-  --focus-ring: rgba(236, 236, 239, 0.16);
+  --placeholder: #6E6E73;
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --focus-ring: rgba(10, 132, 255, 0.35);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]):not([data-theme="dark"]) {
-    --paper: #0F0F12;
-    --surface: #18171B;
-    --line: #2A292F;
-    --line-strong: #3B3A41;
-    --ink: #ECECEF;
-    --ink-soft: #D6D6DB;
-    --muted: #9A9CA6;
+    --paper: #000000;
+    --surface: #1C1C1E;
+    --line: #38383A;
+    --line-strong: #48484A;
+    --ink: #F5F5F7;
+    --ink-soft: #E5E5EA;
+    --muted: #98989D;
     --red: #E5485B;
     --red-deep: #FF7A89;
     --red-tint: #3A1419;
     --green: #4CC38A;
     --green-tint: #11301F;
-    --primary: #ECECEF;
+    --primary: #F5F5F7;
     --primary-hover: #FFFFFF;
     --on-primary: #151417;
-    --hero: #222126;
-    --hover: #222127;
-    --field: #131216;
-    --topbar: rgba(24, 23, 27, 0.95);
-    --soft: #1D1C21;
+    --hero: #1C1C1E;
+    --hover: #2C2C2E;
+    --field: #2C2C2E;
+    --topbar: rgba(28, 28, 30, 0.8);
+    --soft: #2C2C2E;
+    --fill: #2C2C2E;
+    --fill-2: #3A3A3C;
+    --seg-on: #636366;
     --danger-line: #5A242B;
     --invalid: #2A1316;
-    --placeholder: #6D6F78;
-    --backdrop: rgba(0, 0, 0, 0.65);
-    --focus-ring: rgba(236, 236, 239, 0.16);
+    --placeholder: #6E6E73;
+    --backdrop: rgba(0, 0, 0, 0.6);
+    --focus-ring: rgba(10, 132, 255, 0.35);
     color-scheme: dark;
   }
 }
@@ -3184,3 +3194,64 @@ button.pf-ava-wrap.busy { opacity: .6; animation: ula-pulse 1s ease-in-out infin
 .er-meta { margin: 0 0 4px; color: var(--muted); font-size: 12px; word-break: break-word; }
 .er-stack summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 4px 0; }
 .er-stack pre { max-height: 180px; overflow: auto; margin: 4px 0 8px; padding: 8px; border-radius: 8px; background: var(--soft); font-size: 11px; white-space: pre-wrap; word-break: break-all; }
+
+/* =====================================================
+   СТИЛЬ APPLE (по правилам Apple Human Interface Guidelines)
+   Цвета и шрифт — в блоке :root в начале файла. Здесь — формы:
+   кнопки-«таблетки», карточки без рамок с мягкой тенью,
+   переключатели как в iPhone, полупрозрачная шапка.
+   Цвет кнопок, который байер выбрал в профиле, не трогаем.
+   ===================================================== */
+:root {
+  --r-btn: 980px;   /* кнопки-«таблетки» */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .05);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, .12);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, .2);
+}
+html[data-ui="crisp"] { --r-btn: 6px; }
+
+/* Заголовки — плотнее, как у Apple */
+h1, .page-title { letter-spacing: -.022em; }
+h2, h3 { letter-spacing: -.012em; }
+.modal-head h2 { font-weight: 600; letter-spacing: -.01em; }
+
+/* Шапка: полупрозрачная с размытием, тонкая линия снизу */
+.topbar { -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar { background: var(--surface); }
+}
+
+/* Кнопки */
+.btn-sm, .auth-panel .btn-primary, .auth-panel .btn-google { border-radius: var(--r-btn); }
+.btn-primary { box-shadow: none; }
+.btn-ghost:hover { background: var(--fill); }
+
+/* Карточки: без рамки, мягкая тень (в тёмной теме — просто светлее фона) */
+.card, .client-block, .an-card, .an-kpi, .summary, .assistant, .sh-card, .onboard-card,
+.supplier-card, .client-card, .debt-card, .er-box { border-color: transparent; }
+.card, .client-block, .an-card, .sh-card, .onboard-card, .assistant, .summary, .er-box { border-radius: var(--r-lg); }
+
+/* Вкладки: выбранная отмечается цветом кнопок (по умолчанию — чёрным) */
+.tab.active::after { background: var(--primary); }
+
+/* Переключатели — как в iPhone: серая дорожка, выбранный пункт — белая «плашка» с тенью */
+.seg-options { background: var(--fill); border-radius: var(--r-md); padding: 3px; gap: 3px; }
+.seg-options span { border-radius: calc(var(--r-md) - 3px); font-weight: 600; transition: background .2s var(--ease), color .2s; }
+.seg-options input:checked + span { background: var(--seg-on); color: var(--ink); box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); }
+.seg-options input:focus-visible + span { outline: 3px solid var(--focus-ring); }
+.lang-switch { border: 0; background: var(--fill); }
+.lang-switch button.active { background: var(--seg-on); color: var(--ink); box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); }
+
+/* Поля ввода: при вводе — голубая подсветка, как у Apple */
+input:focus, select:focus, textarea:focus { border-color: #0071E3; }
+html[data-theme="dark"] input:focus, html[data-theme="dark"] select:focus, html[data-theme="dark"] textarea:focus { border-color: #0A84FF; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="dark"]) input:focus,
+  html:not([data-theme="light"]):not([data-theme="dark"]) select:focus,
+  html:not([data-theme="light"]):not([data-theme="dark"]) textarea:focus { border-color: #0A84FF; }
+}
+:focus-visible { outline-color: var(--focus-ring); }
+
+/* Меню и сообщения */
+.section-menu { border-color: transparent; border-radius: var(--r-lg); }
+.toast { border-radius: 980px; font-weight: 600; }
