@@ -233,7 +233,13 @@
     if (!state.ws || !c.db()) return;
     var res = await c.db().from("exchange_requests").select("id", { count: "exact", head: true })
       .eq("workspace_id", state.ws.id).in("status", ["new", "paid", "confirmed"]);
-    if (!res.error) setBadge(res.count || 0);
+    if (res.error) return;
+    var n = res.count || 0;
+    if (fx.cnt != null && n > fx.cnt && U.alerts) U.alerts.ping({ title: t("fx_new_req"), tag: "fx" });
+    fx.cnt = n;
+    setBadge(n);
+    // заявки клиентов приходят сами: проверяем раз в 10 секунд, пока сайт открыт
+    if (!fx.cntTimer) fx.cntTimer = setInterval(function () { if (!document.hidden) loadCount(); }, 10000);
   }
 
   // ---------- Раздел в кабинете ----------

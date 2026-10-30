@@ -314,6 +314,7 @@ I18N.vi = {
   support_sent: "Đã gửi tin nhắn",
   support_new: "Tin nhắn hỗ trợ mới",
   support_reply_new: "Bộ phận hỗ trợ đã trả lời — mở 💬",
+  fx_new_req: "Yêu cầu đổi tiền mới",
   support_too_many: "Quá nhiều tin nhắn. Vui lòng đợi một chút.",
   support_admin_title: "Yêu cầu của người mua",
   support_admin_hint: "Tin nhắn hỗ trợ của người mua. Tin mới ở trên cùng với số màu đỏ. Nhấn để mở cuộc trò chuyện và trả lời.",

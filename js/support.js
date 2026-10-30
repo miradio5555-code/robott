@@ -428,7 +428,14 @@
       renderHead();
       if (m.from_admin !== !!support.user) markRead();
     }
-    if (payload.eventType === "INSERT") checkUnreadSoon();
+    if (payload.eventType === "INSERT") {
+      // пришло сообщение от другой стороны, а на него сейчас не смотрят — звук, вибрация, уведомление
+      var incoming = isAdmin() ? !m.from_admin : !!m.from_admin;
+      if (incoming && !(isOpen() && !document.hidden && m.user_id === owner()) && U.alerts) {
+        U.alerts.ping({ title: t(isAdmin() ? "support_new" : "support_reply_new"), body: m.body ? String(m.body).slice(0, 120) : "", tag: "support" });
+      }
+      checkUnreadSoon();
+    }
   }
 
   function startLive() {
@@ -561,6 +568,7 @@
     // окно с этой перепиской открыто — сообщение и так видно, всплывашка не нужна
     if (support.unread >= 0 && n > support.unread && !(isOpen() && !admin)) {
       toast(t(admin ? "support_new" : "support_reply_new"), "ok");
+      if (U.alerts) U.alerts.ping({ title: t(admin ? "support_new" : "support_reply_new"), tag: "support" });
     }
     support.unread = n;
   }
@@ -581,7 +589,7 @@
       n++;
       // с Realtime — всё равно раз в 12 секунд (если файл 39 ещё не запущен, события не придут)
       if (isOpen() && (!support.live || n % 3 === 0)) loadSupportLog(false);
-      if (!support.live ? n % 5 === 0 : n % 15 === 0) checkSupportUnread();
+      if (!support.live ? n % 2 === 0 : n % 8 === 0) checkSupportUnread();
     }, 4000);
   }
 

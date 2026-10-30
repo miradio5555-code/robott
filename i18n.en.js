@@ -325,6 +325,7 @@ I18N.en = {
   support_sent: "Message sent",
   support_new: "New support message",
   support_reply_new: "Support replied — open 💬",
+  fx_new_req: "New exchange request",
   support_too_many: "Too many messages. Please wait a little.",
   support_admin_title: "Buyer requests",
   support_admin_hint: "Buyers' support messages. New ones are on top with a red number. Tap to open the conversation and reply.",

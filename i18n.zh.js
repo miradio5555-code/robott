@@ -325,6 +325,7 @@ I18N.zh = {
   support_sent: "消息已发送",
   support_new: "有新的客服消息",
   support_reply_new: "客服已回复，请打开 💬",
+  fx_new_req: "新的兑换申请",
   support_too_many: "消息太多，请稍后再试。",
   support_admin_title: "采购员的咨询",
   support_admin_hint: "这里是采购员发给技术支持的消息。新消息在上方并带红色数字。点击即可查看并回复。",
