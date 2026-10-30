@@ -104,6 +104,8 @@
     if (badge) { badge.textContent = String(overdueN); badge.classList.toggle("hidden", overdueN === 0); }
     var bnBadge = $("#bn-debts-badge");
     if (bnBadge) { bnBadge.textContent = String(overdueN); bnBadge.classList.toggle("hidden", overdueN === 0); }
+    var moreBadge = $("#bn-more-badge");   // у байера «Долги» лежат в «Ещё»
+    if (moreBadge) { moreBadge.textContent = String(overdueN); moreBadge.classList.toggle("hidden", overdueN === 0); }
 
     if ($("#tab-debts").classList.contains("hidden")) return;
 

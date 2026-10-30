@@ -3681,3 +3681,22 @@ html[data-theme="dark"] .support-thread.unread .support-thread-top small { color
 }
 body.simple-mode #home-import, body.simple-mode #home-quote { display: none !important; }
 body.readonly .ha-grid { display: none; }
+
+/* ---------- Нижнее меню: белая плашка, посередине вырез и круглая красная «+» ---------- */
+@media (max-width: 640px) {
+  .bottom-nav { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+    filter: drop-shadow(0 8px 22px rgba(0,0,0,.16)) drop-shadow(0 1px 2px rgba(0,0,0,.06)); }
+  .bottom-nav::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 30px; background: var(--surface); }
+  .bottom-nav.has-plus::before {
+    -webkit-mask: radial-gradient(circle 37px at 50% 0, transparent 36px, #000 37px);
+    mask: radial-gradient(circle 37px at 50% 0, transparent 36px, #000 37px); }
+  .bn-item.active { background: none; color: var(--red); }
+  .bn-plus { align-content: end; padding-bottom: 7px; }
+  .bn-plus-c { position: absolute; left: 50%; top: -28px; transform: translateX(-50%); display: grid; place-items: center;
+    width: 58px; height: 58px; border-radius: 50%; background: var(--red); color: #fff;
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--red) 45%, transparent); transition: transform .2s var(--ease); }
+  .bn-plus:active .bn-plus-c { transform: translateX(-50%) scale(.92); }
+  .bn-plus span { color: var(--muted); }
+  /* у байера «+» внизу заменяет плавающую кнопку */
+  body:not(.is-admin):not(.no-bottom-nav) .fab { display: none; }
+}

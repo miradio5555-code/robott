@@ -1402,6 +1402,7 @@ I18N.en = {
   q_more_item: "+ Name and link (optional)",
   q_more_rates: "⚙ Currencies and rates",
   bn_more: "More",
+  bn_new: "New",
   pf_title: "Profile",
   pf_role_owner: "Owner",
   pf_role_staff: "Assistant",

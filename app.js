@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261122a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261123a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1226,6 +1226,7 @@
     // новый заказ
     $("#new-order").addEventListener("click", function () { openOrderForm(null); });
     $("#fab").addEventListener("click", function () { openOrderForm(null); });
+    $("#bn-plus").addEventListener("click", function () { openOrderForm(null); });
 
     // форма
     $("#order-form").addEventListener("submit", saveOrder);
@@ -1936,10 +1937,13 @@
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
-    // нижнее меню: у байера — Главная и его главные разделы (Витрина — в «Ещё»), у админа платформы — Байеры, Поддержка, Обмен
-    var bnTabs = !isAdmin ? ["home", "orders", "clients", "debts"]
+    // нижнее меню: у байера — Главная, Заказы, круглая «+», Клиенты (Долги и Витрина — в «Ещё»), у админа платформы — Байеры, Поддержка, Обмен
+    var bnTabs = !isAdmin ? ["home", "orders", "clients"]
       : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
     $$("#bottom-nav [data-tab]").forEach(function (b) { b.classList.toggle("hidden", bnTabs.indexOf(b.getAttribute("data-tab")) === -1); });
+    var plus = !isAdmin && !!state.ws && !state.readOnly;
+    $("#bn-plus").classList.toggle("hidden", !plus);
+    $("#bottom-nav").classList.toggle("has-plus", plus);
     $$(".tab").forEach(function (b) {
       // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
       var on = b.getAttribute("data-tab") === (state.tab === "report" ? "analytics" : state.tab);

@@ -1412,6 +1412,7 @@ I18N.ru = {
   q_more_item: "+ Название и ссылка (необязательно)",
   q_more_rates: "⚙ Валюты и курсы",
   bn_more: "Ещё",
+  bn_new: "Новый",
   pf_title: "Профиль",
   pf_role_owner: "Владелец",
   pf_role_staff: "Помощник",

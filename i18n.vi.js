@@ -1374,6 +1374,7 @@ I18N.vi = {
   q_more_item: "+ Tên và link (không bắt buộc)",
   q_more_rates: "⚙ Tiền tệ và tỷ giá",
   bn_more: "Thêm",
+  bn_new: "Tạo mới",
   pf_title: "Hồ sơ",
   pf_role_owner: "Chủ",
   pf_role_staff: "Trợ lý",

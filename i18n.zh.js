@@ -1402,6 +1402,7 @@ I18N.zh = {
   q_more_item: "+ 名称和链接（可选）",
   q_more_rates: "⚙ 货币和汇率",
   bn_more: "更多",
+  bn_new: "新建",
   pf_title: "个人资料",
   pf_role_owner: "所有者",
   pf_role_staff: "助手",
