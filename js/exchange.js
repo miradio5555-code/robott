@@ -74,12 +74,17 @@
     return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
   }
   function sentUrl(path) { return c.db().storage.from("fx-sent").getPublicUrl(path).data.publicUrl; }
+  // Фото и скриншоты грузятся без сжатия, в оригинальном качестве. Сжимаем только то, что иначе не пройдёт:
+  // файл больше 5 МБ или формат, который хранилище не принимает (HEIC, GIF).
+  var IMG_LIMIT = 5 * 1024 * 1024 - 1024;
   async function prepImg(file) {
     if (!/^image\//.test(file.type || "")) throw new Error("bad_type");
-    var blob = await c.shrinkImage(file, 1600, 400 * 1024, true);
+    var blob = file;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > IMG_LIMIT) blob = await c.shrinkImage(file, 4096, IMG_LIMIT, true);
     if (blob.size > 5 * 1024 * 1024) throw new Error("too_big");
     return blob;
   }
+  function imgExt(blob) { return blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg"; }
   // сообщить в Telegram о новых событиях сделки (байеру и, для споров, администратору)
   function notifyEvent(id) {
     try { c.db().functions.invoke("telegram-notify", { body: { action: "exchange_event", id: id } }).catch(function () {}); } catch (e) { /* ignore */ }
@@ -261,10 +266,9 @@
   }
 
   // ---------- Чек об оплате: сначала платят, потом прикрепляют чек и отправляют заявку ----------
-  var RCPT_OK = /^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf)$/;
-  function rcptPick(holder, file) {
+  function rcptPick(holder, file, pdf) {
     if (!file) return false;
-    if (!RCPT_OK.test(file.type || "")) { toast(t("fx_e_rcpt_type"), "error"); return false; }
+    if (!(/^image\//.test(file.type || "") || (pdf && file.type === "application/pdf"))) { toast(t(pdf ? "fx_e_rcpt_type" : "fx_e_rcpt_img"), "error"); return false; }
     if (file.size > 20 * 1024 * 1024) { toast(t("sp_too_big"), "error"); return false; }
     rcptDrop(holder);
     holder.file = file;
@@ -617,8 +621,8 @@
   }
   async function uploadSent(id, file) {
     var blob = await prepImg(file);
-    var path = id + "/" + rnd(12) + ".jpg";
-    var up = await c.db().storage.from("fx-sent").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+    var path = id + "/" + rnd(12) + "." + imgExt(blob);
+    var up = await c.db().storage.from("fx-sent").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
     if (up.error) throw up.error;
     return path;
   }
@@ -843,7 +847,7 @@
     } catch (err) {
       console.error(err);
       btn.disabled = false;
-      toast(t("fx_e_upload"), "error");
+      toast(t(/bucket|not.?found|404/i.test(String((err && (err.message || err.error)) || "")) ? "fx_e_upload_off" : "fx_e_upload"), "error");
       return;
     }
     var res = await c.db().rpc("support_send", { p_body: text, p_meta: { kind: "fx", cny: cny, som: som, rate: rate, receipt: true }, p_files: sent });
@@ -895,7 +899,7 @@
     box.addEventListener("change", function (e) {
       if (e.target.id === "fx-file") { onFile(e.target.files && e.target.files[0]); return; }
       if (e.target.id === "fxp-file") {
-        if (rcptPick(fx.rcpt, e.target.files && e.target.files[0])) { fx.sent = false; render(); }
+        if (rcptPick(fx.rcpt, e.target.files && e.target.files[0], true)) { fx.sent = false; render(); }
         return;
       }
       var key = e.target.getAttribute && e.target.getAttribute("data-kyc-file");
@@ -994,7 +998,7 @@
     };
     slot.onchange = function (e) {
       if (e.target.id !== "fxc-file" || !e.target.files || !e.target.files[0]) return;
-      if (pub.step === "form") { if (rcptPick(pub, e.target.files[0])) { pub.error = ""; renderPublic(slot); } }
+      if (pub.step === "form") { if (rcptPick(pub, e.target.files[0], false)) { pub.error = ""; renderPublic(slot); } }
       else uploadProof(slot, e.target.files[0]);
     };
     slot.onclick = function (e) {
@@ -1065,7 +1069,7 @@
           : '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
         '<form id="fxc-form" novalidate autocomplete="on">' +
         stepHead(2, t("fx_s2")) +
-        '<input id="fxc-file" type="file" accept="image/*,.pdf" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
+        '<input id="fxc-file" type="file" accept="image/*" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
         stepHead(3, t("fx_s3")) +
         '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="fxc-name" type="text" autocomplete="name" maxlength="120" value="' + esc(pub.name) + '"></label>' +
         '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(pub.phone) + '"></label>' +
@@ -1133,11 +1137,8 @@
 
   // загрузить скриншот к заявке и отметить «оплачено» (общая часть для блока и страницы статуса)
   async function sendProof(id, file) {
-    if (!/^image\//.test(file.type || "")) throw new Error("bad_type");
-    var blob = await c.shrinkImage(file, 1600, 400 * 1024, true);
-    if (blob.size > 5 * 1024 * 1024) throw new Error("too_big");
-    var ext = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
-    var path = id + "/" + Date.now().toString(36) + "." + ext;
+    var blob = await prepImg(file);
+    var path = id + "/" + Date.now().toString(36) + "." + imgExt(blob);
     var up = await c.db().storage.from("fx-proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
     if (up.error) throw up.error;
     var at = await c.db().rpc("fx_attach_proof", { p_id: id, p_path: path });

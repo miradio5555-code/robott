@@ -1147,6 +1147,8 @@ I18N.vi = {
   fx_receipt: "Biên lai",
   fx_send_rcpt: "Gửi yêu cầu kèm biên lai",
   fx_e_receipt: "Hãy thanh toán và đính kèm biên lai — không có biên lai thì không gửi được",
+  fx_e_upload_off: "Chưa bật tải tệp. Cần chạy bản cập nhật cơ sở dữ liệu (tệp 40).",
+  fx_e_rcpt_img: "Đính kèm ảnh hoặc ảnh chụp màn hình (JPG, PNG, WEBP)",
   fx_e_rcpt_type: "Đính kèm ảnh, ảnh chụp màn hình hoặc PDF",
   fx_req_chat: "Chưa có thông tin thanh toán. Hãy hỏi quản trị viên trong chat.",
   fx_req_none: "Chưa có thông tin thanh toán. Hãy hỏi người mua hộ.",

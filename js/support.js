@@ -312,8 +312,9 @@
       var f = p.files[i];
       if (!f.path) {
         var blob = f.file, type = f.type;
-        if (/^image\/(jpeg|png|webp)$/.test(type) && blob.size > 600 * 1024) {
-          blob = await c.shrinkImage(blob, 2000, 700 * 1024, true);
+        // фото уходят в оригинальном качестве; сжимаем только если файл не помещается в лимит хранилища
+        if (/^image\/(jpeg|png|webp)$/.test(type) && blob.size > MAX_SIZE) {
+          blob = await c.shrinkImage(blob, 4096, MAX_SIZE - 1024, true);
           type = blob.type || "image/jpeg";
         }
         if (blob.size > MAX_SIZE) throw new Error("file_too_big");
