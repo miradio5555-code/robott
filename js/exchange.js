@@ -216,7 +216,15 @@
   }
   async function loadKycList() {
     var res = await c.db().rpc("admin_kyc_list");
-    fx.kycList = res.error ? [] : (res.data || []);
+    if (res.error) { c.handleError(res.error); fx.kycList = []; return; }
+    fx.kycList = res.data || [];
+    // фото документов тех, кто ждёт, — сразу в карточку (ссылки живут 10 минут)
+    var paths = [];
+    fx.kycList.forEach(function (k) { if (k.status === "pending") [k.front_path, k.back_path, k.selfie_path].forEach(function (p) { if (p) paths.push(p); }); });
+    fx.kycUrls = {};
+    if (!paths.length) return;
+    var sg = await c.db().storage.from("kyc").createSignedUrls(paths, 600);
+    (sg.data || []).forEach(function (x) { if (x.signedUrl && x.path) fx.kycUrls[x.path] = x.signedUrl; });
   }
   function kycOk() { return !!(fx.kyc && fx.kyc.status === "approved"); }
 
@@ -552,6 +560,7 @@
         '<div class="fx-row-meta">' + esc(k.ws_name || "—") + " · " + esc(k.phone ? c.fmtPhone(k.phone) : "") + " · " + esc(k.email || "") + "</div>" +
         '<div class="fx-row-meta">' + esc(c.fmtDate(k.submitted_at)) + " · " + esc(c.fmtTime(k.submitted_at)) + "</div>" +
         (k.reason ? '<div class="fx-row-note">' + esc(k.reason) + "</div>" : "") +
+        (k.status === "pending" ? kycThumbs(k) : "") +
         '<div class="fx-row-act">' +
           '<button type="button" class="btn btn-sm" data-kyc-view="' + esc(k.user_id) + '">' + esc(t("kyc_view")) + "</button>" +
           (k.status === "pending"
@@ -564,14 +573,24 @@
     }).join("") + "</div></section>";
   }
 
-  async function kycView(uid) {
+  // три фото (документ, обратная сторона, селфи) маленькими картинками; нажатие — во весь экран
+  function kycThumbs(k) {
+    var list = [["front", k.front_path], ["back", k.back_path], ["selfie", k.selfie_path]].filter(function (x) { return x[1] && (fx.kycUrls || {})[x[1]]; });
+    if (!list.length) return "";
+    return '<div class="kyc-thumbs">' + list.map(function (x) {
+      return '<button type="button" class="kyc-thumb" data-kyc-view="' + esc(k.user_id) + '" data-kyc-i="' + esc(x[0]) + '"><img src="' + esc(fx.kycUrls[x[1]]) + '" alt=""><small>' + esc(t("kyc_t_" + x[0])) + "</small></button>";
+    }).join("") + "</div>";
+  }
+
+  async function kycView(uid, which) {
     var k = fx.kycList.filter(function (x) { return x.user_id === uid; })[0];
     if (!k) return;
     var paths = [k.front_path, k.back_path, k.selfie_path].filter(Boolean);
+    var start = Math.max(0, paths.indexOf(k[(which || "front") + "_path"]));
     var res = await c.db().storage.from("kyc").createSignedUrls(paths, 600);
     if (res.error || !res.data) { toast(t("error_generic"), "error"); return; }
     var urls = res.data.map(function (x) { return x.signedUrl; }).filter(Boolean);
-    if (urls.length) c.openLightbox(urls, 0); else toast(t("error_generic"), "error");
+    if (urls.length) c.openLightbox(urls, Math.min(start, urls.length - 1)); else toast(t("error_generic"), "error");
   }
 
   async function kycDecide(uid, ok) {
@@ -584,7 +603,7 @@
     }
     var res = await c.db().rpc("admin_kyc_decide", { p_user: uid, p_ok: ok, p_reason: reason });
     if (res.error) { c.handleError(res.error); return; }
-    toast(t("fx_saved"), "ok");
+    toast(t(ok ? "kyc_ok_done" : "kyc_no_done"), "ok");
     await loadKycList();
     render();
   }
@@ -1048,7 +1067,7 @@
       var kf = e.target.closest("[data-kyc-filter]");
       if (kf) { fx.kycFilter = kf.getAttribute("data-kyc-filter"); render(); return; }
       var kv = e.target.closest("[data-kyc-view]");
-      if (kv) { kycView(kv.getAttribute("data-kyc-view")); return; }
+      if (kv) { kycView(kv.getAttribute("data-kyc-view"), kv.getAttribute("data-kyc-i")); return; }
       var ko = e.target.closest("[data-kyc-ok]");
       if (ko) { kycDecide(ko.getAttribute("data-kyc-ok"), true); return; }
       var kn = e.target.closest("[data-kyc-no]");

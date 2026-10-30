@@ -176,10 +176,11 @@
         "<b>" + esc(a.full_name || t("support_title")) + "</b><p>" + esc(t("support_empty")) + "</p></div>";
       return;
     }
-    var html = "", lastDay = "";
+    // каждое сообщение — отдельный кусок со своим ключом: на экране меняем только то, что изменилось
+    var items = [], lastDay = "";
     all.forEach(function (m, i) {
       var day = dayLabel(m.created_at);
-      if (day !== lastDay) { html += '<div class="sp-day"><span>' + esc(day) + "</span></div>"; lastDay = day; }
+      if (day !== lastDay) { items.push({ k: "d:" + day, h: '<div class="sp-day"><span>' + esc(day) + "</span></div>" }); lastDay = day; }
       var mine = admin ? m.from_admin : !m.from_admin;
       var next = all[i + 1], prev = all[i - 1];
       var tail = !next || next.from_admin !== m.from_admin || dayLabel(next.created_at) !== day;   // последнее в группе
@@ -195,16 +196,16 @@
       var tech = admin && !m.from_admin && m.meta && Object.keys(m.meta).length
         ? '<details class="support-tech"><summary>' + esc(t("support_tech")) + "</summary><pre>" + esc(JSON.stringify(m.meta, null, 2)) + "</pre></details>"
         : "";
-      html += '<div class="sp-row ' + (mine ? "mine" : "theirs") + (head ? " head" : "") + (tail ? " tail" : "") + (fresh ? " sp-new" : "") + '"' +
+      items.push({ k: key, fresh: fresh, h: '<div class="sp-row ' + (mine ? "mine" : "theirs") + (head ? " head" : "") + (tail ? " tail" : "") + '"' +
         (m.failed ? ' data-retry="' + esc(m.tmp) + '" title="' + esc(t("sp_retry")) + '"' : "") + ">" +
         '<div class="sp-bubble' + (filesOf(m).length ? " has-files" : "") + (m.body ? "" : " no-text") + '">' + filesHtml(m) + esc(m.body) +
-        '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>";
+        '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>" });
     });
     if (Date.now() < support.typingUntil) {
-      html += '<div class="sp-row theirs head tail sp-typing-row' + ($("#support-log .sp-typing-row") ? "" : " sp-new") + '">' +
-        '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>';
+      items.push({ k: "typing", fresh: true, h: '<div class="sp-row theirs head tail sp-typing-row">' +
+        '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>' });
     }
-    log.innerHTML = html;
+    patchLog(log, items);
     if (scroll || nearBottom) {
       log.scrollTop = log.scrollHeight;
       // фото догружаются позже и удлиняют переписку — остаться внизу
@@ -213,6 +214,29 @@
       });
     }
     signMissing();
+  }
+
+  // Обновить переписку без мигания: одинаковые сообщения остаются теми же элементами
+  // (фото и видео не перезагружаются, прокрутка не прыгает), меняются только новые и изменившиеся
+  function patchLog(log, items) {
+    var old = {}, used = {};
+    Array.prototype.forEach.call(log.children, function (n) { if (n._k) old[n._k] = n; });
+    items.forEach(function (it, i) {
+      var n = old[it.k];
+      if (!n || n._h !== it.h) {
+        var tpl = document.createElement("template");
+        tpl.innerHTML = it.h;
+        var fresh = tpl.content.firstElementChild;
+        fresh._k = it.k; fresh._h = it.h;
+        if (it.fresh && !n) fresh.classList.add("sp-new");
+        if (n) log.replaceChild(fresh, n);
+        n = fresh;
+      }
+      used[it.k] = 1;
+      var at = log.children[i];
+      if (at !== n) log.insertBefore(n, at || null);
+    });
+    Array.prototype.slice.call(log.children).forEach(function (n) { if (!n._k || !used[n._k]) log.removeChild(n); });
   }
 
   // ---------- Файлы: показ в сообщении ----------
