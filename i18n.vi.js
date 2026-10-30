@@ -1147,6 +1147,8 @@ I18N.vi = {
   fx_receipt: "Biên lai",
   fx_send_rcpt: "Gửi yêu cầu kèm biên lai",
   fx_e_receipt: "Hãy thanh toán và đính kèm biên lai — không có biên lai thì không gửi được",
+  fx_ula_eta_label: "Người mua chờ nhận tệ bao lâu sau khi thanh toán",
+  fx_eta_need41: "Đã lưu tỷ giá nhưng chưa lưu thời gian chờ: chưa chạy tệp cơ sở dữ liệu 41.",
   fx_e_upload_off: "Chưa bật tải tệp. Cần chạy bản cập nhật cơ sở dữ liệu (tệp 40).",
   fx_e_rcpt_img: "Đính kèm ảnh hoặc ảnh chụp màn hình (JPG, PNG, WEBP)",
   fx_e_rcpt_type: "Đính kèm ảnh, ảnh chụp màn hình hoặc PDF",

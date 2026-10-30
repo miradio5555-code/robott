@@ -1175,6 +1175,8 @@ I18N.en = {
   fx_receipt: "Receipt",
   fx_send_rcpt: "Send request with receipt",
   fx_e_receipt: "Pay first and attach the receipt — the request cannot be sent without it",
+  fx_ula_eta_label: "How long the buyer waits for yuan after paying",
+  fx_eta_need41: "Rate saved, but the waiting time was not: database file 41 has not been run.",
   fx_e_upload_off: "File upload is not enabled yet. The database update (file 40) has to be run.",
   fx_e_rcpt_img: "Attach a photo or screenshot (JPG, PNG, WEBP)",
   fx_e_rcpt_type: "Attach a photo, screenshot or PDF",

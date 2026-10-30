@@ -184,7 +184,8 @@
 
   // ---------- Загрузка ----------
   async function loadPlatform() {
-    var res = await c.db().from("platform_fx").select("tiers, note, updated_at").eq("id", 1).maybeSingle();
+    var res = await c.db().from("platform_fx").select("tiers, note, eta, updated_at").eq("id", 1).maybeSingle();
+    if (res.error) res = await c.db().from("platform_fx").select("tiers, note, updated_at").eq("id", 1).maybeSingle();   // файл 41 ещё не запущен
     fx.platform = res.error ? null : res.data;
   }
   async function loadRequests() {
@@ -258,6 +259,9 @@
     if (isAdmin()) {
       html += '<form id="fxa-form" class="fx-form" novalidate><h4>' + esc(t("fx_admin_set")) + "</h4>" +
         editorHtml("fxa", tiers, false) +
+        '<label class="field"><span>' + esc(t("fx_ula_eta_label")) + '</span><select id="fxa-eta"><option value="">—</option>' +
+          ETAS.map(function (m) { return '<option value="' + m + '"' + (Number(p.eta) === m ? " selected" : "") + ">" + esc(etaName(m)) + "</option>"; }).join("") +
+        "</select></label>" +
         '<label class="field"><span>' + esc(t("fx_note_label")) + '</span><textarea id="fxa-note" rows="2" maxlength="500">' + esc(p.note || "") + "</textarea></label>" +
         '<label class="check-line"><input id="fxa-news" type="checkbox" checked> <span>' + esc(t("fx_notify_label")) + "</span></label>" +
         '<button class="btn btn-primary btn-block" type="submit">' + esc(t("fx_save")) + "</button></form>";
@@ -319,6 +323,7 @@
       '<div class="fx-hero-top"><span class="rc-ico" aria-hidden="true">¥</span><div class="fx-hero-main">' +
         '<span class="rc-label">' + esc(t("fx_ula_title")) + ' · <span class="rc-date' + (fresh ? "" : " old") + '">' + esc(c.fmtDate(p.updated_at)) + "</span></span>" +
         '<span class="rc-big"><b>' + esc(rateStr(tiers[0].rate)) + "</b> " + esc(t("rc_per")) + "</span></div></div>" +
+      (p.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(p.eta) })) + "</p>" : "") +
       (fresh ? "" : '<p class="fx-date old">' + esc(dateLine(p.updated_at)) + "</p>") +
       calcHtml("fxp", minOf(tiers)) +
       stepHead(1, t("fx_s1_admin")) +
@@ -809,16 +814,24 @@
     if (jump && !window.confirm(t("fx_big_change", jump))) return;
     var changed = !sameTiers(tiers, fx.platform && fx.platform.tiers), tell = $("#fxa-news") && $("#fxa-news").checked;
     var note = $("#fxa-note").value.trim();
-    var res = await c.db().rpc("admin_set_platform_fx", { p_tiers: tiers.length ? tiers : null, p_note: note || null });
+    var eta = $("#fxa-eta") && $("#fxa-eta").value ? Number($("#fxa-eta").value) : null;
+    var base = { p_tiers: tiers.length ? tiers : null, p_note: note || null };
+    var res = await c.db().rpc("admin_set_platform_fx", Object.assign({ p_eta: eta }, base));
+    var etaLost = false;
+    if (res.error && /p_eta|schema cache|42883|PGRST202|does not exist/i.test(String(res.error.message || res.error.code || ""))) {
+      res = await c.db().rpc("admin_set_platform_fx", base);   // файл 41 ещё не запущен: курс сохраняем без срока
+      etaLost = !!eta && !res.error;
+    }
     if (res.error) { c.handleError(res.error); return; }
+    if (etaLost) toast(t("fx_eta_need41"), "error");
     await loadPlatform();
     if (U.board) U.board.load();
-    if (!(changed && tell && tiers.length)) { toast(t("fx_saved"), "ok"); render(); return; }
+    if (!(changed && tell && tiers.length)) { if (!etaLost) toast(t("fx_saved"), "ok"); render(); return; }
     // новость «Новый курс» на сайте и в Telegram
     var lines = sortTiers(tiers).map(function (x) { return t("fx_from", { n: money(x.from) }) + " — " + rateStr(x.rate) + " " + t("fx_som_short"); });
     var text = t("fx_news_text", { lines: lines.join("\n") }) + (note ? "\n\n" + note : "");
     if (U.board) await U.board.publish(text, true);
-    toast(t("fx_saved_news"), "ok");
+    if (!etaLost) toast(t("fx_saved_news"), "ok");
     render();
   }
 

@@ -1175,6 +1175,8 @@ I18N.zh = {
   fx_receipt: "凭证",
   fx_send_rcpt: "提交申请（附凭证）",
   fx_e_receipt: "请先付款并上传凭证，没有凭证无法提交",
+  fx_ula_eta_label: "买手付款后等待收到人民币的时间",
+  fx_eta_need41: "汇率已保存，但等待时间未保存：数据库文件 41 尚未运行。",
   fx_e_upload_off: "尚未开启文件上传，需要运行数据库更新（文件 40）。",
   fx_e_rcpt_img: "请上传照片或截图（JPG、PNG、WEBP）",
   fx_e_rcpt_type: "请上传照片、截图或 PDF",
