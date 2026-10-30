@@ -31,6 +31,7 @@
     urls: {},          // подписанные ссылки на файлы: путь → { url, until }
     noFiles: false     // файл 40 ещё не запущен — скрепку не показываем
   };
+  var BRAND = '<img src="img/mark-dark.svg?r=7" alt="">';   // знак ULA Factory (тёмная плитка)
   var BUCKET = "support-files", MAX_FILES = 6, MAX_SIZE = 20 * 1024 * 1024;
   var OK_TYPES = /^(image\/(jpeg|png|webp|gif|heic|heif)|video\/(mp4|quicktime|webm)|application\/pdf|text\/(plain|csv)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)|vnd\.ms-excel))$/;
 
@@ -82,7 +83,10 @@
   function renderHead() {
     var admin = !!support.user, info = support.info || {}, a = support.agent || {};
     var name = admin ? info.full_name || info.email || "—" : a.full_name || t("support_title");
-    $("#support-ava").innerHTML = admin ? avaHtml(name, null) : a.avatar_path || a.full_name ? avaHtml(name, a.avatar_path) : U.icon("message", 20);
+    var ava = $("#support-ava");
+    // без фото у поддержки — знак ULA Factory
+    ava.classList.toggle("sp-brand", !admin && !a.avatar_path);
+    ava.innerHTML = admin ? avaHtml(name, null) : a.avatar_path ? avaHtml(name, a.avatar_path) : BRAND;
     $("#support-title").textContent = name;
     var sub = $("#support-sub"), typing = Date.now() < support.typingUntil;
     sub.classList.toggle("on", typing || (!admin && support.adminOnline));
@@ -168,7 +172,7 @@
     if (!all.length) {
       var a = support.agent || {};
       log.innerHTML = admin ? '<p class="sp-empty muted">' + esc(t("support_none")) + "</p>" :
-        '<div class="sp-hello"><span class="sp-ava sp-ava-lg">' + (a.avatar_path || a.full_name ? avaHtml(a.full_name, a.avatar_path) : U.icon("message", 26)) + "</span>" +
+        '<div class="sp-hello"><span class="sp-ava sp-ava-lg' + (a.avatar_path ? "" : " sp-brand") + '">' + (a.avatar_path ? avaHtml(a.full_name, a.avatar_path) : BRAND) + "</span>" +
         "<b>" + esc(a.full_name || t("support_title")) + "</b><p>" + esc(t("support_empty")) + "</p></div>";
       return;
     }
