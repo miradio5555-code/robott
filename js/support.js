@@ -1,22 +1,33 @@
 // =====================================================
-// ULA FACTORY — техподдержка: чат байера с админом и уведомления в Telegram.
+// ULA FACTORY — техподдержка: живой чат байера с админом и уведомления в Telegram.
 // Вынесено из app.js. Общие помощники берутся из window.ULA.core.
 // Подключается после app.js.
+//
+// Чат работает как мессенджер:
+//   • новые сообщения и «прочитано» приходят сразу (Supabase Realtime, файл 39);
+//     если Realtime недоступен — проверяем каждые 4 секунды, пока чат открыт;
+//   • своё сообщение появляется сразу, не дожидаясь базы (часики → ✓ → ✓✓ прочитано);
+//   • «печатает…» и «в сети» — через каналы Realtime, без записи в базу;
+//   • у байера в шапке — имя и фото админа (support_agent, файл 39).
 // =====================================================
 (function (U) {
   "use strict";
   var c = U.core;
-  var $ = c.$, $$ = c.$$, esc = c.esc, toast = c.toast, handleError = c.handleError,
-      money = c.money, numStr = c.numStr, parseNum = c.parseNum, locale = c.locale,
-      curName = c.curName, fillCurrencySelect = c.fillCurrencySelect, openModal = c.openModal,
-      fmtTime = c.fmtTime, state = c.state, WS_FIELDS = c.WS_FIELDS, APP_VERSION = c.APP_VERSION;
+  var $ = c.$, esc = c.esc, toast = c.toast, handleError = c.handleError,
+      locale = c.locale, openModal = c.openModal, fmtTime = c.fmtTime, state = c.state, APP_VERSION = c.APP_VERSION;
 
-  // =====================================================
-  //  💬 ТЕХПОДДЕРЖКА
-  //  Байер пишет → админ видит во вкладке «Поддержка» и отвечает.
-  //  Каждые 30 секунд проверяем, нет ли новых сообщений (красная цифра).
-  // =====================================================
-  var support = { user: null, threads: [], unread: -1, timer: null, errors: [] };
+  var support = {
+    user: null,        // админ смотрит переписку этого байера; null — байер смотрит свою
+    info: null,        // строка байера из списка обращений (для шапки у админа)
+    msgs: [],          // сообщения открытой переписки
+    pending: [],       // ещё отправляются (или не отправились)
+    shown: {},         // уже показанные сообщения — новые появляются с анимацией
+    threads: [], unread: -1, timer: null, fastTimer: null, errors: [],
+    agent: null, agentLoaded: false,
+    live: false, dbCh: null, onlineCh: null, typingCh: null,
+    adminOnline: false, typingUntil: 0, typingTimer: null, typingSentAt: 0,
+    readTimer: null, threadsTimer: null, unreadTimer: null
+  };
 
   // Запоминаем последние ошибки на странице — их увидит поддержка
   function rememberError(msg) {
@@ -41,79 +52,277 @@
     };
   }
 
+  function isAdmin() { return !!(state.me && state.me.role === "admin"); }
+  function isOpen() { return $("#modal-support").classList.contains("open"); }
+  function owner() { return support.user || (state.me && state.me.id); }   // чья переписка открыта
+
+  function avatarUrl(path) { return c.db().storage.from("avatars").getPublicUrl(path).data.publicUrl; }
+  function initials(name) {
+    var p = String(name || "").trim().split(/\s+/).filter(Boolean);
+    return ((p[0] || "?").charAt(0) + (p[1] ? p[1].charAt(0) : "")).toUpperCase();
+  }
+  function avaHtml(name, path) {
+    return path ? '<img src="' + esc(avatarUrl(path)) + '" alt="">' : esc(initials(name));
+  }
+
+  // ---------- Профиль поддержки (админ) для байера ----------
+  async function loadAgent() {
+    if (support.agentLoaded) return;
+    var r = await c.db().rpc("support_agent");
+    support.agentLoaded = true;
+    if (!r.error && r.data && r.data[0]) support.agent = r.data[0];   // файл 39 не запущен — просто без фото
+  }
+
+  // Шапка чата: фото, имя и строка состояния («в сети», «печатает…»)
+  function renderHead() {
+    var admin = !!support.user, info = support.info || {}, a = support.agent || {};
+    var name = admin ? info.full_name || info.email || "—" : a.full_name || t("support_title");
+    $("#support-ava").innerHTML = admin ? avaHtml(name, null) : a.avatar_path || a.full_name ? avaHtml(name, a.avatar_path) : U.icon("message", 20);
+    $("#support-title").textContent = name;
+    var sub = $("#support-sub"), typing = Date.now() < support.typingUntil;
+    sub.classList.toggle("on", typing || (!admin && support.adminOnline));
+    if (typing) sub.innerHTML = esc(t("sp_typing")) + '<i class="sp-dots"><b></b><b></b><b></b></i>';
+    else if (admin) sub.textContent = [info.ws_name, info.phone, info.email].filter(Boolean).join(" · ");
+    else sub.textContent = support.adminOnline ? t("sp_online") : t("sp_team");
+  }
+
   // userId = null — байер открывает свою переписку; иначе админ открывает переписку байера
   function openSupport(userId, info) {
+    var same = support.user === userId && support.msgs.length;
     support.user = userId;
-    var admin = !!userId;
-    $("#support-title").textContent = admin ? (info && info.full_name) || (info && info.email) || "—" : t("support_title");
-    $("#support-sub").textContent = admin
-      ? [info && info.ws_name, info && info.phone, info && info.email].filter(Boolean).join(" · ")
-      : t("support_hint");
-    $("#support-note").textContent = admin ? "" : t("support_note");
-    $("#support-log").innerHTML = '<p class="muted">' + esc(t("loading")) + "</p>";
+    support.info = info || null;
+    support.typingUntil = 0;
+    if (!same) { support.msgs = []; support.pending = []; support.shown = {}; }
+    $("#support-note").textContent = userId ? "" : t("support_note");
+    renderHead();
+    if (!same) $("#support-log").innerHTML = '<div class="sp-loading"><i class="sp-dots"><b></b><b></b><b></b></i></div>';
+    else renderLog(true);
     openModal("modal-support");
+    if (!userId) loadAgent().then(renderHead);
+    joinTyping();
     loadSupportLog(true);
-    setTimeout(function () { $("#support-text").focus(); }, 50);
+    // на телефоне клавиатура не выскакивает сама — сначала видно переписку
+    if (window.matchMedia("(pointer: fine)").matches) setTimeout(function () { $("#support-text").focus(); }, 60);
   }
 
   async function loadSupportLog(scroll) {
-    var owner = support.user || (state.me && state.me.id);
-    if (!owner) return;
+    var who = owner();
+    if (!who) return;
     var res = await c.db().from("support_messages")
-      .select("id, from_admin, body, meta, created_at")
-      .eq("user_id", owner)
-      .order("created_at", { ascending: true })
-      .limit(300);
+      .select("id, user_id, from_admin, body, meta, read_at, created_at")
+      .eq("user_id", who)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (who !== owner()) return;   // пока грузилось, открыли другую переписку
     if (res.error) { handleError(res.error); return; }
-    renderSupportLog(res.data || [], scroll);
-    // прочитали — убрать красную цифру
-    var mark = await c.db().rpc("support_mark_read", { p_user: support.user });
-    if (!mark.error) checkSupportUnread();
+    var first = !support.msgs.length;
+    support.msgs = (res.data || []).reverse();
+    if (first) support.msgs.forEach(function (m) { support.shown[m.id] = 1; });   // при открытии — без анимации
+    renderLog(scroll);
+    markRead();
   }
 
-  function renderSupportLog(rows, scroll) {
-    var admin = !!support.user;
-    var log = $("#support-log");
-    var nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
-    if (!rows.length) {
-      log.innerHTML = '<p class="muted">' + esc(admin ? t("support_none") : t("support_empty")) + "</p>";
+  // Прочитали — убрать красную цифру (не чаще раза в секунду)
+  function markRead() {
+    clearTimeout(support.readTimer);
+    support.readTimer = setTimeout(async function () {
+      if (!isOpen() || document.hidden) return;
+      var mine = !!support.user;   // у админа непрочитанные — от байера, у байера — от админа
+      var has = support.msgs.some(function (m) { return !m.read_at && m.from_admin !== mine; });
+      if (!has) return;
+      var r = await c.db().rpc("support_mark_read", { p_user: support.user });
+      if (!r.error) {
+        support.msgs.forEach(function (m) { if (m.from_admin !== mine && !m.read_at) m.read_at = new Date().toISOString(); });
+        checkUnreadSoon();
+        if (support.user) threadsSoon();
+      }
+    }, 400);
+  }
+
+  function dayLabel(d) {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var day = new Date(d); day.setHours(0, 0, 0, 0);
+    var diff = Math.round((today - day) / 864e5);
+    if (diff === 0) return t("sp_today");
+    if (diff === 1) return t("sp_yesterday");
+    return day.toLocaleDateString(locale(), { day: "numeric", month: "long", year: day.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+  }
+  function hhmm(d) { return new Date(d).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }); }
+
+  function renderLog(scroll) {
+    var admin = !!support.user, log = $("#support-log");
+    var nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+    var all = support.msgs.concat(support.pending);
+    $("#support-note").classList.toggle("hidden", all.length > 0);   // подсказку о тех. данных — только в пустом чате
+    if (!all.length) {
+      var a = support.agent || {};
+      log.innerHTML = admin ? '<p class="sp-empty muted">' + esc(t("support_none")) + "</p>" :
+        '<div class="sp-hello"><span class="sp-ava sp-ava-lg">' + (a.avatar_path || a.full_name ? avaHtml(a.full_name, a.avatar_path) : U.icon("message", 26)) + "</span>" +
+        "<b>" + esc(a.full_name || t("support_title")) + "</b><p>" + esc(t("support_empty")) + "</p></div>";
       return;
     }
-    log.innerHTML = rows.map(function (m) {
+    var html = "", lastDay = "", a2 = support.agent || {};
+    all.forEach(function (m, i) {
+      var day = dayLabel(m.created_at);
+      if (day !== lastDay) { html += '<div class="sp-day"><span>' + esc(day) + "</span></div>"; lastDay = day; }
       var mine = admin ? m.from_admin : !m.from_admin;
-      var who = m.from_admin ? t("support_team") : (admin ? t("support_buyer") : t("support_you"));
+      var next = all[i + 1];
+      var tail = !next || next.from_admin !== m.from_admin || dayLabel(next.created_at) !== day;   // последнее в группе
+      var key = m.id || m.tmp, fresh = !support.shown[key];
+      support.shown[key] = 1;
+      var tick = "";
+      if (mine) {
+        tick = m.failed ? '<i class="sp-tick fail">!</i>'
+          : m.tmp ? '<i class="sp-tick wait"></i>'
+          : '<i class="sp-tick' + (m.read_at ? " read" : "") + '">' + U.icon("check", 13) + (m.read_at ? U.icon("check", 13) : "") + "</i>";
+      }
       var tech = admin && !m.from_admin && m.meta && Object.keys(m.meta).length
-        ? '<details class="support-tech"><summary>' + esc(t("support_tech")) + "</summary><pre>" +
-          esc(JSON.stringify(m.meta, null, 2)) + "</pre></details>"
+        ? '<details class="support-tech"><summary>' + esc(t("support_tech")) + "</summary><pre>" + esc(JSON.stringify(m.meta, null, 2)) + "</pre></details>"
         : "";
-      return '<div class="ai-msg ' + (mine ? "ai-me" : "ai-bot") + '"><div class="support-who">' + esc(who) + " · " +
-        esc(fmtTime(m.created_at)) + "</div>" + esc(m.body) + tech + "</div>";
-    }).join("");
+      // у байера рядом с ответами поддержки — фото админа (на последнем сообщении группы)
+      var ava = !admin && !mine ? '<span class="sp-ava sp-ava-sm' + (tail ? "" : " ghost") + '">' + (tail ? (a2.avatar_path || a2.full_name ? avaHtml(a2.full_name, a2.avatar_path) : U.icon("message", 14)) : "") + "</span>" : "";
+      html += '<div class="sp-row ' + (mine ? "mine" : "theirs") + (tail ? " tail" : "") + (fresh ? " sp-new" : "") + '"' +
+        (m.failed ? ' data-retry="' + esc(m.tmp) + '" title="' + esc(t("sp_retry")) + '"' : "") + ">" + ava +
+        '<div class="sp-bubble">' + esc(m.body) + '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>";
+    });
+    if (Date.now() < support.typingUntil) {
+      html += '<div class="sp-row theirs tail sp-typing-row' + ($("#support-log .sp-typing-row") ? "" : " sp-new") + '">' +
+        (admin ? "" : '<span class="sp-ava sp-ava-sm ghost"></span>') + '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>';
+    }
+    log.innerHTML = html;
     if (scroll || nearBottom) log.scrollTop = log.scrollHeight;
   }
 
-  async function sendSupport() {
+  // ---------- Отправка: сообщение появляется сразу ----------
+  function sendSupport() {
     var box = $("#support-text"), text = box.value.trim();
     if (!text) { box.focus(); return; }
-    var btn = $("#support-send");
-    btn.disabled = true;
-    var res = support.user
-      ? await c.db().rpc("admin_support_reply", { p_user: support.user, p_body: text })
-      : await c.db().rpc("support_send", { p_body: text, p_meta: supportMeta() });
-    btn.disabled = false;
+    var p = { tmp: "t" + Date.now() + Math.random().toString(36).slice(2, 6), body: text, from_admin: !!support.user,
+      created_at: new Date().toISOString(), forUser: support.user };
+    support.pending.push(p);
+    box.value = "";
+    growBox();
+    renderLog(true);
+    deliver(p);
+  }
+
+  async function deliver(p) {
+    p.failed = false;
+    var res = p.forUser
+      ? await c.db().rpc("admin_support_reply", { p_user: p.forUser, p_body: p.body })
+      : await c.db().rpc("support_send", { p_body: p.body, p_meta: supportMeta() });
     if (res.error) {
+      p.failed = true;
+      renderLog(false);
       if (/too_many_messages/.test(res.error.message || "")) toast(t("support_too_many"), "error");
       else handleError(res.error);
       return;
     }
-    box.value = "";
-    toast(t("support_sent"), "ok");
-    // сообщить админу в Telegram (если подключено); ошибка здесь не мешает байеру
-    if (!support.user) {
-      try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
+    // заменить «черновик» настоящим сообщением (если Realtime его ещё не принёс)
+    support.pending = support.pending.filter(function (x) { return x !== p; });
+    var id = typeof res.data === "string" ? res.data : null;
+    if (id) support.shown[id] = 1;
+    if (id && !support.msgs.some(function (m) { return m.id === id; })) {
+      support.msgs.push({ id: id, user_id: p.forUser || state.me.id, from_admin: p.from_admin, body: p.body, meta: {}, read_at: null, created_at: p.created_at });
     }
-    await loadSupportLog(true);
-    if (support.user && state.tab === "support") loadSupportThreads();
+    if (owner() === (p.forUser || state.me.id)) renderLog(false);
+    if (!id) loadSupportLog(false);
+    // сообщить админу в Telegram (если подключено); ошибка здесь не мешает байеру
+    if (!p.forUser) {
+      try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
+    } else threadsSoon();
+  }
+
+  // Поле ввода растёт вместе с текстом (до 5 строк)
+  function growBox() {
+    var box = $("#support-text");
+    box.style.height = "auto";
+    box.style.height = Math.min(box.scrollHeight, 132) + "px";
+  }
+
+  // ---------- Realtime: сообщения, «в сети», «печатает…» ----------
+  function onRow(payload) {
+    var m = payload.new;
+    if (!m || !m.id) return;
+    if (payload.eventType === "INSERT" && isAdmin()) threadsSoon();
+    if (isOpen() && m.user_id === owner()) {
+      var i = -1;
+      support.msgs.forEach(function (x, k) { if (x.id === m.id) i = k; });
+      if (i >= 0) support.msgs[i] = Object.assign({}, support.msgs[i], m);
+      else {
+        // своё сообщение, которое ещё «отправляется», — убрать черновик
+        var mineSide = !!support.user;
+        if (m.from_admin === mineSide) {
+          var k = support.pending.findIndex(function (p) { return !p.failed && p.body === m.body; });
+          if (k >= 0) { support.shown[m.id] = 1; support.pending.splice(k, 1); }
+        } else support.typingUntil = 0;   // пришёл ответ — «печатает…» больше не нужно
+        support.msgs.push(m);
+        support.msgs.sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+      }
+      renderLog(false);
+      renderHead();
+      if (m.from_admin !== !!support.user) markRead();
+    }
+    if (payload.eventType === "INSERT") checkUnreadSoon();
+  }
+
+  function startLive() {
+    var db = c.db();
+    if (!db || !db.channel || support.dbCh) return;
+    support.dbCh = db.channel("support-db")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, onRow)
+      .subscribe(function (status) {
+        var was = support.live;
+        support.live = status === "SUBSCRIBED";
+        if (support.live && !was && isOpen()) loadSupportLog(false);   // переподключились — догнать пропущенное
+      });
+    // «в сети»: админ отмечается, байеры только слушают
+    support.onlineCh = db.channel("support-online");
+    support.onlineCh.on("presence", { event: "sync" }, function () {
+      var st = support.onlineCh.presenceState();
+      support.adminOnline = Object.keys(st).some(function (k) { return (st[k] || []).some(function (p) { return p.admin; }); });
+      if (isOpen()) renderHead();
+    }).subscribe(function (status) {
+      if (status === "SUBSCRIBED" && isAdmin()) support.onlineCh.track({ admin: true });
+    });
+  }
+
+  function stopLive() {
+    var db = c.db();
+    [support.dbCh, support.onlineCh, support.typingCh].forEach(function (ch) { if (ch && db) db.removeChannel(ch); });
+    support.dbCh = support.onlineCh = support.typingCh = null;
+    support.live = false;
+    support.adminOnline = false;
+  }
+
+  // «печатает…»: свой канал на каждую переписку, пока окно открыто
+  function joinTyping() {
+    var db = c.db(), who = owner();
+    if (!db || !db.channel || !who) return;
+    if (support.typingCh && support.typingCh._who === who) return;
+    if (support.typingCh) db.removeChannel(support.typingCh);
+    var ch = db.channel("support-typing-" + who);
+    ch._who = who;
+    ch.on("broadcast", { event: "typing" }, function (msg) {
+      var p = msg.payload || {};
+      if (!!p.admin === !!support.user) return;   // это я сам
+      support.typingUntil = Date.now() + 4000;
+      renderHead();
+      if (!$("#support-log .sp-typing-row")) renderLog(false);
+      clearTimeout(support.typingTimer);
+      support.typingTimer = setTimeout(function () { renderHead(); renderLog(false); }, 4100);
+    }).subscribe();
+    support.typingCh = ch;
+  }
+  function leaveTyping() {
+    if (support.typingCh && c.db()) c.db().removeChannel(support.typingCh);
+    support.typingCh = null;
+    support.typingUntil = 0;
+  }
+  function sendTyping() {
+    if (!support.typingCh || Date.now() - support.typingSentAt < 2500) return;
+    support.typingSentAt = Date.now();
+    support.typingCh.send({ type: "broadcast", event: "typing", payload: { admin: !!support.user } });
   }
 
   // ---------- Telegram-уведомления (админ) ----------
@@ -150,21 +359,28 @@
   }
 
   // Админ: список переписок
-  async function loadSupportThreads() {
-    if (!state.me || state.me.role !== "admin") return;
-    loadTgStatus();
+  async function loadSupportThreads(quiet) {
+    if (!isAdmin()) return;
+    if (!quiet) loadTgStatus();
     var res = await c.db().rpc("admin_support_threads");
-    if (res.error) { handleError(res.error); return; }
+    if (res.error) { if (!quiet) handleError(res.error); return; }
     support.threads = res.data || [];
     $("#support-threads").innerHTML = support.threads.length ? support.threads.map(function (r) {
+      var name = r.full_name || r.email || "—";
       var last = (r.last_from_admin ? t("support_team") + ": " : "") + r.last_body;
       return '<button type="button" class="support-thread' + (r.unread > 0 ? " unread" : "") + '" data-user="' + esc(r.user_id) + '">' +
-        '<span class="support-thread-top"><b>' + esc(r.full_name || r.email || "—") + "</b>" +
-        (r.unread > 0 ? '<span class="badge-inline">' + esc(String(r.unread)) + "</span>" : "") +
+        '<span class="sp-ava">' + esc(initials(name)) + "</span>" +
+        '<span class="support-thread-body"><span class="support-thread-top"><b>' + esc(name) + "</b>" +
         '<small class="muted">' + esc(fmtTime(r.last_at)) + "</small></span>" +
         '<small class="muted">' + esc([r.ws_name, r.phone].filter(Boolean).join(" · ")) + "</small>" +
-        '<span class="support-thread-last">' + esc(last.length > 140 ? last.slice(0, 140) + "…" : last) + "</span></button>";
+        '<span class="support-thread-last">' + esc(last.length > 140 ? last.slice(0, 140) + "…" : last) +
+        (r.unread > 0 ? '<span class="badge-inline">' + esc(String(r.unread)) + "</span>" : "") + "</span></span></button>";
     }).join("") : '<p class="muted">' + esc(t("support_no_threads")) + "</p>";
+  }
+  function threadsSoon() {
+    if (!isAdmin() || state.tab !== "support") return;
+    clearTimeout(support.threadsTimer);
+    support.threadsTimer = setTimeout(function () { loadSupportThreads(true); }, 300);
   }
 
   // Красная цифра: у байера — на 💬, у админа — на вкладке «Поддержка»
@@ -173,50 +389,82 @@
     var res = await c.db().rpc("support_unread");
     if (res.error) return;
     var n = Number(res.data) || 0;
-    var admin = state.me.role === "admin";
+    var admin = isAdmin();
     var badge = $(admin ? "#support-tab-badge" : "#support-badge");
     badge.textContent = n > 99 ? "99+" : String(n);
     badge.classList.toggle("hidden", n === 0);
-    if (support.unread >= 0 && n > support.unread) {
+    // окно с этой перепиской открыто — сообщение и так видно, всплывашка не нужна
+    if (support.unread >= 0 && n > support.unread && !(isOpen() && !admin)) {
       toast(t(admin ? "support_new" : "support_reply_new"), "ok");
-      if (admin && state.tab === "support") loadSupportThreads();
     }
     support.unread = n;
   }
+  function checkUnreadSoon() {
+    clearTimeout(support.unreadTimer);
+    support.unreadTimer = setTimeout(checkSupportUnread, 700);
+  }
 
+  // Подстраховка, если Realtime недоступен: открытый чат — каждые 4 секунды, цифра — раз в 20 секунд
   function startSupportPolling() {
     stopSupportPolling();
     support.unread = -1;
     checkSupportUnread();
+    startLive();
+    var n = 0;
     support.timer = setInterval(function () {
       if (document.hidden) return; // вкладка свёрнута — не тратим запросы
-      checkSupportUnread();
-      if ($("#modal-support").classList.contains("open")) loadSupportLog(false);
-    }, 30000);
+      n++;
+      // с Realtime — всё равно раз в 12 секунд (если файл 39 ещё не запущен, события не придут)
+      if (isOpen() && (!support.live || n % 3 === 0)) loadSupportLog(false);
+      if (!support.live ? n % 5 === 0 : n % 15 === 0) checkSupportUnread();
+    }, 4000);
   }
 
   function stopSupportPolling() {
     if (support.timer) clearInterval(support.timer);
     support.timer = null;
     support.unread = -1;
+    stopLive();
+    support.typingCh = null;
+    support.agent = null;
+    support.agentLoaded = false;
+    support.msgs = []; support.pending = []; support.shown = {};
     $("#support-badge").classList.add("hidden");
     $("#support-tab-badge").classList.add("hidden");
   }
 
   // Кнопки и поля поддержки (вызывается из app.js при входе в кабинет)
   function bind() {
-  $("#support-btn").addEventListener("click", function () { openSupport(null, null); });
-  $("#support-form").addEventListener("submit", function (e) { e.preventDefault(); sendSupport(); });
-  $("#support-text").addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendSupport(); }
-  });
-  $("#tg-connect").addEventListener("click", connectTelegram);
-  $("#support-threads").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-user]");
-    if (!b) return;
-    var row = (support.threads || []).filter(function (r) { return r.user_id === b.dataset.user; })[0];
-    openSupport(b.dataset.user, row || null);
-  });
+    $("#support-btn").addEventListener("click", function () { openSupport(null, null); });
+    $("#support-form").addEventListener("submit", function (e) { e.preventDefault(); sendSupport(); $("#support-text").focus(); });
+    $("#support-send").setAttribute("aria-label", t("support_send"));
+    var box = $("#support-text");
+    box.addEventListener("input", function () { growBox(); if (box.value.trim()) sendTyping(); });
+    box.addEventListener("keydown", function (e) {
+      // на компьютере Enter — отправить, Shift+Enter — новая строка; на телефоне Enter — новая строка
+      var desk = window.matchMedia("(pointer: fine)").matches;
+      if (e.key === "Enter" && !e.isComposing && ((desk && !e.shiftKey) || e.ctrlKey || e.metaKey)) { e.preventDefault(); sendSupport(); }
+    });
+    $("#support-log").addEventListener("click", function (e) {
+      var r = e.target.closest("[data-retry]");
+      if (!r) return;
+      var p = support.pending.filter(function (x) { return x.tmp === r.getAttribute("data-retry"); })[0];
+      if (p) { renderLog(false); deliver(p); }
+    });
+    // окно закрыли — перестать слушать «печатает…»
+    new MutationObserver(function () { if (!isOpen()) leaveTyping(); })
+      .observe($("#modal-support"), { attributes: true, attributeFilter: ["class"] });
+    // вернулись на вкладку — отметить прочитанным и догнать пропущенное
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && isOpen()) loadSupportLog(false);
+    });
+    $("#tg-connect").addEventListener("click", connectTelegram);
+    $("#support-threads").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-user]");
+      if (!b) return;
+      var row = (support.threads || []).filter(function (r) { return r.user_id === b.dataset.user; })[0];
+      openSupport(b.dataset.user, row || null);
+    });
   }
 
   U.support = {
