@@ -3701,3 +3701,6 @@ body.readonly .ha-grid { display: none; }
   /* «+» внизу заменяет плавающую кнопку */
   body:not(.no-bottom-nav) #view-admin:has(.bottom-nav.has-plus) .fab { display: none; }
 }
+
+/* На телефоне «Новый заказ» — круглая «+» в нижнем меню, большую кнопку на главной прячем (на компьютере она остаётся) */
+@media (max-width: 640px) { .ha-main { display: none; } }

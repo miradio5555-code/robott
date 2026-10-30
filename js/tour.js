@@ -16,7 +16,7 @@
   var STEPS = [
     { id: "welcome" },
     { id: "menu", sel: ["#section-menu-btn"] },
-    { id: "new", sel: ["#home-new"], tab: "home" },
+    { id: "new", sel: ["#home-new", "#bn-plus"], tab: "home" },
     { id: "link", sel: ["#home-link"], tab: "home" },
     { id: "wh", sel: ["#tab-home .warehouse"], tab: "home" },
     { id: "chips", sel: ["#chips"], tab: "orders" },
