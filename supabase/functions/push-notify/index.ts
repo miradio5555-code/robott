@@ -5,7 +5,7 @@
 //   "support" — написали в поддержку: байер → всем администраторам; администратор (с полем user) → этому байеру.
 //   "kyc"     — байер отправил документы на проверку → администраторам.
 //   "exchange" / "exchange_paid" — клиент оставил заявку на обмен / загрузил оплату (без входа, по номеру заявки) → владельцу кабинета.
-// Ключи отправителя лежат в таблице push_keys (читает только эта функция).
+// Ключи отправителя создаются сами при первом запуске и лежат в таблице push_keys (читает только эта функция).
 // =====================================================
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -29,8 +29,14 @@ Deno.serve(async (req) => {
     const action = String(body.action ?? "");
     const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-    const { data: keys } = await db.from("push_keys").select("pub, priv").eq("id", 1).maybeSingle();
-    if (!keys?.pub || !keys?.priv) return json({ ok: false, reason: "no_keys" });
+    let { data: keys } = await db.from("push_keys").select("pub, priv").eq("id", 1).maybeSingle();
+    if (!keys?.pub || !keys?.priv) {
+      // первый запуск: создаём пару ключей прямо здесь, секретный ключ остаётся только в базе
+      const k = webpush.generateVAPIDKeys();
+      await db.from("push_keys").upsert({ id: 1, pub: k.publicKey, priv: k.privateKey });
+      keys = { pub: k.publicKey, priv: k.privateKey };
+    }
+    if (action === "init") return json({ ok: true });
     webpush.setVapidDetails("mailto:miradio.5555@gmail.com", keys.pub, keys.priv);
 
     // отправить всем подпискам этих людей; умершие подписки (телефон отписался) удаляем

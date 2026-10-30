@@ -79,15 +79,20 @@
   }
   function subscribe() {
     try {
-      var key = window.CARGO_CONFIG && window.CARGO_CONFIG.VAPID_PUBLIC_KEY;
-      var st = U.core && U.core.state;
-      if (!key || !st || !st.me || !U.core.db() || !("PushManager" in window) || !navigator.serviceWorker) return;
+      var st = U.core && U.core.state, db = U.core && U.core.db();
+      if (!st || !st.me || !db || !("PushManager" in window) || !navigator.serviceWorker) return;
       if (!("Notification" in window) || Notification.permission !== "granted") return;
-      navigator.serviceWorker.ready.then(function (reg) {
+      // публичный ключ берём из базы; если его ещё нет — просим функцию создать пару и спрашиваем снова
+      db.rpc("push_public_key").then(function (r) {
+        if (r.error) throw r.error;
+        if (r.data) return r.data;
+        return db.functions.invoke("push-notify", { body: { action: "init" } }).then(function () { return db.rpc("push_public_key"); })
+          .then(function (r2) { if (!r2.data) throw new Error("no_key"); return r2.data; });
+      }).then(function (key) { return navigator.serviceWorker.ready.then(function (reg) {
         return reg.pushManager.getSubscription().then(function (s) {
           return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
         });
-      }).then(function (s) {
+      }); }).then(function (s) {
         var j = s.toJSON();
         return U.core.db().from("push_subs").upsert({ endpoint: j.endpoint, user_id: st.me.id, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
       }).catch(function () { /* файл 43 ещё не запущен или браузер не умеет — звук на открытом сайте работает и так */ });
