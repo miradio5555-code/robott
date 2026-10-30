@@ -3567,3 +3567,74 @@ body:has(.sp-modal.open) .toast { bottom: calc(80px + env(safe-area-inset-bottom
 /* перетаскивание файла в окно чата */
 .sp-modal .modal-sheet.sp-drop::after { content: ""; position: absolute; inset: 8px; z-index: 5; border: 3px dashed var(--wa-green); border-radius: 14px;
   background: color-mix(in srgb, var(--wa-green) 10%, transparent); pointer-events: none; }
+
+/* =====================================================
+   ЧАТ ПОДДЕРЖКИ — В СТИЛЕ БРЕНДА ULA FACTORY
+   Чёрная шапка как на логотипе, свои сообщения — фирменным красным,
+   на фоне — еле заметный узор-тундук из знака ULA.
+   ===================================================== */
+.sp-modal {
+  --wa-bg: #F3F2F4; --wa-head: #151417; --wa-in: #FFFFFF; --wa-out: #A30F1F; --wa-text: #1D1D1F; --wa-meta: #7A7880;
+  --wa-read: #FFFFFF; --wa-green: #A30F1F; --wa-bar: #FFFFFF; --wa-input: #F3F2F4; --wa-chip: #FFFFFF; --wa-chip-text: #5D5B62;
+  --ula-pattern: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22180%22%20height=%22180%22%20viewBox=%220%200%20180%20180%22%3E%3Cg%20transform=%22translate%2810%2012%29%20scale%28.62%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%2821,20,23,0.055%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg%20transform=%22translate%28100%2098%29%20scale%28.62%29%20rotate%2812%2032%2032%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%2821,20,23,0.055%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+html[data-theme="dark"] .sp-modal {
+  --wa-bg: #0C0B0E; --wa-head: #151417; --wa-in: #1F1E23; --wa-out: #A30F1F; --wa-text: #F2F1F4; --wa-meta: rgba(242, 241, 244, .55);
+  --wa-green: #E5485B; --wa-bar: #151417; --wa-input: #24232A; --wa-chip: #1F1E23; --wa-chip-text: #A9A7B0; --ula-pattern: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22180%22%20height=%22180%22%20viewBox=%220%200%20180%20180%22%3E%3Cg%20transform=%22translate%2810%2012%29%20scale%28.62%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%28255,255,255,0.035%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg%20transform=%22translate%28100%2098%29%20scale%28.62%29%20rotate%2812%2032%2032%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%28255,255,255,0.035%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="dark"]) .sp-modal {
+    --wa-bg: #0C0B0E; --wa-head: #151417; --wa-in: #1F1E23; --wa-out: #A30F1F; --wa-text: #F2F1F4; --wa-meta: rgba(242, 241, 244, .55);
+    --wa-green: #E5485B; --wa-bar: #151417; --wa-input: #24232A; --wa-chip: #1F1E23; --wa-chip-text: #A9A7B0; --ula-pattern: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22180%22%20height=%22180%22%20viewBox=%220%200%20180%20180%22%3E%3Cg%20transform=%22translate%2810%2012%29%20scale%28.62%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%28255,255,255,0.035%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg%20transform=%22translate%28100%2098%29%20scale%28.62%29%20rotate%2812%2032%2032%29%22%3E%3Cg%20fill=%22none%22%20stroke=%22rgba%28255,255,255,0.035%29%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M14.5%2047A22%2022%200%201%201%2049.5%2047%22%20stroke-width=%223.6%22/%3E%3Cg%20stroke-width=%221.7%22%3E%3Cpath%20d=%22M16.3%2019.1C26%2022.1%2040.6%2031.1%2050.1%2042.5%22/%3E%3Cpath%20d=%22M14.3%2022.1C24.9%2024.4%2038.9%2033%2048.4%2044.9%22/%3E%3Cpath%20d=%22M12.6%2023.8C23.9%2026.7%2037.2%2034.9%2046.5%2046.8%22/%3E%3Cpath%20d=%22M47.7%2019.1C38%2022.1%2023.4%2031.1%2013.9%2042.5%22/%3E%3Cpath%20d=%22M49.7%2022.1C39.1%2024.4%2025.1%2033%2015.6%2044.9%22/%3E%3Cpath%20d=%22M51.4%2023.8C40.1%2026.7%2026.8%2034.9%2017.5%2046.8%22/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+.sp-log { background-color: var(--wa-bg); background-image: var(--ula-pattern); background-size: 180px 180px; }
+
+/* шапка: чёрная, белый текст, тонкая красная линия снизу — как полоски у «FACTORY» на логотипе */
+.sp-head { background: var(--wa-head); border-bottom: 0; box-shadow: inset 0 -2px 0 #A30F1F; color: #fff; }
+.sp-head-t h2 { color: #fff; letter-spacing: -.01em; }
+.sp-status, .sp-status.on { color: rgba(255, 255, 255, .62); }
+.sp-status.on::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #34C759; vertical-align: 1px; }
+.sp-status:has(.sp-dots) { color: #FF8A96; }
+.sp-status:has(.sp-dots)::before { display: none; }
+.sp-back, .sp-close { color: #fff; }
+.sp-close:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.sp-head .sp-ava { background: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .14); }
+.sp-ava.sp-brand { background: #151417; }
+.sp-ava.sp-brand img, .sp-head .sp-ava.sp-brand img { background: transparent; }
+
+/* свои сообщения — фирменный красный, белый текст */
+.sp-row.mine .sp-bubble { background: linear-gradient(160deg, #B5132A, #A30F1F 55%, #8E0D1B); color: #fff; }
+.sp-row.head.mine .sp-bubble::before { background: #B5132A; }
+.sp-row.mine .sp-meta, .sp-row.mine .sp-tick { color: rgba(255, 255, 255, .72); }
+.sp-row.mine .sp-tick.read { color: #fff; }
+.sp-row.mine .sp-file { background: rgba(255, 255, 255, .14); color: #fff; }
+.sp-row.mine .sp-file:hover { background: rgba(255, 255, 255, .2); color: #fff; }
+.sp-row.mine .sp-file-t small, .sp-row.mine .sp-file .ico { color: rgba(255, 255, 255, .75); }
+.sp-row.mine .sp-file-ico { background: #fff; color: #A30F1F; }
+.sp-row.mine .support-tech summary { color: rgba(255, 255, 255, .8); }
+.sp-bubble { box-shadow: 0 1px 1px rgba(21, 20, 23, .08), 0 2px 8px rgba(21, 20, 23, .05); }
+
+/* даты — тёмные плашки с белым текстом */
+.sp-day span { background: rgba(21, 20, 23, .72); color: #fff; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: none; letter-spacing: .02em; }
+
+/* поле ввода: красная круглая кнопка, скрепка — красная при наведении */
+.sp-composer { border-top: 1px solid color-mix(in srgb, var(--wa-meta) 18%, transparent); }
+.sp-input textarea, .sp-input textarea:focus { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wa-meta) 22%, transparent); }
+.sp-input textarea:focus { box-shadow: inset 0 0 0 1.5px #A30F1F; }
+.sp-send { background: linear-gradient(160deg, #C4162E, #A30F1F); box-shadow: 0 4px 12px rgba(163, 15, 31, .35); }
+.sp-input textarea:placeholder-shown + .sp-send { box-shadow: none; }
+
+/* пустой чат: знак ULA и приветствие */
+.sp-hello .sp-ava-lg { background: #151417; box-shadow: 0 10px 30px rgba(163, 15, 31, .25); }
+.sp-hello b { font-size: 18px; letter-spacing: -.01em; }
+
+/* перетаскивание и «печатает» — красным */
+.sp-modal .modal-sheet.sp-drop::after { border-color: #A30F1F; background: rgba(163, 15, 31, .08); }
+.sp-file .sp-up { border-top-color: var(--wa-green); }
+
+/* список обращений у админа: метки красные */
+.support-thread.unread .support-thread-top small { color: #A30F1F; }
+.support-thread-last .badge-inline { background: #A30F1F; }
+html[data-theme="dark"] .support-thread.unread .support-thread-top small { color: #E5485B; }
+#support-log .sp-row.mine .sp-bubble { color: #fff; }
