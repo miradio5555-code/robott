@@ -223,18 +223,33 @@
   function isActive(r) { return ["new", "paid", "confirmed", "sent"].indexOf(r.status) !== -1 || r.dispute === "open"; }
   function countActive() { return fx.list.filter(function (r) { return isActive(r) && r.status !== "sent"; }).length; }
   function setBadge(n) {
-    var b = $("#fx-badge");
-    if (!b) return;
-    b.textContent = n > 99 ? "99+" : String(n);
-    b.classList.toggle("hidden", !n);
+    ["#fx-badge", "#bn-fx-badge"].forEach(function (sel) {
+      var b = $(sel);
+      if (!b) return;
+      b.textContent = n > 99 ? "99+" : String(n);
+      b.classList.toggle("hidden", !n);
+    });
   }
   // для значка в меню: сколько заявок ждут (без загрузки всего списка)
   async function loadCount() {
-    if (!state.ws || !c.db()) return;
-    var res = await c.db().from("exchange_requests").select("id", { count: "exact", head: true })
-      .eq("workspace_id", state.ws.id).in("status", ["new", "paid", "confirmed"]);
-    if (res.error) return;
-    var n = res.count || 0;
+    if (!state.me || !c.db()) return;
+    var n = 0;
+    if (state.ws) {
+      var res = await c.db().from("exchange_requests").select("id", { count: "exact", head: true })
+        .eq("workspace_id", state.ws.id).in("status", ["new", "paid", "confirmed"]);
+      if (res.error) return;
+      n = res.count || 0;
+    }
+    // администратору: сколько людей ждут проверки личности — это тоже в значок и со звуком
+    if (isAdmin()) {
+      var kr = await c.db().rpc("admin_kyc_list");
+      if (!kr.error) {
+        var kp = (kr.data || []).filter(function (k) { return k.status === "pending"; }).length;
+        if (fx.kycCnt != null && kp > fx.kycCnt && U.alerts) U.alerts.ping({ title: t("kyc_new_ping"), tag: "kyc" });
+        fx.kycCnt = kp;
+        n += kp;
+      }
+    }
     if (fx.cnt != null && n > fx.cnt && U.alerts) U.alerts.ping({ title: t("fx_new_req"), tag: "fx" });
     fx.cnt = n;
     setBadge(n);
@@ -799,7 +814,7 @@
     var keepCny = $("#fxp-cny") ? $("#fxp-cny").value : "";
     var sub = buyerSub();
     box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' + (isAdmin()
-      ? disputesAdminHtml() + (state.ws ? requestsHtml() : "") + kycAdminHtml() + (kgBuyer() ? platformHtml() : "")
+      ? disputesAdminHtml() + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? kycAdminHtml() : "") + (state.ws ? requestsHtml() : "") + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? "" : kycAdminHtml()) + (kgBuyer() ? platformHtml() : "")
       : subTabsHtml(sub) + (sub === "ula" ? ulaHtml() : (state.ws ? requestsHtml() + myHtml() : "")));
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
     if (keepCny && $("#fxp-cny")) $("#fxp-cny").value = keepCny;   // набранная сумма не теряется при перерисовке
