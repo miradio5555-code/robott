@@ -26,8 +26,13 @@
     agent: null, agentLoaded: false,
     live: false, dbCh: null, onlineCh: null, typingCh: null,
     adminOnline: false, typingUntil: 0, typingTimer: null, typingSentAt: 0,
-    readTimer: null, threadsTimer: null, unreadTimer: null
+    readTimer: null, threadsTimer: null, unreadTimer: null,
+    draft: [],         // выбранные, но ещё не отправленные файлы
+    urls: {},          // подписанные ссылки на файлы: путь → { url, until }
+    noFiles: false     // файл 40 ещё не запущен — скрепку не показываем
   };
+  var BUCKET = "support-files", MAX_FILES = 6, MAX_SIZE = 20 * 1024 * 1024;
+  var OK_TYPES = /^(image\/(jpeg|png|webp|gif|heic|heif)|video\/(mp4|quicktime|webm)|application\/pdf|text\/(plain|csv)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)|vnd\.ms-excel))$/;
 
   // Запоминаем последние ошибки на странице — их увидит поддержка
   function rememberError(msg) {
@@ -92,7 +97,7 @@
     support.user = userId;
     support.info = info || null;
     support.typingUntil = 0;
-    if (!same) { support.msgs = []; support.pending = []; support.shown = {}; }
+    if (!same) { support.msgs = []; support.pending = []; support.shown = {}; clearDraft(); }
     $("#support-note").textContent = userId ? "" : t("support_note");
     renderHead();
     if (!same) $("#support-log").innerHTML = '<div class="sp-loading"><i class="sp-dots"><b></b><b></b><b></b></i></div>';
@@ -109,11 +114,16 @@
   async function loadSupportLog(scroll) {
     var who = owner();
     if (!who) return;
-    var res = await c.db().from("support_messages")
-      .select("id, user_id, from_admin, body, meta, read_at, created_at")
+    var cols = "id, user_id, from_admin, body, meta, read_at, created_at" + (support.noFiles ? "" : ", files");
+    var res = await c.db().from("support_messages").select(cols)
       .eq("user_id", who)
       .order("created_at", { ascending: false })
       .limit(200);
+    if (res.error && !support.noFiles && /files/.test(res.error.message || "")) {
+      support.noFiles = true;   // файл 40 ещё не запущен — чат работает без файлов
+      $("#support-attach").classList.add("hidden");
+      return loadSupportLog(scroll);
+    }
     if (who !== owner()) return;   // пока грузилось, открыли другую переписку
     if (res.error) { handleError(res.error); return; }
     var first = !support.msgs.length;
@@ -183,22 +193,146 @@
         : "";
       html += '<div class="sp-row ' + (mine ? "mine" : "theirs") + (head ? " head" : "") + (tail ? " tail" : "") + (fresh ? " sp-new" : "") + '"' +
         (m.failed ? ' data-retry="' + esc(m.tmp) + '" title="' + esc(t("sp_retry")) + '"' : "") + ">" +
-        '<div class="sp-bubble">' + esc(m.body) + '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>";
+        '<div class="sp-bubble' + (filesOf(m).length ? " has-files" : "") + (m.body ? "" : " no-text") + '">' + filesHtml(m) + esc(m.body) +
+        '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>";
     });
     if (Date.now() < support.typingUntil) {
       html += '<div class="sp-row theirs head tail sp-typing-row' + ($("#support-log .sp-typing-row") ? "" : " sp-new") + '">' +
         '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>';
     }
     log.innerHTML = html;
-    if (scroll || nearBottom) log.scrollTop = log.scrollHeight;
+    if (scroll || nearBottom) {
+      log.scrollTop = log.scrollHeight;
+      // фото догружаются позже и удлиняют переписку — остаться внизу
+      Array.prototype.forEach.call(log.querySelectorAll("img"), function (img) {
+        if (!img.complete) img.addEventListener("load", function () { log.scrollTop = log.scrollHeight; }, { once: true });
+      });
+    }
+    signMissing();
+  }
+
+  // ---------- Файлы: показ в сообщении ----------
+  function filesOf(m) { return Array.isArray(m.files) ? m.files : []; }
+  function isImg(f) { return /^image\//.test(f.type || "") && !/hei[cf]/.test(f.type); }
+  function isVideo(f) { return /^video\//.test(f.type || ""); }
+  function fileUrl(f) {
+    if (f.local) return f.local;
+    var u = support.urls[f.path];
+    return u && u.until > Date.now() ? u.url : "";
+  }
+  function sizeStr(n) {
+    n = Number(n) || 0;
+    return n >= 1048576 ? (n / 1048576).toFixed(1).replace(".0", "") + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+  function extOf(name) { var m = /\.([A-Za-z0-9]{1,5})$/.exec(name || ""); return m ? m[1].toUpperCase() : "FILE"; }
+
+  function filesHtml(m) {
+    var list = filesOf(m);
+    if (!list.length) return "";
+    var key = esc(m.id || m.tmp);
+    var imgs = list.filter(isImg), other = list.filter(function (f) { return !isImg(f); });
+    var h = "";
+    if (imgs.length) {
+      h += '<div class="sp-imgs n' + Math.min(imgs.length, 4) + '">' + imgs.map(function (f, i) {
+        var u = fileUrl(f), more = i === 3 && imgs.length > 4 ? '<b class="sp-more">+' + (imgs.length - 4) + "</b>" : "";
+        if (i > 3) return "";
+        return '<button type="button" class="sp-img" data-img="' + key + '" data-i="' + i + '">' +
+          (u ? '<img src="' + esc(u) + '" alt="' + esc(f.name) + '" loading="lazy">' : '<i class="sp-img-wait"></i>') +
+          (m.tmp && !m.failed ? '<i class="sp-up"></i>' : "") + more + "</button>";
+      }).join("") + "</div>";
+    }
+    other.forEach(function (f) {
+      var u = fileUrl(f), vid = isVideo(f);
+      if (vid && u) { h += '<video class="sp-video" src="' + esc(u) + '" controls playsinline preload="metadata"></video>'; return; }
+      h += '<a class="sp-file' + (u ? "" : " wait") + '"' + (u ? ' href="' + esc(u) + '" target="_blank" rel="noopener" download="' + esc(f.name) + '"' : "") + ">" +
+        '<span class="sp-file-ico">' + esc(extOf(f.name)) + "</span>" +
+        '<span class="sp-file-t"><b>' + esc(f.name) + "</b><small>" + esc(sizeStr(f.size)) + "</small></span>" +
+        (m.tmp && !m.failed ? '<i class="sp-up"></i>' : U.icon("download", 18)) + "</a>";
+    });
+    return h;
+  }
+
+  // Подписанные ссылки на файлы (хранилище закрытое): на 2 часа, все сразу одним запросом
+  var signing = false;
+  async function signMissing() {
+    if (signing) return;
+    var need = [];
+    support.msgs.forEach(function (m) {
+      filesOf(m).forEach(function (f) { if (f.path && !fileUrl(f) && need.indexOf(f.path) < 0) need.push(f.path); });
+    });
+    if (!need.length) return;
+    signing = true;
+    var r = await c.db().storage.from(BUCKET).createSignedUrls(need, 7200);
+    signing = false;
+    if (r.error || !r.data) return;
+    var until = Date.now() + 7000 * 1000;
+    r.data.forEach(function (x) { if (x.signedUrl && x.path) support.urls[x.path] = { url: x.signedUrl, until: until }; });
+    if (isOpen()) renderLog(false);
+  }
+
+  // ---------- Файлы: выбор, вставка скриншота, перетаскивание ----------
+  function addFiles(list) {
+    var bad = 0, big = 0;
+    Array.prototype.forEach.call(list || [], function (file) {
+      if (support.draft.length >= MAX_FILES) { toast(t("sp_too_many_files"), "error"); return; }
+      var type = file.type || "";
+      if (!OK_TYPES.test(type)) { bad++; return; }
+      if (file.size > MAX_SIZE && !/^image\//.test(type)) { big++; return; }
+      support.draft.push({ file: file, name: file.name || (t("sp_photo") + ".png"), type: type, size: file.size,
+        local: /^image\/(jpeg|png|webp|gif)$/.test(type) ? URL.createObjectURL(file) : "" });
+    });
+    if (bad) toast(t("sp_bad_type"), "error");
+    if (big) toast(t("sp_too_big"), "error");
+    renderDraft();
+  }
+  function clearDraft() {
+    support.draft.forEach(function (d) { if (d.local) URL.revokeObjectURL(d.local); });
+    support.draft = [];
+    renderDraft();
+  }
+  function renderDraft() {
+    var box = $("#support-draft");
+    if (!box) return;
+    box.classList.toggle("hidden", !support.draft.length);
+    box.innerHTML = support.draft.map(function (d, i) {
+      return '<span class="sp-chip">' + (d.local ? '<img src="' + esc(d.local) + '" alt="">' : '<i class="sp-file-ico">' + esc(extOf(d.name)) + "</i>") +
+        '<button type="button" class="sp-chip-x" data-undraft="' + i + '" aria-label="×">×</button></span>';
+    }).join("");
+    $("#support-form").classList.toggle("has-draft", support.draft.length > 0);
+  }
+
+  // Загрузить файлы сообщения в хранилище (фото сжимаем, как фото заказов)
+  async function uploadFiles(p) {
+    var who = p.forUser || state.me.id, out = [];
+    for (var i = 0; i < p.files.length; i++) {
+      var f = p.files[i];
+      if (!f.path) {
+        var blob = f.file, type = f.type;
+        if (/^image\/(jpeg|png|webp)$/.test(type) && blob.size > 600 * 1024) {
+          blob = await c.shrinkImage(blob, 2000, 700 * 1024, true);
+          type = blob.type || "image/jpeg";
+        }
+        if (blob.size > MAX_SIZE) throw new Error("file_too_big");
+        var ext = (/\.([A-Za-z0-9]{1,5})$/.exec(f.name) || [])[1] || (type.split("/")[1] || "bin").replace(/[^a-z0-9]/g, "");
+        if (/jpeg/.test(type)) ext = "jpg";
+        var path = who + "/" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10) + "." + ext.toLowerCase();
+        var up = await c.db().storage.from(BUCKET).upload(path, blob, { contentType: type, upsert: false });
+        if (up.error) throw up.error;
+        f.path = path; f.type = type; f.size = blob.size;
+      }
+      out.push({ path: f.path, name: f.name, type: f.type, size: f.size });
+    }
+    return out;
   }
 
   // ---------- Отправка: сообщение появляется сразу ----------
   function sendSupport() {
     var box = $("#support-text"), text = box.value.trim();
-    if (!text) { box.focus(); return; }
+    if (!text && !support.draft.length) { box.focus(); return; }
     var p = { tmp: "t" + Date.now() + Math.random().toString(36).slice(2, 6), body: text, from_admin: !!support.user,
-      created_at: new Date().toISOString(), forUser: support.user };
+      created_at: new Date().toISOString(), forUser: support.user, files: support.draft.slice() };
+    support.draft = [];   // ссылки на превью остаются у черновика сообщения, пока оно отправляется
+    renderDraft();
     support.pending.push(p);
     box.value = "";
     growBox();
@@ -208,9 +342,19 @@
 
   async function deliver(p) {
     p.failed = false;
-    var res = p.forUser
-      ? await c.db().rpc("admin_support_reply", { p_user: p.forUser, p_body: p.body })
-      : await c.db().rpc("support_send", { p_body: p.body, p_meta: supportMeta() });
+    var files = [];
+    if (p.files.length) {
+      try { files = await uploadFiles(p); }
+      catch (e) {
+        p.failed = true;
+        renderLog(false);
+        toast(t(/too_big|exceeded|size/i.test(String(e && (e.message || e.statusCode))) ? "sp_too_big" : "sp_upload_failed"), "error");
+        return;
+      }
+    }
+    var args = p.forUser ? { p_user: p.forUser, p_body: p.body } : { p_body: p.body, p_meta: supportMeta() };
+    if (files.length) args.p_files = files;   // без файлов — как раньше (работает и до файла 40)
+    var res = await c.db().rpc(p.forUser ? "admin_support_reply" : "support_send", args);
     if (res.error) {
       p.failed = true;
       renderLog(false);
@@ -223,8 +367,10 @@
     var id = typeof res.data === "string" ? res.data : null;
     if (id) support.shown[id] = 1;
     if (id && !support.msgs.some(function (m) { return m.id === id; })) {
-      support.msgs.push({ id: id, user_id: p.forUser || state.me.id, from_admin: p.from_admin, body: p.body, meta: {}, read_at: null, created_at: p.created_at });
+      support.msgs.push({ id: id, user_id: p.forUser || state.me.id, from_admin: p.from_admin, body: p.body, meta: {}, read_at: null, created_at: p.created_at, files: files });
     }
+    // своё фото показываем из памяти телефона, пока не пришла ссылка из хранилища
+    p.files.forEach(function (f) { if (f.local && f.path) support.urls[f.path] = { url: f.local, until: Date.now() + 36e5 }; });
     if (owner() === (p.forUser || state.me.id)) renderLog(false);
     if (!id) loadSupportLog(false);
     // сообщить админу в Telegram (если подключено); ошибка здесь не мешает байеру
@@ -264,8 +410,12 @@
         // своё сообщение, которое ещё «отправляется», — убрать черновик
         var mineSide = !!support.user;
         if (m.from_admin === mineSide) {
-          var k = support.pending.findIndex(function (p) { return !p.failed && p.body === m.body; });
-          if (k >= 0) { support.shown[m.id] = 1; support.pending.splice(k, 1); }
+          var k = support.pending.findIndex(function (p) { return !p.failed && p.body === m.body && p.files.length === filesOf(m).length; });
+          if (k >= 0) {
+            support.shown[m.id] = 1;
+            support.pending[k].files.forEach(function (f) { if (f.local && f.path) support.urls[f.path] = { url: f.local, until: Date.now() + 36e5 }; });
+            support.pending.splice(k, 1);
+          }
         } else support.typingUntil = 0;   // пришёл ответ — «печатает…» больше не нужно
         support.msgs.push(m);
         support.msgs.sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
@@ -378,7 +528,7 @@
     support.threads = res.data || [];
     $("#support-threads").innerHTML = support.threads.length ? support.threads.map(function (r) {
       var name = r.full_name || r.email || "—";
-      var last = (r.last_from_admin ? t("support_team") + ": " : "") + r.last_body;
+      var last = (r.last_from_admin ? t("support_team") + ": " : "") + (r.last_body || "📎 " + t("sp_file"));
       return '<button type="button" class="support-thread' + (r.unread > 0 ? " unread" : "") + '" data-user="' + esc(r.user_id) + '">' +
         '<span class="sp-ava">' + esc(initials(name)) + "</span>" +
         '<span class="support-thread-body"><span class="support-thread-top"><b>' + esc(name) + "</b>" +
@@ -456,7 +606,38 @@
       var desk = window.matchMedia("(pointer: fine)").matches;
       if (e.key === "Enter" && !e.isComposing && ((desk && !e.shiftKey) || e.ctrlKey || e.metaKey)) { e.preventDefault(); sendSupport(); }
     });
+    // 📎 скрепка, вставка скриншота (Ctrl+V), перетаскивание файлов в окно
+    $("#support-attach").addEventListener("click", function () { $("#support-file").click(); });
+    $("#support-file").addEventListener("change", function (e) { addFiles(e.target.files); e.target.value = ""; box.focus(); });
+    box.addEventListener("paste", function (e) {
+      var files = e.clipboardData && e.clipboardData.files;
+      if (files && files.length && !support.noFiles) { e.preventDefault(); addFiles(files); }
+    });
+    var sheet = $("#modal-support .modal-sheet");
+    sheet.addEventListener("dragover", function (e) { if (support.noFiles) return; e.preventDefault(); sheet.classList.add("sp-drop"); });
+    sheet.addEventListener("dragleave", function (e) { if (!sheet.contains(e.relatedTarget)) sheet.classList.remove("sp-drop"); });
+    sheet.addEventListener("drop", function (e) {
+      sheet.classList.remove("sp-drop");
+      if (support.noFiles || !e.dataTransfer || !e.dataTransfer.files.length) return;
+      e.preventDefault();
+      addFiles(e.dataTransfer.files);
+    });
+    $("#support-draft").addEventListener("click", function (e) {
+      var x = e.target.closest("[data-undraft]");
+      if (!x) return;
+      var d = support.draft.splice(Number(x.getAttribute("data-undraft")), 1)[0];
+      if (d && d.local) URL.revokeObjectURL(d.local);
+      renderDraft();
+    });
     $("#support-log").addEventListener("click", function (e) {
+      var im = e.target.closest("[data-img]");
+      if (im) {
+        var key = im.getAttribute("data-img");
+        var m = support.msgs.concat(support.pending).filter(function (x) { return (x.id || x.tmp) === key; })[0];
+        var urls = m ? filesOf(m).filter(isImg).map(fileUrl).filter(Boolean) : [];
+        if (urls.length) c.openLightbox(urls, Number(im.getAttribute("data-i")) || 0);
+        return;
+      }
       var r = e.target.closest("[data-retry]");
       if (!r) return;
       var p = support.pending.filter(function (x) { return x.tmp === r.getAttribute("data-retry"); })[0];
