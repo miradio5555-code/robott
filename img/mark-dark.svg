@@ -1,16 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Знак ULA Factory для светлой темы: тёмная плитка, белые линии (чтобы знак не терялся на белом фоне) -->
-  <rect width="64" height="64" rx="14" fill="#151417"/>
-  <g fill="none" stroke="#fff" stroke-linecap="round">
-    <path d="M14.5 47A22 22 0 1 1 49.5 47" stroke-width="4.2"/>
-    <g stroke-width="1.9">
-      <path d="M16.3 19.1C26 22.1 40.6 31.1 50.1 42.5"/>
-      <path d="M14.3 22.1C24.9 24.4 38.9 33 48.4 44.9"/>
-      <path d="M12.6 23.8C23.9 26.7 37.2 34.9 46.5 46.8"/>
-      <path d="M47.7 19.1C38 22.1 23.4 31.1 13.9 42.5"/>
-      <path d="M49.7 22.1C39.1 24.4 25.1 33 15.6 44.9"/>
-      <path d="M51.4 23.8C40.1 26.7 26.8 34.9 17.5 46.8"/>
+  <!-- Знак ULA Factory: кольцо и две ленты по 3 полосы, сплетённые как тундук юрты (тёмная плитка — для светлой темы) -->
+  <defs>
+    <clipPath id="mc"><circle cx="32" cy="32" r="21.6"/></clipPath>
+    <!-- левая лента: тонкие просветы между полосами + зазор там, где правая лента проходит сверху -->
+    <mask id="ml" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><g fill="none" stroke="#000"><path d="M8.67 22.22C22.27 19.22 38.85 30.49 48.85 53.89"/><path d="M8.13 19.78C21.73 16.78 41.15 29.51 51.15 52.91"/><path d="M55.6 21C42 18 24 30 14 53.4" stroke-width="9.8"/></g></mask>
+    <mask id="mr" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><g fill="none" stroke="#000"><path d="M55.33 22.22C41.73 19.22 25.15 30.49 15.15 53.89"/><path d="M55.87 19.78C42.27 16.78 22.85 29.51 12.85 52.91"/></g></mask>
+  </defs>
+  <rect width="64" height="64" rx="14.3" fill="#151417"/>
+  <g transform="translate(32 32) scale(0.8) translate(-32 -32)">
+    <g clip-path="url(#mc)" fill="none" stroke="#fff" stroke-width="7.4">
+      <path mask="url(#ml)" d="M8.4 21C22 18 40 30 50 53.4"/>
+      <path mask="url(#mr)" d="M55.6 21C42 18 24 30 14 53.4"/>
     </g>
+    <path d="M17.86 48.85A22 22 0 1 1 46.14 48.85" fill="none" stroke="#fff" stroke-width="4.4" stroke-linecap="round"/>
   </g>
-  <rect x="12" y="55" width="40" height="3.2" rx="1.6" fill="#E5485B"/>
 </svg>
