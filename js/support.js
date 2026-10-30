@@ -98,6 +98,7 @@
     if (!same) $("#support-log").innerHTML = '<div class="sp-loading"><i class="sp-dots"><b></b><b></b><b></b></i></div>';
     else renderLog(true);
     openModal("modal-support");
+    fitScreen();
     if (!userId) loadAgent().then(renderHead);
     joinTyping();
     loadSupportLog(true);
@@ -161,13 +162,14 @@
         "<b>" + esc(a.full_name || t("support_title")) + "</b><p>" + esc(t("support_empty")) + "</p></div>";
       return;
     }
-    var html = "", lastDay = "", a2 = support.agent || {};
+    var html = "", lastDay = "";
     all.forEach(function (m, i) {
       var day = dayLabel(m.created_at);
       if (day !== lastDay) { html += '<div class="sp-day"><span>' + esc(day) + "</span></div>"; lastDay = day; }
       var mine = admin ? m.from_admin : !m.from_admin;
-      var next = all[i + 1];
+      var next = all[i + 1], prev = all[i - 1];
       var tail = !next || next.from_admin !== m.from_admin || dayLabel(next.created_at) !== day;   // последнее в группе
+      var head = !prev || prev.from_admin !== m.from_admin || dayLabel(prev.created_at) !== day;   // первое в группе — с «хвостиком», как в WhatsApp
       var key = m.id || m.tmp, fresh = !support.shown[key];
       support.shown[key] = 1;
       var tick = "";
@@ -179,15 +181,13 @@
       var tech = admin && !m.from_admin && m.meta && Object.keys(m.meta).length
         ? '<details class="support-tech"><summary>' + esc(t("support_tech")) + "</summary><pre>" + esc(JSON.stringify(m.meta, null, 2)) + "</pre></details>"
         : "";
-      // у байера рядом с ответами поддержки — фото админа (на последнем сообщении группы)
-      var ava = !admin && !mine ? '<span class="sp-ava sp-ava-sm' + (tail ? "" : " ghost") + '">' + (tail ? (a2.avatar_path || a2.full_name ? avaHtml(a2.full_name, a2.avatar_path) : U.icon("message", 14)) : "") + "</span>" : "";
-      html += '<div class="sp-row ' + (mine ? "mine" : "theirs") + (tail ? " tail" : "") + (fresh ? " sp-new" : "") + '"' +
-        (m.failed ? ' data-retry="' + esc(m.tmp) + '" title="' + esc(t("sp_retry")) + '"' : "") + ">" + ava +
+      html += '<div class="sp-row ' + (mine ? "mine" : "theirs") + (head ? " head" : "") + (tail ? " tail" : "") + (fresh ? " sp-new" : "") + '"' +
+        (m.failed ? ' data-retry="' + esc(m.tmp) + '" title="' + esc(t("sp_retry")) + '"' : "") + ">" +
         '<div class="sp-bubble">' + esc(m.body) + '<span class="sp-meta">' + esc(hhmm(m.created_at)) + tick + "</span>" + tech + "</div></div>";
     });
     if (Date.now() < support.typingUntil) {
-      html += '<div class="sp-row theirs tail sp-typing-row' + ($("#support-log .sp-typing-row") ? "" : " sp-new") + '">' +
-        (admin ? "" : '<span class="sp-ava sp-ava-sm ghost"></span>') + '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>';
+      html += '<div class="sp-row theirs head tail sp-typing-row' + ($("#support-log .sp-typing-row") ? "" : " sp-new") + '">' +
+        '<div class="sp-bubble sp-typing"><i class="sp-dots"><b></b><b></b><b></b></i></div></div>';
     }
     log.innerHTML = html;
     if (scroll || nearBottom) log.scrollTop = log.scrollHeight;
@@ -231,6 +231,17 @@
     if (!p.forUser) {
       try { c.db().functions.invoke("telegram-notify", { body: { action: "notify" } }).catch(function () {}); } catch (e) { /* ignore */ }
     } else threadsSoon();
+  }
+
+  // На телефоне окно чата — во весь экран. Когда выезжает клавиатура, окно сжимается до видимой части,
+  // чтобы поле ввода и последние сообщения не прятались под клавиатурой (как в WhatsApp)
+  function fitScreen() {
+    var vv = window.visualViewport, m = $("#modal-support");
+    if (!vv || !isOpen()) return;
+    var log = $("#support-log"), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+    m.style.setProperty("--sp-vh", Math.round(vv.height) + "px");
+    m.style.setProperty("--sp-top", Math.round(vv.offsetTop) + "px");
+    if (atBottom) log.scrollTop = log.scrollHeight;
   }
 
   // Поле ввода растёт вместе с текстом (до 5 строк)
@@ -451,6 +462,10 @@
       var p = support.pending.filter(function (x) { return x.tmp === r.getAttribute("data-retry"); })[0];
       if (p) { renderLog(false); deliver(p); }
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", fitScreen);
+      window.visualViewport.addEventListener("scroll", fitScreen);
+    }
     // окно закрыли — перестать слушать «печатает…»
     new MutationObserver(function () { if (!isOpen()) leaveTyping(); })
       .observe($("#modal-support"), { attributes: true, attributeFilter: ["class"] });
