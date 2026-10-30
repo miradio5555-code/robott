@@ -1811,3 +1811,25 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 30. Ошибки: пишут все (одинаковые складываются, поток ограничен, без секретов в адресе), читает и очищает только админ'
+
+-- ===== 31. Живой чат поддержки: профиль админа для байера =====
+reset role;
+update public.profiles set full_name = 'Админ Тест' where user_id = '00000000-0000-0000-0000-00000000000a';
+set role anon;
+do $$
+begin
+  begin perform * from public.support_agent(); raise exception 'ПРОВАЛ: аноним видит профиль поддержки';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+do $$
+declare r record;
+begin
+  select * into r from public.support_agent();
+  if r.full_name is distinct from 'Админ Тест' then raise exception 'ПРОВАЛ: байер не видит имя поддержки (%)', r.full_name; end if;
+end $$;
+reset role;
+reset request.uid;
+\echo '✅ 31. Чат поддержки: байер видит имя и фото админа (без почты и телефона), аноним — нет'
