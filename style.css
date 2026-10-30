@@ -3698,6 +3698,6 @@ body.readonly .ha-grid { display: none; }
     box-shadow: 0 8px 18px rgba(255,106,61,.45); transition: transform .2s var(--ease); }
   .bn-plus:active .bn-plus-c { transform: translateX(-50%) scale(.92); }
   .bn-plus span { color: var(--muted); }
-  /* у байера «+» внизу заменяет плавающую кнопку */
-  body:not(.is-admin):not(.no-bottom-nav) .fab { display: none; }
+  /* «+» внизу заменяет плавающую кнопку */
+  body:not(.no-bottom-nav) #view-admin:has(.bottom-nav.has-plus) .fab { display: none; }
 }

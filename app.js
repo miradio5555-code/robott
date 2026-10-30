@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261123b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261123c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1937,11 +1937,18 @@
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
-    // нижнее меню: у байера — Главная, Заказы, круглая «+», Клиенты (Долги и Витрина — в «Ещё»), у админа платформы — Байеры, Поддержка, Обмен
-    var bnTabs = !isAdmin ? ["home", "orders", "clients"]
-      : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
-    $$("#bottom-nav [data-tab]").forEach(function (b) { b.classList.toggle("hidden", bnTabs.indexOf(b.getAttribute("data-tab")) === -1); });
-    var plus = !isAdmin && !!state.ws && !state.readOnly;
+    // нижнее меню: у байера — Главная, Заказы, «+», Клиенты (Долги и Витрина — в «Ещё»); у админа — Главная, Байеры, «+», Поддержка (Обмен — в «Ещё»)
+    // «plus» — круглая «+» посередине (новый заказ): есть, когда открыт свой кабинет. Порядок кнопок — как в списке.
+    var plus = !!state.ws && !state.readOnly;
+    var bnTabs = !isAdmin ? ["home", "orders", "plus", "clients"]
+      : plus ? ["home", "buyers", "plus", "support"] : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
+    $$("#bottom-nav [data-tab]").forEach(function (b) {
+      var i = bnTabs.indexOf(b.getAttribute("data-tab"));
+      b.classList.toggle("hidden", i === -1);
+      b.style.order = i;
+    });
+    $("#bn-plus").style.order = bnTabs.indexOf("plus");
+    $("#bn-more").style.order = 9;
     $("#bn-plus").classList.toggle("hidden", !plus);
     $("#bottom-nav").classList.toggle("has-plus", plus);
     $$(".tab").forEach(function (b) {
