@@ -1904,3 +1904,50 @@ begin
   end if;
 end $$;
 \echo '✅ 45. Обмен у администратора включается без паспорта, у байера — только после проверки'
+
+-- 47. Устройства: человек пишет только своё устройство, видит только свои, админ видит все, без входа — ничего
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  perform public.device_ping('dev_b1_phone', '{"os":"iOS 18","app":true}'::jsonb, '{"lat":42.87,"lon":74.59,"acc":30}'::jsonb);
+  perform public.device_ping('dev_b1_phone', '{"os":"iOS 18.1","app":true}'::jsonb, null);
+  if (select count(*) from public.user_devices) <> 1 then raise exception 'ПРОВАЛ: байер видит чужие устройства или дубль'; end if;
+  if (select info->>'os' from public.user_devices where device_id = 'dev_b1_phone') <> 'iOS 18.1' then raise exception 'ПРОВАЛ: данные устройства не обновились'; end if;
+  if (select geo from public.user_devices where device_id = 'dev_b1_phone') is null then raise exception 'ПРОВАЛ: место стёрлось при обновлении без места'; end if;
+  begin
+    insert into public.user_devices (user_id, device_id) values ('00000000-0000-0000-0000-0000000000d1', 'fake_dev_1');
+    raise exception 'ПРОВАЛ: байер записал устройство напрямую';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.device_ping('bad id!', '{}'::jsonb, null);
+    raise exception 'ПРОВАЛ: принят неправильный номер устройства';
+  exception when raise_exception then
+    if sqlerrm <> 'bad_device' then raise; end if;
+  end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+do $$
+begin
+  if exists (select 1 from public.user_devices) then raise exception 'ПРОВАЛ: другой байер видит чужое устройство'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+begin
+  if not exists (select 1 from public.user_devices where user_id = '00000000-0000-0000-0000-0000000000b1') then raise exception 'ПРОВАЛ: админ не видит устройство байера'; end if;
+end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$
+begin
+  if exists (select 1 from public.user_devices) then raise exception 'ПРОВАЛ: аноним видит устройства'; end if;
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+\echo '✅ 47. Устройства: свои — пишет и видит человек, все — админ, без входа — ничего'

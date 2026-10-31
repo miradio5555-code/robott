@@ -107,6 +107,8 @@
     if (!same) $("#support-log").innerHTML = '<div class="sp-loading"><i class="sp-dots"><b></b><b></b><b></b></i></div>';
     else renderLog(true);
     openModal("modal-support");
+    // админу — с какого устройства пишет человек (файл 47)
+    if (U.device) U.device.render(userId, $("#support-dev"));
     fitScreen();
     if (!userId) loadAgent().then(renderHead);
     joinTyping();

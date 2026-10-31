@@ -8,7 +8,7 @@
   "use strict";
   var ctx = null, last = 0, unseen = 0, base = document.title, snd = null, sndOk = false;
   var MUTE_KEY = "cc_alert_mute";
-  var sub = { ok: false, busy: false, err: "" };   // подписка на push: получилось ли, ошибка
+  var sub = { ok: false, busy: false, err: "", checked: false };   // подписка на push: получилось ли, ошибка, проверена ли
 
   function muted() { try { return localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } }
   function t(k) { return typeof window.t === "function" ? window.t(k) : k; }
@@ -145,10 +145,10 @@
       return db.from("push_subs").upsert({ endpoint: j.endpoint, user_id: st.me.id, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
     }).then(function (r) {
       if (r && r.error) throw r.error;
-      sub.ok = true; sub.err = "";
+      sub.ok = true; sub.err = ""; sub.checked = true;
       return true;
     }).catch(function (e) {
-      sub.ok = false; sub.err = String((e && e.message) || e || "");
+      sub.ok = false; sub.err = String((e && e.message) || e || ""); sub.checked = true;
       console.warn("push subscribe", sub.err);
       return false;
     });
@@ -164,6 +164,7 @@
     if (!canPush()) return "none";
     if (Notification.permission === "denied") return "denied";
     if (Notification.permission === "default") return "off";
+    if (!sub.checked || sub.busy) return "wait";   // подписка ещё проверяется — ничего не показываем
     return sub.ok ? "on" : "fail";
   }
   function renderCard() {
@@ -171,10 +172,9 @@
     if (!box) return;
     var st = U.core && U.core.state;
     var s = st && st.me ? cardState() : "on";
-    if (s === "on" || s === "none") { box.classList.add("hidden"); box.innerHTML = ""; return; }
-    var key = s === "fail" && sub.busy ? "off" : s;
-    if (box.getAttribute("data-s") === key && box.innerHTML) return;
-    box.setAttribute("data-s", key);
+    if (s === "on" || s === "none" || s === "wait") { box.classList.add("hidden"); box.innerHTML = ""; box.removeAttribute("data-s"); return; }
+    if (box.getAttribute("data-s") === s && box.innerHTML) return;
+    box.setAttribute("data-s", s);
     var btn = s === "off" || s === "fail"
       ? '<button type="button" class="btn btn-primary btn-sm" data-push-on>' + esc(t(s === "fail" ? "push_retry" : "push_on")) + "</button>" : "";
     box.innerHTML = '<div class="push-card push-' + s + '"><span class="push-ico">🔔</span><div><b>' + esc(t("push_t_" + s)) + "</b><p>" + esc(t("push_d_" + s)) + "</p>" + btn + "</div></div>";
@@ -182,18 +182,19 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
 
+  // Promise → true, если уведомления включились
   function turnOn() {
     unlock();
-    if (sub.busy) return;
+    if (sub.busy || !canPush()) return Promise.resolve(false);
     sub.busy = true;
     var ask = Notification.permission === "default" ? Notification.requestPermission() : Promise.resolve(Notification.permission);
-    Promise.resolve(ask).then(function (p) {
+    return Promise.resolve(ask).then(function (p) {
       if (p !== "granted") return false;
       return subscribe();
     }).then(function (ok) {
       sub.busy = false;
       renderCard();
-      if (!ok) { if (Notification.permission === "granted" && U.core) U.core.toast(t("push_fail_toast"), "error"); return; }
+      if (!ok) { if (Notification.permission === "granted" && U.core) U.core.toast(t("push_fail_toast"), "error"); return false; }
       // проверка: звук сейчас и пробное уведомление
       sound();
       try { if (navigator.vibrate) navigator.vibrate([140, 70, 140]); } catch (e) { /* ignore */ }
@@ -201,6 +202,7 @@
         return r.showNotification("ULA Factory", { body: t("push_test_body"), tag: "ula-test", icon: "img/icon-192.png" });
       }).catch(function () {});
       if (U.core) U.core.toast(t("push_ok_toast"), "ok");
+      return true;
     });
   }
   document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("[data-push-on]")) turnOn(); });
@@ -217,6 +219,9 @@
     renderCard();
   }, 3000);
 
-  U.alerts = { ping: ping, push: push, subscribe: subscribe, turnOn: turnOn,
+  // состояние для окна разрешений и для поддержки: on | off | denied | fail | ios | none | wait
+  function status() { var s = cardState(); return s === "wait" ? "on" : s; }
+
+  U.alerts = { ping: ping, push: push, subscribe: subscribe, turnOn: turnOn, status: status,
     mute: function (on) { try { localStorage.setItem(MUTE_KEY, on ? "1" : "0"); } catch (e) { /* ignore */ } } };
 })(window.ULA);

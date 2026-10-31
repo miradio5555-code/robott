@@ -3811,3 +3811,33 @@ html[data-theme="dark"] .rq-fill-btn { background: #F5DD9A; color: #3A2F0B; }
 .rq-sub { margin: 18px 0 8px; font-size: 17px; }
 .rq-res { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .rq-res .rq-num { font-size: 22px; }
+
+/* Окно «Настройте ULA»: уведомления и местоположение (js/device.js) */
+.perm-hero { display: grid; justify-items: center; gap: 6px; padding: 26px 20px 4px; text-align: center; }
+.perm-hero img { width: 64px; height: 64px; border-radius: 15px; box-shadow: 0 6px 18px rgba(0, 0, 0, .14); }
+.perm-hero h2 { margin: 6px 0 0; font-size: 21px; font-weight: 700; }
+.perm-hero p { margin: 0; max-width: 320px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.perm-rows { display: grid; gap: 10px; }
+.perm-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--soft); border: 1px solid var(--line); transition: background .2s; }
+.perm-row.done { background: var(--green-tint); border-color: transparent; }
+.perm-ico { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); font-size: 20px; }
+.perm-txt { flex: 1; min-width: 0; }
+.perm-txt b { display: block; font-size: 15px; }
+.perm-txt p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.perm-row .btn-sm { flex: none; }
+.perm-ok { flex: none; color: var(--green); font-weight: 600; font-size: 14px; }
+.perm-no { flex: none; color: var(--red); font-size: 12.5px; text-align: right; max-width: 92px; }
+.perm-modal .modal-foot .btn { flex: 1; }
+
+/* Чат поддержки у админа: с какого устройства пишет человек */
+.sp-dev { flex: none; max-height: 40%; overflow-y: auto; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.dev-card + .dev-card { border-top: 1px solid var(--line); }
+.dev-card summary { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; cursor: pointer; font-size: 13px; list-style: none; }
+.dev-card summary::-webkit-details-marker { display: none; }
+.dev-card summary b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dev-card summary b::before { content: "📱 "; }
+.dev-card summary span { flex: none; color: var(--muted); }
+.dev-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 2px 0 10px; font-size: 12.5px; }
+.dev-card dt { color: var(--muted); }
+.dev-card dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.dev-card code { font-size: 11px; color: var(--muted); }
