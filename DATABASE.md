@@ -13,7 +13,7 @@
 select version, name, applied_at from public.schema_migrations order by version;
 ```
 
-В рабочей базе запущены файлы **0–49**. Вход по Face ID (Authentication → Passkeys) включён. Серверная функция push-уведомлений — `supabase/functions/push-notify` (после файла 44 её нужно было обновить: вставить новый код, Deploy). Следующий номер нового файла — 50.
+В рабочей базе запущены файлы **0–49**; файл **50** (баланс клиента) написан — запустить в SQL Editor. Вход по Face ID (Authentication → Passkeys) включён. Серверная функция push-уведомлений — `supabase/functions/push-notify` (после файла 44 её нужно было обновить: вставить новый код, Deploy). Следующий номер нового файла — 51.
 
 ## Главное правило: старые файлы не запускать
 

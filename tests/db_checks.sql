@@ -2014,3 +2014,120 @@ reset role;
 reset request.uid;
 delete from public.admin_edit;
 \echo '✅ 48. Режим правки: только админ, только на время, только выбранный кабинет, всё в журнале'
+
+-- 50. Баланс клиента: пополнение закрывает долги по порядку, оплата и возврат по заказу, чужой кабинет — нельзя, клиент видит баланс
+do $$
+declare v_ws uuid;
+begin
+  select workspace_id into v_ws from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner';
+  insert into public.orders (workspace_id, client_name, client_phone, product_ru, client_price, client_currency, order_date, admin_comment)
+  values (v_ws, 'Айгуль Баланс', '+996 755 931 408', 'Кроссовки', 1000, 'KGS', current_date - 3, 'wallet-1'),
+         (v_ws, 'Айгуль Баланс', '0755931408',       'Сумка',     500,  'KGS', current_date - 1, 'wallet-2'),
+         (v_ws, 'Айгуль Баланс', '+996755931408',    'Без цены',  null, 'KGS', current_date - 5, 'wallet-3');
+  insert into public.client_cabinets (workspace_id, ckey, token) values (v_ws, 'p755931408', 'abcdefabcdefabcdefabcdefabcdef50');
+end $$;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare v_ws uuid; r json; x numeric; o1 uuid; o2 uuid; o3 uuid;
+begin
+  select workspace_id into v_ws from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner';
+  select id into o1 from public.orders where admin_comment = 'wallet-1';
+  select id into o2 from public.orders where admin_comment = 'wallet-2';
+  select id into o3 from public.orders where admin_comment = 'wallet-3';
+
+  r := public.wallet_add(v_ws, 'p755931408', 'Айгуль Баланс', 'KGS', 1200, 'deposit', 'наличными', true);
+  if (r->>'paid')::numeric <> 1200 or (r->>'orders')::int <> 2 or (r->>'balance')::numeric <> 0 then raise exception 'ПРОВАЛ: пополнение не закрыло долги: %', r; end if;
+  if (select paid_amount from public.orders where id = o1) <> 1000 then raise exception 'ПРОВАЛ: старый заказ не оплачен первым'; end if;
+  if (select paid_amount from public.orders where id = o2) <> 200 then raise exception 'ПРОВАЛ: остаток не ушёл на второй заказ'; end if;
+  if (select paid_amount from public.orders where id = o3) <> 0 then raise exception 'ПРОВАЛ: оплачен заказ без цены для клиента'; end if;
+
+  perform public.wallet_add(v_ws, 'p755931408', 'Айгуль Баланс', 'KGS', 800, 'deposit', null, false);
+  x := public.wallet_order(o2, 'pay');
+  if x <> 300 or (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408') <> 500 then raise exception 'ПРОВАЛ: оплата с баланса списала % вместо 300', x; end if;
+  begin
+    perform public.wallet_order(o2, 'pay');
+    raise exception 'ПРОВАЛ: заказ оплачен дважды';
+  exception when invalid_parameter_value then null;
+  end;
+
+  x := public.wallet_order(o1, 'return', 400);
+  if x <> 400 or (select paid_amount from public.orders where id = o1) <> 600 or (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408') <> 900 then
+    raise exception 'ПРОВАЛ: возврат оплаты на баланс';
+  end if;
+
+  begin
+    perform public.wallet_add(v_ws, 'p755931408', 'Айгуль Баланс', 'KGS', 1000, 'withdraw');
+    raise exception 'ПРОВАЛ: вернули клиенту больше, чем на балансе';
+  exception when invalid_parameter_value then null;
+  end;
+  perform public.wallet_add(v_ws, 'p755931408', 'Айгуль Баланс', 'KGS', 100, 'withdraw');
+  if (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408') <> 800 then raise exception 'ПРОВАЛ: возврат клиенту'; end if;
+  if not exists (select 1 from public.wallet_totals(v_ws) where ckey = 'p755931408' and amount = 800) then raise exception 'ПРОВАЛ: wallet_totals'; end if;
+
+  begin
+    insert into public.client_wallet (workspace_id, ckey, currency, amount, kind) values (v_ws, 'p755931408', 'KGS', 99999, 'deposit');
+    raise exception 'ПРОВАЛ: байер записал строку в выписку напрямую';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- клиент по своей ссылке видит баланс и выписку
+set role anon;
+do $$
+declare r json;
+begin
+  r := public.get_client_cabinet('abcdefabcdefabcdefabcdefabcdef50');
+  if (r->'wallet'->0->>'amount')::numeric <> 800 then raise exception 'ПРОВАЛ: клиент не видит баланс: %', r->'wallet'; end if;
+  if json_array_length(r->'wallet_ops') < 6 then raise exception 'ПРОВАЛ: клиент не видит выписку'; end if;
+  if (r->'wallet_ops'->0)::jsonb ? 'note' then raise exception 'ПРОВАЛ: клиенту видна заметка байера'; end if;
+  begin
+    perform 1 from public.client_wallet limit 1;
+    raise exception 'ПРОВАЛ: без входа видна выписка';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- другой байер: не видит и не меняет
+set request.uid = '00000000-0000-0000-0000-0000000000d1';
+set role authenticated;
+do $$
+declare v_ws uuid;
+begin
+  select workspace_id into v_ws from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner';
+  if exists (select 1 from public.client_wallet) then raise exception 'ПРОВАЛ: чужой байер видит выписку'; end if;
+  if exists (select 1 from public.wallet_totals(v_ws)) then raise exception 'ПРОВАЛ: чужой байер видит балансы'; end if;
+  begin
+    perform public.wallet_add(v_ws, 'p755931408', 'x', 'KGS', 5, 'deposit');
+    raise exception 'ПРОВАЛ: чужой байер пополнил баланс';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.wallet_order((select id from public.orders where admin_comment = 'wallet-2'), 'return');
+    raise exception 'ПРОВАЛ: чужой байер вернул оплату';
+  exception when insufficient_privilege or no_data_found then null;
+  end;
+end $$;
+reset role;
+-- заказ удалили — списанное за него вернулось на баланс; владелец отменяет строку, оплата откатывается
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare v_ws uuid; o1 uuid; w uuid;
+begin
+  select workspace_id into v_ws from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner';
+  delete from public.orders where admin_comment = 'wallet-2';
+  if (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408') <> 1300 then raise exception 'ПРОВАЛ: при удалении заказа деньги не вернулись на баланс (%)', (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408'); end if;
+  select id into o1 from public.orders where admin_comment = 'wallet-1';
+  select id into w from public.client_wallet where order_id = o1 and kind = 'return';
+  perform public.wallet_undo(w);
+  if (select paid_amount from public.orders where id = o1) <> 1000 or (select coalesce(sum(amount),0) from public.client_wallet where ckey = 'p755931408') <> 900 then
+    raise exception 'ПРОВАЛ: отмена строки не откатила оплату заказа';
+  end if;
+end $$;
+reset role;
+reset request.uid;
+delete from public.orders where admin_comment like 'wallet-%';
+delete from public.client_wallet;
+delete from public.client_cabinets where token = 'abcdefabcdefabcdefabcdefabcdef50';
+\echo '✅ 50. Баланс клиента: долги закрываются по порядку, оплата и возврат по заказу, чужим — нельзя, клиент видит баланс'

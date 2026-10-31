@@ -127,12 +127,34 @@
           ? "<h2>" + esc(t("cab_debt")) + "</h2>" + debt.map(function (x) { return '<p class="cab-debt-sum">' + cur(x.amount, x.currency) + "</p>"; }).join("")
           : "<h2>" + esc(t("cab_no_debt")) + "</h2>") +
       "</section>" +
+      walletHtml(d) +
       (orders.length ? "" : '<section class="client-block"><p class="muted">' + esc(t("cab_empty")) + "</p></section>") +
       (live.length ? '<section class="client-block"><h2>' + esc(t("cab_active")) + " · " + live.length + '</h2><div class="cab-list">' + live.map(cabCardHtml).join("") + "</div></section>" : "") +
       (done.length ? '<section class="client-block"><details class="cab-done"><summary><h2>' + esc(t("cab_done")) + " · " + done.length +
         '</h2></summary><div class="cab-list">' + done.map(cabCardHtml).join("") + "</div></details></section>" : "") +
       '<div id="fx-pub-slot"></div>';
     mountFx(d.brand);
+  }
+
+  // Баланс (предоплата, файл 50): сколько денег клиента лежит у байера, и выписка
+  function walletHtml(d) {
+    var bal = d.wallet || [], ops = d.wallet_ops || [];
+    if (!bal.length && !ops.length) return "";
+    function signed(n, code) { return (n > 0 ? "+" : n < 0 ? "−" : "") + cur(Math.abs(n), code); }
+    return '<section class="client-block cab-wallet">' +
+      "<h2>" + esc(t("cab_wallet")) + "</h2>" +
+      (bal.length ? bal.map(function (x) {
+        return '<p class="cab-wallet-sum ' + (num(x.amount) < 0 ? "neg" : "pos") + '">' + signed(num(x.amount), x.currency) + "</p>";
+      }).join("") : '<p class="cab-wallet-sum">' + cur(0, (ops[0] && ops[0].currency) || "KGS") + "</p>") +
+      '<p class="muted">' + esc(t("cab_wallet_hint")) + "</p>" +
+      (ops.length ? '<details class="cab-done"><summary><h2>' + esc(t("cab_wallet_ops")) + "</h2></summary><ol class=\"wl-list\">" + ops.map(function (r) {
+        var a = num(r.amount);
+        var title = r.kind === "order" ? t("wl_k_order", { n: r.order_number || "—" })
+          : r.kind === "return" ? t("wl_k_return", { n: r.order_number || "—" }) : t("wl_k_" + r.kind);
+        return '<li class="wl-row"><div class="wl-row-main"><b>' + esc(title) + '</b><small class="muted">' + esc(fmtDate(r.created_at)) + "</small></div>" +
+          '<b class="wl-amt ' + (a > 0 ? "pos" : "neg") + '">' + signed(a, r.currency) + "</b></li>";
+      }).join("") + "</ol></details>" : "") +
+    "</section>";
   }
 
   // Обмен сом → юань (если байер включил): курс, калькулятор и заявка

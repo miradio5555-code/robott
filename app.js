@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202d"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202e"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1354,6 +1354,7 @@
     state.loading = true;
     if (silent !== true) $("#loading").classList.remove("hidden");
     var rows = [];
+    var wallet = ULA.wallet ? ULA.wallet.load() : null;   // балансы клиентов (файл 50) — параллельно с заказами
     try {
       for (var from = 0; ; from += 1000) {
         var res = await db.from("orders")
@@ -1370,6 +1371,7 @@
     } catch (err) {
       handleError(err);
     }
+    if (wallet) await wallet;
     state.loading = false;
     state.loadedAt = Date.now();   // живое обновление не перезагружает то, что только что загрузили
     $("#loading").classList.add("hidden");
@@ -2364,7 +2366,8 @@
           '<div class="client-row-name">' + esc(c.name) + "</div>" +
           '<div class="client-row-date">' + esc(t("l_added")) + ": " + fmtDate(c.created_at) + "</div>" +
         "</div>" +
-        '<div class="client-row-contacts">' + phoneLink(c.phone) + (c.telegram ? telegramLink(c.telegram) : "") + "</div>" +
+        '<div class="client-row-contacts">' + phoneLink(c.phone) + (c.telegram ? telegramLink(c.telegram) : "") +
+          (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.phone, c.name), c.name) : "") + "</div>" +
         '<div class="client-row-place"><b>' + esc(c.city) + "</b>" + place + "</div>" +
         '<div class="client-row-orders">' + orders.map(function (o) {
           return '<button type="button" class="order-tag st-' + esc(o.status) + '" data-order-id="' + esc(o.id) + '" title="' +
@@ -2932,6 +2935,7 @@
         clientBoxHtml(o.client) +
         specsHtml(o) +
         moneyHtml(o, true) +
+        (ULA.wallet ? ULA.wallet.orderHtml(o) : "") +
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
           (o.shipment_id ? "<div><dt>" + t("sh_tag") + "</dt><dd>" + esc((ULA.shipments && ULA.shipments.name(o.shipment_id)) || "—") + "</dd></div>" : "") +

@@ -123,6 +123,7 @@
       ? '<span class="debts-total-label">' + esc(t("d_total")) + "</span><b>" + totalsText(grand) + "</b>" +
         '<span class="debts-total-sub">' + esc(t("d_clients", { n: list.length })) + "</span>"
       : "";
+    $("#debts-total").insertAdjacentHTML("beforeend", U.wallet ? U.wallet.debtsNote() : "");   // предоплата клиентов (файл 50)
     $("#debts-chips").innerHTML = ["all", "overdue"].map(function (f) {
       var n = f === "all" ? list.length : overdueN;
       return '<button type="button" class="chip' + (ui.filter === f ? " active" : "") + '" data-filter="' + f + '"><span>' +
@@ -153,6 +154,7 @@
       '<div class="debt-head"><div><h3>' + esc(g.name) + "</h3>" +
         '<div class="debt-meta muted">' + (g.phone ? esc(fmtPhone(g.phone)) + " · " : "") + esc(t("d_orders", { n: g.orders.length })) + "</div></div>" +
         '<div class="debt-sum">' + totalsText(g.totals) + "</div></div>" +
+      (U.wallet ? U.wallet.chip(g.key, g.name) : "") +
       '<div class="debt-flags">' +
         (g.overdue ? '<span class="debt-flag late">' + esc(t("d_overdue", { n: g.maxAge })) + "</span>" : '<span class="debt-flag">' + esc(t("d_days", { n: g.maxAge })) + "</span>") +
         (g.atClient ? '<span class="debt-flag late">' + esc(t("d_at_client")) + "</span>" : "") +
