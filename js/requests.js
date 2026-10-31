@@ -92,7 +92,7 @@
         field("product", t("rq_product"), '<textarea id="rq-product" rows="2" maxlength="300" placeholder="' + esc(t("rq_product_ph")) + '">' + esc(d.product || "") + "</textarea>") +
         field("qty", t("rq_qty"), '<input id="rq-qty" type="text" inputmode="decimal" value="' + esc(d.qty == null ? "1" : d.qty) + '">') +
         field("name", t("rq_name"), '<input id="rq-name" type="text" autocomplete="name" maxlength="120" value="' + esc(d.name || "") + '">') +
-        field("phone", t("rq_phone"), '<input id="rq-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(d.phone || "") + '">', t("rq_phone_hint")) +
+        field("phone", t("rq_phone"), '<input id="rq-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(d.phone || "") + '">', t("rq_phone_hint")) +
         field("telegram", t("rq_telegram"), '<input id="rq-telegram" type="text" autocomplete="off" placeholder="@username" value="' + esc(d.telegram || "") + '">') +
         field("comment", t("rq_comment"), '<textarea id="rq-comment" rows="2" maxlength="1000" placeholder="' + esc(t("rq_comment_ph")) + '">' + esc(d.comment || "") + "</textarea>") +
         // поле-ловушка для ботов: человеку не видно

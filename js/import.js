@@ -264,7 +264,9 @@
     if (!s) return "";
     var d = s.replace(/\D/g, "");
     if (/^996\d{9}$/.test(d) || /^86\d{11}$/.test(d) || /^7\d{10}$/.test(d)) return "+" + d;
-    if (/^0\d{9}$/.test(d)) return "+996" + d.slice(1);   // 0555 123 456 → +996 555 123 456
+    // номер без кода страны (0555 123 456): код берём из страны кабинета, иначе оставляем как есть
+    var code = { KG: "996", KZ: "7", UZ: "998", TJ: "992", RU: "7", CN: "86", AE: "971", TR: "90" }[(state.ws && state.ws.country) || ""];
+    if (code && /^0\d{9}$/.test(d)) return "+" + code + d.slice(1);
     return s.slice(0, 40);
   }
 
@@ -612,8 +614,8 @@
         { h: t("im_f_status"), w: 16, type: "text" }, { h: t("im_f_tracking"), w: 18, type: "text" }, { h: t("im_f_comment"), w: 28, type: "text" }
       ],
       rows: [
-        [c.todayISO(), "Азамат", "+996 555 123 456", "Кроссовки Nike", 2, 7000, 3000, 5200, 2.5, t("status_in_transit"), "YT1234567890", ""],
-        [c.todayISO(), "Айгуль", "0700 111 222", "Сумка", 1, 4500, 4500, 3000, 1, t("status_delivered"), "", t("im_tpl_note")]
+        [c.todayISO(), "Alex", "+1 202 555 0100", "Sneakers", 2, 7000, 3000, 5200, 2.5, t("status_in_transit"), "YT1234567890", ""],
+        [c.todayISO(), "Maria", "+44 20 7946 0000", "Bag", 1, 4500, 4500, 3000, 1, t("status_delivered"), "", t("im_tpl_note")]
       ],
       total: null
     }]);

@@ -112,7 +112,7 @@
         }).join("") + "</div>" +
         '<form id="sp-form" novalidate autocomplete="on">' +
           '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="sp-name" type="text" autocomplete="name" maxlength="120" value="' + esc(d2.name || "") + '"></label>' +
-          '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="sp-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(d2.phone || "") + '">' +
+          '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="sp-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(d2.phone || "") + '">' +
             '<p class="field-hint">' + esc(t("rq_phone_hint")) + "</p></label>" +
           '<label class="field"><span>' + esc(t("rq_telegram")) + '</span><input id="sp-telegram" type="text" autocomplete="off" placeholder="@username" value="' + esc(d2.telegram || "") + '"></label>' +
           '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="sp-comment" rows="2" maxlength="600" placeholder="' + esc(t("rq_comment_ph")) + '">' + esc(d2.comment || "") + "</textarea></label>" +

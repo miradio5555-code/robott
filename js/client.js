@@ -400,7 +400,7 @@
         cdField("name", t("cd_name"), { attrs: ' type="text" autocomplete="name" maxlength="120"' }) +
         '<div class="grid-2">' +
           cdField("phone", t("cd_phone"), {
-            attrs: ' type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+996 555 123 456"',
+            attrs: ' type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+__ ___ ___ ____"',
             hint: t("cd_phone_hint")
           }) +
           cdField("telegram", t("cd_telegram"), {

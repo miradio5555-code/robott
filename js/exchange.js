@@ -1233,7 +1233,7 @@
         '<input id="fxc-file" type="file" accept="image/*" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
         stepHead(3, t("fx_s3")) +
         '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="fxc-name" type="text" autocomplete="name" maxlength="120" value="' + esc(pub.name) + '"></label>' +
-        '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+996 555 123 456" value="' + esc(pub.phone) + '"></label>' +
+        '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(pub.phone) + '"></label>' +
         '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="fxc-comment" rows="2" maxlength="500" placeholder="' + esc(t("fx_comment_ph")) + '">' + esc(pub.comment) + "</textarea></label>" +
         '<div class="hp" aria-hidden="true"><label>Website<input id="fxc-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
         (pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "") +

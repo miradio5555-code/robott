@@ -102,7 +102,7 @@
   }
 
   // ---------- Страны ----------
-  // Страна байера (workspaces.country): по ней админ сортирует байеров, а курс ULA видят только из Кыргызстана.
+  // Страна байера (workspaces.country): по ней админ сортирует байеров; обмен сом → юань через ULA доступен только кабинетам из Кыргызстана.
   // ZZ — «другая страна». Названия стран браузер переводит сам (Intl).
   var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ZZ"];
 
@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261130f"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261130g"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -891,6 +891,20 @@
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
   }
 
+  // Валюта клиента по умолчанию в базе — сом. Новому кабинету из другой страны ставим местную валюту,
+  // пока в нём нет заказов (у кого уже есть заказы — ничего не меняем).
+  var COUNTRY_CUR = { KZ: "KZT", UZ: "UZS", TJ: "TJS", RU: "RUB", CN: "CNY", TR: "TRY", AE: "AED", AZ: "AZN", GE: "GEL", AM: "AMD", BY: "BYN", MN: "MNT" };
+  async function localCurrency(ws, country) {
+    var cur = COUNTRY_CUR[country];
+    if (!cur || ws.default_client_currency !== "KGS") return;
+    try {
+      var n = await db.from("orders").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id);
+      if (n.error || n.count) return;
+      var r = await db.from("workspaces").update({ default_client_currency: cur }).eq("id", ws.id);
+      if (!r.error) ws.default_client_currency = cur;
+    } catch (e) { /* не важно */ }
+  }
+
   // страна кабинета; если не указана, свой кабинет берёт её из анкеты регистрации или по коду телефона
   async function loadCountry(ws) {
     try {
@@ -901,7 +915,10 @@
       if (ws.country || state.readOnly || state.myRole !== "owner") return;
       var u = (await db.auth.getUser()).data.user, meta = (u && u.user_metadata) || {};
       var guess = COUNTRIES.indexOf(String(meta.country || "").toUpperCase()) !== -1 ? String(meta.country).toUpperCase() : countryByPhone(state.me && state.me.phone);
-      if (guess && !(await db.from("workspaces").update({ country: guess }).eq("id", ws.id)).error) ws.country = guess;
+      if (guess && !(await db.from("workspaces").update({ country: guess }).eq("id", ws.id)).error) {
+        ws.country = guess;
+        await localCurrency(ws, guess);
+      }
     } catch (e) { /* не важно: без страны сайт работает */ }
   }
 
