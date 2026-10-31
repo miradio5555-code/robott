@@ -20,8 +20,11 @@
   var $ = c.$, esc = c.esc, toast = c.toast, parseNum = c.parseNum, state = c.state;
 
   // ---------- Страница заявки (для клиента) ----------
-  var rq = { token: "", name: "", step: "loading", draft: {}, errors: {}, busy: false, result: null, formError: "", files: [], photoFail: false };
-  var MAX_PHOTOS = 5;
+  // Клиент добавляет несколько карточек товаров (у каждой свои фото, ссылка, описание, количество).
+  // Контакты и пожелания общие. Каждая карточка становится отдельным заказом у байера.
+  var MAX_PHOTOS = 5, MAX_ITEMS = 5;
+  function newItem() { return { files: [], link: "", product: "", qty: "1" }; }
+  var rq = { token: "", name: "", step: "loading", draft: {}, errors: {}, ierr: {}, busy: false, result: [], formError: "", items: [newItem()], photoFail: false, left: 0 };
 
   async function init(token) {
     c.showView("request");
@@ -42,21 +45,41 @@
     render();
   }
 
-  // Что клиент уже ввёл не теряется при смене языка
+  // Что клиент уже ввёл не теряется при смене языка и добавлении карточек
   function readDraft() {
     var f = $("#rq-form");
     if (!f) return;
-    ["name", "phone", "telegram", "link", "product", "qty", "comment"].forEach(function (k) {
+    ["name", "phone", "telegram", "comment"].forEach(function (k) {
       var el = $("#rq-" + k);
       if (el) rq.draft[k] = el.value;
     });
+    rq.items.forEach(function (it, i) {
+      ["link", "product", "qty"].forEach(function (k) {
+        var el = $("#rq-" + k + "-" + i);
+        if (el) it[k] = el.value;
+      });
+    });
   }
 
-  function field(k, label, input, hint) {
-    var err = rq.errors[k];
+  function field(k, label, input, hint, errKey) {
+    var err = errKey === undefined ? rq.errors[k] : errKey;
     return '<label class="field' + (err ? " has-error" : "") + '"><span>' + esc(label) + "</span>" + input +
       (hint ? '<p class="field-hint">' + esc(hint) + "</p>" : "") +
       (err ? '<p class="form-error" role="alert">' + esc(t(err)) + "</p>" : "") + "</label>";
+  }
+
+  // Карточка одного товара
+  function itemHtml(it, i) {
+    var er = rq.ierr[i] || {};
+    var many = rq.items.length > 1;
+    return '<div class="rq-item" data-rq-item="' + i + '">' +
+      '<div class="rq-item-head"><b>' + esc(t("rq_item_n", { n: i + 1 })) + "</b>" +
+        (many ? '<button type="button" class="rq-item-del" data-rq-item-del="' + i + '">' + esc(t("remove")) + "</button>" : "") + "</div>" +
+      photosField(it, i, er.photos) +
+      field("link", t("rq_link"), '<input id="rq-link-' + i + '" type="text" inputmode="url" autocomplete="off" placeholder="https://…" value="' + esc(it.link || "") + '">', t("rq_link_hint"), er.link) +
+      field("product", t("rq_product"), '<textarea id="rq-product-' + i + '" rows="2" maxlength="300" placeholder="' + esc(t("rq_product_ph")) + '">' + esc(it.product || "") + "</textarea>", "", er.product) +
+      field("qty", t("rq_qty"), '<input id="rq-qty-' + i + '" type="text" inputmode="decimal" value="' + esc(it.qty == null ? "1" : it.qty) + '">', "", er.qty) +
+      "</div>";
   }
 
   function render() {
@@ -71,15 +94,19 @@
       return;
     }
     if (rq.step === "sent") {
-      var r = rq.result || {};
-      var track = r.token ? location.pathname.replace(/index\.html$/, "") + "?order=" + r.token : "";
+      var base = location.pathname.replace(/index\.html$/, "");
+      var rs = rq.result || [];
+      var list = rs.map(function (r) {
+        var track = r.token ? base + "?order=" + r.token : "";
+        return '<div class="rq-res"><span class="rq-num">№ ' + esc(r.order_number || "") + "</span>" +
+          (track ? '<a class="btn btn-sm" href="' + esc(track) + '">' + esc(t("rq_track")) + "</a>" : "") + "</div>";
+      }).join("");
       box.innerHTML = '<section class="client-block rq-sent"><div class="rq-check" aria-hidden="true">' + U.icon("check", 30) + '</div>' +
-        '<h1 class="rq-title">' + esc(t("rq_sent_title")) + "</h1>" +
-        '<p class="rq-num">№ ' + esc(r.order_number || "") + "</p>" +
-        "<p>" + esc(t("rq_sent_text", { n: rq.name })) + "</p>" +
+        '<h1 class="rq-title">' + esc(t("rq_sent_title")) + "</h1>" + list +
+        "<p>" + esc(t(rs.length > 1 ? "rq_sent_many" : "rq_sent_text", { n: rq.name })) + "</p>" +
+        (rq.left ? '<p class="form-error" role="alert">' + esc(t("rq_left", { n: rq.left })) + "</p>" : "") +
         (rq.photoFail ? '<p class="form-error" role="alert">' + esc(t("rq_photo_fail")) + "</p>" : "") +
-        (track ? '<a class="btn btn-primary btn-block" href="' + esc(track) + '">' + esc(t("rq_track")) + "</a>" : "") +
-        '<button id="rq-again" class="btn btn-block" type="button">' + esc(t("rq_again")) + "</button>" +
+        '<button id="rq-again" class="btn btn-block" type="button">' + esc(t(rq.left ? "rq_finish" : "rq_again")) + "</button>" +
         '<p class="fine-print">' + esc(t("rq_track_hint")) + "</p></section>";
       return;
     }
@@ -87,10 +114,11 @@
       (rq.name ? '<p class="rq-to">' + esc(t("rq_to", { n: rq.name })) + "</p>" : "") +
       '<p class="muted">' + esc(t("rq_hint")) + "</p>" +
       '<form id="rq-form" novalidate autocomplete="on">' +
-        photosField() +
-        field("link", t("rq_link"), '<input id="rq-link" type="text" inputmode="url" autocomplete="off" placeholder="https://…" value="' + esc(d.link || "") + '">', t("rq_link_hint")) +
-        field("product", t("rq_product"), '<textarea id="rq-product" rows="2" maxlength="300" placeholder="' + esc(t("rq_product_ph")) + '">' + esc(d.product || "") + "</textarea>") +
-        field("qty", t("rq_qty"), '<input id="rq-qty" type="text" inputmode="decimal" value="' + esc(d.qty == null ? "1" : d.qty) + '">') +
+        rq.items.map(itemHtml).join("") +
+        (rq.items.length < MAX_ITEMS
+          ? '<button id="rq-add-item" class="btn btn-block rq-add-item" type="button">＋ ' + esc(t("rq_add_item")) + "</button>"
+          : '<p class="field-hint">' + esc(t("rq_items_max", { n: MAX_ITEMS })) + "</p>") +
+        '<h2 class="rq-sub">' + esc(t("rq_you")) + "</h2>" +
         field("name", t("rq_name"), '<input id="rq-name" type="text" autocomplete="name" maxlength="120" value="' + esc(d.name || "") + '">') +
         field("phone", t("rq_phone"), '<input id="rq-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(d.phone || "") + '">', t("rq_phone_hint")) +
         field("telegram", t("rq_telegram"), '<input id="rq-telegram" type="text" autocomplete="off" placeholder="@username" value="' + esc(d.telegram || "") + '">') +
@@ -98,19 +126,19 @@
         // поле-ловушка для ботов: человеку не видно
         '<div class="hp" aria-hidden="true"><label>Website<input id="rq-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
         (rq.formError ? '<p class="form-error" role="alert">' + esc(rq.formError) + "</p>" : "") +
-        '<button id="rq-send" class="btn btn-primary btn-block" type="submit"' + (rq.busy ? " disabled" : "") + ">" + esc(t(rq.busy ? "rq_sending" : "rq_send")) + "</button>" +
+        '<button id="rq-send" class="btn btn-primary btn-block" type="submit"' + (rq.busy ? " disabled" : "") + ">" +
+          esc(rq.busy ? t("rq_sending") : t(rq.items.length > 1 ? "rq_send_n" : "rq_send", { n: rq.items.length })) + "</button>" +
         '<p class="fine-print">' + esc(t("rq_consent")) + ' <a href="privacy.html">' + esc(t("legal_privacy")) + "</a>.</p>" +
       "</form></section>";
   }
 
   // Фото товара: превью с крестиком и кнопка «Добавить фото»
-  function photosField() {
-    var err = rq.errors.photos;
-    var html = rq.files.map(function (f, i) {
-      return '<div class="rq-ph"><img src="' + esc(f.url) + '" alt=""><button type="button" class="rq-ph-x" data-rq-del="' + i + '" aria-label="' + esc(t("remove")) + '">×</button></div>';
+  function photosField(it, i, err) {
+    var html = it.files.map(function (f, j) {
+      return '<div class="rq-ph"><img src="' + esc(f.url) + '" alt=""><button type="button" class="rq-ph-x" data-rq-del="' + i + ":" + j + '" aria-label="' + esc(t("remove")) + '">×</button></div>';
     }).join("");
-    if (rq.files.length < MAX_PHOTOS) {
-      html += '<label class="rq-ph rq-ph-add"><input id="rq-photos" type="file" accept="image/*" multiple hidden>' +
+    if (it.files.length < MAX_PHOTOS) {
+      html += '<label class="rq-ph rq-ph-add"><input id="rq-photos-' + i + '" data-rq-i="' + i + '" type="file" accept="image/*" multiple hidden>' +
         '<span aria-hidden="true">＋</span><small>' + esc(t("rq_photo_add")) + "</small></label>";
     }
     return '<div class="field' + (err ? " has-error" : "") + '"><span>' + esc(t("rq_photos")) + "</span>" +
@@ -118,33 +146,33 @@
       '<p class="field-hint">' + esc(t("rq_photos_hint", { n: MAX_PHOTOS })) + "</p>" +
       (err ? '<p class="form-error" role="alert">' + esc(t(err)) + "</p>" : "") + "</div>";
   }
-  function addFiles(list) {
-    var skipped = false;
+  function addFiles(i, list) {
+    var it = rq.items[i], skipped = false;
+    if (!it) return;
     Array.prototype.forEach.call(list || [], function (f) {
       if (!/^image\//.test(f.type || "")) { skipped = true; return; }
-      if (rq.files.length >= MAX_PHOTOS) { skipped = true; return; }
-      rq.files.push({ file: f, url: URL.createObjectURL(f) });
+      if (it.files.length >= MAX_PHOTOS) { skipped = true; return; }
+      it.files.push({ file: f, url: URL.createObjectURL(f) });
     });
     if (skipped) toast(t("rq_photos_max", { n: MAX_PHOTOS }), "error");
-    delete rq.errors.photos;
-    if (rq.files.length) { delete rq.errors.link; delete rq.errors.product; }
+    if (rq.ierr[i]) { delete rq.ierr[i].photos; delete rq.ierr[i].link; delete rq.ierr[i].product; }
     render();
   }
-  function clearFiles() {
-    rq.files.forEach(function (f) { try { URL.revokeObjectURL(f.url); } catch (e) { /* ignore */ } });
-    rq.files = [];
+  function clearFiles(it) {
+    it.files.forEach(function (f) { try { URL.revokeObjectURL(f.url); } catch (e) { /* ignore */ } });
+    it.files = [];
   }
 
   // Загрузить фото к только что созданному заказу (как у байера: большое фото + маленькая копия)
-  async function uploadPhotos(otoken) {
-    if (!rq.files.length || !otoken) return true;
+  async function uploadPhotos(otoken, files) {
+    if (!files.length || !otoken) return true;
     var db = c.db();
     var dir = await db.rpc("request_photo_dir", { p_otoken: otoken });
     if (dir.error || !dir.data) throw dir.error || new Error("no_dir");
     var paths = [];
-    for (var i = 0; i < rq.files.length; i++) {
+    for (var i = 0; i < files.length; i++) {
       try {
-        var file = rq.files[i].file;
+        var file = files[i].file;
         var blob = await c.shrinkImage(file, 1280, 260 * 1024);
         var small = await c.shrinkImage(file, 360, 32 * 1024, true);
         var type = blob.type || "image/jpeg";
@@ -162,81 +190,104 @@
     if (!paths.length) return false;
     var at = await db.rpc("request_attach_photos", { p_otoken: otoken, p_paths: paths });
     if (at.error) throw at.error;
-    return paths.length === rq.files.length;
+    return paths.length === files.length;
   }
 
   // Проверки такие же, как в базе (там они главные)
-  function validate(d) {
-    var e = {}, out = {};
+  function validate(d, items) {
+    var e = {}, ie = {};
     var name = String(d.name || "").trim();
     var phone = c.cleanPhone(d.phone);
     var tg = String(d.telegram || "").trim().replace(/^(https?:\/\/)?(t\.me\/)?@?/i, "");
-    var link = String(d.link || "").trim();
-    var product = String(d.product || "").trim();
-    var qty = parseNum(d.qty);
     if (name.length < 2 || name.length > 120) e.name = "e_name";
     if (!/^\+?[0-9]{9,15}$/.test(phone)) e.phone = "e_phone";
     if (tg && !/^[A-Za-z0-9_]{5,32}$/.test(tg)) e.telegram = "e_telegram";
-    if (link) {
-      if (!/^https?:\/\//i.test(link)) link = "https://" + link;   // вставили без https://
-      if (/\s/.test(link) || link.length > 2048 || !/^https?:\/\/[^\s]+\.[^\s]+/i.test(link)) e.link = "rq_e_link";
-    }
-    if (!link && !product && !rq.files.length) { e.photos = "rq_e_product"; e.product = "rq_e_product"; }
-    if (!(qty > 0) || qty > 100000) e.qty = "rq_e_qty";
-    out = { name: name, phone: phone, tg: tg, link: link, product: product, qty: qty, comment: String(d.comment || "").trim() };
-    return { errors: e, values: out };
+    var list = items.map(function (it, i) {
+      var x = {}, link = String(it.link || "").trim(), product = String(it.product || "").trim(), qty = parseNum(it.qty);
+      if (link) {
+        if (!/^https?:\/\//i.test(link)) link = "https://" + link;   // вставили без https://
+        if (/\s/.test(link) || link.length > 2048 || !/^https?:\/\/[^\s]+\.[^\s]+/i.test(link)) x.link = "rq_e_link";
+      }
+      if (!link && !product && !it.files.length) { x.photos = "rq_e_product"; x.product = "rq_e_product"; }
+      if (!(qty > 0) || qty > 100000) x.qty = "rq_e_qty";
+      if (Object.keys(x).length) ie[i] = x;
+      return { link: link, product: product, qty: qty };
+    });
+    return { errors: e, itemErrors: ie, values: { name: name, phone: phone, tg: tg, comment: String(d.comment || "").trim() }, list: list };
+  }
+
+  function errText(err) {
+    var m = String((err && err.message) || "");
+    if (/link_not_found/.test(m)) return "notfound";
+    if (/too_many/.test(m)) return "many";
+    return "other";
   }
 
   async function send() {
     if (rq.busy) return;
     readDraft();
-    var v = validate(rq.draft);
+    var v = validate(rq.draft, rq.items);
     rq.errors = v.errors;
+    rq.ierr = v.itemErrors;
     rq.formError = "";
-    if (Object.keys(v.errors).length) {
+    if (Object.keys(v.errors).length || Object.keys(v.itemErrors).length) {
       rq.formError = t("e_form");
       render();
-      var first = ["photos", "link", "product", "qty", "name", "phone", "telegram"].filter(function (k) { return v.errors[k]; })[0];
-      var el = first && $("#rq-" + first);
+      var bad = Object.keys(v.itemErrors)[0], el = null;
+      if (bad !== undefined) {
+        var ie = v.itemErrors[bad];
+        el = $("#rq-" + (ie.link ? "link" : ie.product ? "product" : "qty") + "-" + bad);
+      } else {
+        var first = ["name", "phone", "telegram"].filter(function (k) { return v.errors[k]; })[0];
+        el = first && $("#rq-" + first);
+      }
       if (el) el.focus();
       return;
     }
     rq.busy = true;
     render();
-    try {
-      var x = v.values;
-      var res = await c.db().rpc("submit_request", {
-        p_token: rq.token.toLowerCase(), p_name: x.name, p_phone: x.phone, p_telegram: x.tg || null,
-        p_product: x.product || (rq.files.length ? t("rq_by_photo") : ""), p_link: x.link || null, p_qty: x.qty, p_comment: x.comment || null,
-        p_website: ($("#rq-website") && $("#rq-website").value) || null
-      });
-      if (res.error) throw res.error;
-      rq.result = res.data || {};
-      // заказ создан — теперь фото; если не вышло, заявка всё равно принята
-      rq.photoFail = false;
-      try { rq.photoFail = !(await uploadPhotos(rq.result.token)); } catch (e) { console.warn(e); rq.photoFail = true; }
-      rq.step = "sent";
-      // сообщить байеру в Telegram и push (если подключены); ошибка здесь клиенту не видна
+    var x = v.values, done = [], failed = [], stop = "";
+    var website = ($("#rq-website") && $("#rq-website").value) || null;
+    for (var i = 0; i < rq.items.length; i++) {
+      var it = rq.items[i], vi = v.list[i];
       try {
-        if (rq.result.token) {
-          c.db().functions.invoke("telegram-notify", { body: { action: "request_notify", token: rq.result.token } }).catch(function () {});
-          c.db().functions.invoke("push-notify", { body: { action: "request", token: rq.result.token } }).catch(function () {});
-        }
-      } catch (e) { /* ignore */ }
-      rq.draft = {};
-      clearFiles();
-    } catch (err) {
-      console.error(err);
-      var m = String((err && err.message) || "");
-      if (/link_not_found/.test(m)) rq.step = "notfound";
-      else if (/too_many/.test(m)) rq.formError = t("rq_err_many");
-      else if (/invalid_phone/.test(m)) rq.errors.phone = "e_phone";
-      else if (/invalid_name/.test(m)) rq.errors.name = "e_name";
-      else if (/invalid_link|invalid_product/.test(m)) rq.errors.link = "rq_e_link";
-      else if (/invalid_quantity/.test(m)) rq.errors.qty = "rq_e_qty";
-      else rq.formError = t("rq_err");
+        var res = await c.db().rpc("submit_request", {
+          p_token: rq.token.toLowerCase(), p_name: x.name, p_phone: x.phone, p_telegram: x.tg || null,
+          p_product: vi.product || (it.files.length ? t("rq_by_photo") : ""), p_link: vi.link || null, p_qty: vi.qty, p_comment: x.comment || null,
+          p_website: website
+        });
+        if (res.error) throw res.error;
+        var r = res.data || {};
+        done.push(r);
+        // заказ создан — теперь фото; если не вышло, заявка всё равно принята
+        try { if (!(await uploadPhotos(r.token, it.files))) rq.photoFail = true; } catch (e) { console.warn(e); rq.photoFail = true; }
+        try {
+          if (r.token) {
+            c.db().functions.invoke("telegram-notify", { body: { action: "request_notify", token: r.token } }).catch(function () {});
+            c.db().functions.invoke("push-notify", { body: { action: "request", token: r.token } }).catch(function () {});
+          }
+        } catch (e) { /* ignore */ }
+      } catch (err) {
+        console.error(err);
+        stop = errText(err);
+        failed = rq.items.slice(i);
+        break;
+      }
     }
+    // отправленные карточки убираем из формы, неотправленные остаются
+    rq.items.slice(0, done.length).forEach(clearFiles);
+    rq.items = failed.length ? failed : [newItem()];
     rq.busy = false;
+    if (!done.length) {
+      if (stop === "notfound") rq.step = "notfound";
+      else rq.formError = t(stop === "many" ? "rq_err_many" : "rq_err");
+      render();
+      return;
+    }
+    rq.result = done;
+    rq.left = failed.length;
+    if (!failed.length) rq.draft = {};
+    rq.step = "sent";
     render();
   }
 
@@ -247,25 +298,50 @@
     var box = $("#request-content");
     box.addEventListener("submit", function (e) { if (e.target.id === "rq-form") { e.preventDefault(); send(); } });
     box.addEventListener("change", function (e) {
-      if (e.target.id === "rq-photos") { readDraft(); addFiles(e.target.files); }
+      if (/^rq-photos-/.test(e.target.id || "")) { readDraft(); addFiles(+e.target.getAttribute("data-rq-i"), e.target.files); }
     });
     box.addEventListener("click", function (e) {
       var del = e.target.closest("[data-rq-del]");
       if (del) {
         readDraft();
-        var f = rq.files.splice(+del.getAttribute("data-rq-del"), 1)[0];
+        var ij = del.getAttribute("data-rq-del").split(":"), it = rq.items[+ij[0]];
+        var f = it && it.files.splice(+ij[1], 1)[0];
         if (f) try { URL.revokeObjectURL(f.url); } catch (er) { /* ignore */ }
         render();
         return;
       }
-      if (e.target.closest("#rq-again")) { rq.step = "form"; rq.errors = {}; rq.formError = ""; render(); }
+      var di = e.target.closest("[data-rq-item-del]");
+      if (di) {
+        readDraft();
+        var rm = rq.items.splice(+di.getAttribute("data-rq-item-del"), 1)[0];
+        if (rm) clearFiles(rm);
+        if (!rq.items.length) rq.items.push(newItem());
+        rq.ierr = {};
+        render();
+        return;
+      }
+      if (e.target.closest("#rq-add-item")) {
+        readDraft();
+        if (rq.items.length < MAX_ITEMS) rq.items.push(newItem());
+        render();
+        var last = $("#rq-link-" + (rq.items.length - 1));
+        if (last && last.scrollIntoView) last.scrollIntoView({ block: "center", behavior: "smooth" });
+        return;
+      }
+      if (e.target.closest("#rq-again")) { rq.step = "form"; rq.errors = {}; rq.ierr = {}; rq.formError = ""; rq.left = 0; rq.photoFail = false; render(); }
     });
     // ошибка поля исчезает, когда клиент начал её править
     box.addEventListener("input", function (e) {
       if (e.target.type === "file") return;
       readDraft();
-      var k = String(e.target.id || "").replace("rq-", "");
-      if (rq.errors[k]) { delete rq.errors[k]; var p = e.target.closest(".field"); if (p) { p.classList.remove("has-error"); var er = p.querySelector(".form-error"); if (er) er.remove(); } }
+      var id = String(e.target.id || "").replace("rq-", ""), m = id.match(/^(link|product|qty)-(\d+)$/);
+      var holder = m ? rq.ierr[+m[2]] : rq.errors, k = m ? m[1] : id;
+      if (holder && holder[k]) {
+        delete holder[k];
+        if (m && k !== "qty" && holder.photos) delete holder.photos;
+        var p = e.target.closest(".field");
+        if (p) { p.classList.remove("has-error"); var er = p.querySelector(".form-error"); if (er) er.remove(); }
+      }
     });
   }
 

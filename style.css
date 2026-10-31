@@ -3801,3 +3801,13 @@ html[data-theme="dark"] .rq-fill-btn { background: #F5DD9A; color: #3A2F0B; }
   html:not([data-theme="light"]):not([data-theme="dark"]) .rq-fill { background: #3A2F0B; border-color: #6B5512; color: #F5DD9A; }
   html:not([data-theme="light"]):not([data-theme="dark"]) .rq-fill-btn { background: #F5DD9A; color: #3A2F0B; }
 }
+
+/* Заявка по ссылке: несколько карточек товаров */
+.rq-item { display: grid; gap: 12px; margin: 0 0 14px; padding: 14px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--soft); }
+.rq-item .field { margin: 0; }
+.rq-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rq-item-del { border: 0; background: none; color: var(--red); font: inherit; font-size: 13px; cursor: pointer; padding: 4px 0; }
+.rq-add-item { margin: 0 0 6px; }
+.rq-sub { margin: 18px 0 8px; font-size: 17px; }
+.rq-res { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.rq-res .rq-num { font-size: 22px; }
