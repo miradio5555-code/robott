@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261201c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -897,6 +897,7 @@
     decideSimple();
     applySimpleMode();
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
+    ULA.live.watch(ws.id);      // новое в кабинете появляется само (файл 49)
   }
 
   // Валюта клиента по умолчанию в базе — сом. Новому кабинету из другой страны ставим местную валюту,
@@ -979,6 +980,7 @@
       state.orders = [];
       state.clients = [];
       ULA.support.stopPolling();
+      ULA.live.watch(null);
       state.me = null; state.myWs = null; state.ws = null;
       document.body.classList.remove("is-admin", "readonly");
       switchTab("orders");
@@ -1341,9 +1343,9 @@
   }
 
   // ---------- Загрузка заказов ----------
-  async function loadOrders() {
+  async function loadOrders(silent) {
     state.loading = true;
-    $("#loading").classList.remove("hidden");
+    if (silent !== true) $("#loading").classList.remove("hidden");
     var rows = [];
     try {
       for (var from = 0; ; from += 1000) {
@@ -1362,6 +1364,7 @@
       handleError(err);
     }
     state.loading = false;
+    state.loadedAt = Date.now();   // живое обновление не перезагружает то, что только что загрузили
     $("#loading").classList.add("hidden");
     renderAll();
   }
@@ -2536,12 +2539,13 @@
   // ---------- ↻ Обновить данные ----------
   // Подтягивает свежие данные из базы, не перезагружая страницу.
   var refreshing = false;
-  async function refreshData() {
+  // silent === true — само (js/live.js): без крутилки, без «Обновлено», открытую карточку не трогаем, пока в ней печатают
+  async function refreshData(silent) {
+    silent = silent === true;
     if (refreshing) return;
     refreshing = true;
     var btn = $("#refresh-btn");
-    btn.classList.add("spinning");
-    btn.disabled = true;
+    if (!silent) { btn.classList.add("spinning"); btn.disabled = true; }
     try {
       if (state.ws) {
         // настройки кабинета тоже могли измениться (адрес склада, валюты)
@@ -2559,12 +2563,13 @@
       else if (state.tab === "buyers") await loadBuyers();
       else if (state.tab === "expenses") { await loadOrders(); await ULA.expenses.reload(); }
       else if (state.tab === "exchange") await ULA.exchange.open();
-      else await loadOrders();
+      else await loadOrders(silent);
       // открытая карточка заказа — перерисовать со свежими данными
-      if ($("#modal-detail").classList.contains("open")) renderDetail();
-      toast(t("refreshed"), "ok");
+      var det = $("#modal-detail");
+      if (det.classList.contains("open") && !(silent && det.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) renderDetail();
+      if (!silent) toast(t("refreshed"), "ok");
     } catch (err) {
-      handleError(err);
+      if (!silent) handleError(err);
     }
     btn.classList.remove("spinning");
     btn.disabled = false;
@@ -3593,7 +3598,7 @@
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
-    csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, reloadOrders: loadOrders, renderAll: renderAll,
+    csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, reloadOrders: loadOrders, refresh: refreshData, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };
