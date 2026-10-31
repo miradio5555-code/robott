@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261201b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261201c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -425,7 +425,8 @@
 
     // ошибка входа, которую Supabase вернул в адресе (Google не пустил, ссылка из письма устарела…)
     var authErr = readAuthError();
-    db = window.supabase.createClient(url, key);
+    // passkey — вход по Face ID / отпечатку (бета Supabase, js/passkey.js)
+    db = window.supabase.createClient(url, key, { auth: { experimental: { passkey: true } } });
     $$("[data-google]").forEach(function (b) { b.addEventListener("click", signInWithGoogle); });
 
     // Какая страница открыта:
@@ -572,6 +573,7 @@
       ULA.client.render();
       return;
     }
+    if (ULA.passkey) ULA.passkey.renderLogin();
     if (mode === "request") {
       ULA.requests.render();
       return;
@@ -1045,6 +1047,7 @@
     ULA.onboarding.bind();
     ULA.tgws.bind();
     ULA.mfa.bind();
+    ULA.passkey.bind();
     ULA.recovery.bind();
     ULA.tour.bind();
     ULA.shop.bind();
@@ -1434,6 +1437,7 @@
     $$("[data-ws-section]").forEach(function (el) { el.classList.toggle("hidden", !ws); });
     setSettingsError("");
     ULA.mfa.refresh();
+    ULA.passkey.refresh();
     if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); }
     openModal("modal-settings");
     var body = $("#settings-form .modal-body");
@@ -3579,7 +3583,7 @@
     $: $, $$: $$, esc: esc, toast: toast, handleError: handleError,
     money: money, numStr: numStr, parseNum: parseNum, locale: locale,
     curName: curName, fillCurrencySelect: fillCurrencySelect,
-    countryName: countryName, countryFlag: countryFlag, fillCountrySelect: fillCountrySelect, COUNTRIES: COUNTRIES, openModal: openModal, openWorkspace: openWorkspace,
+    countryName: countryName, countryFlag: countryFlag, fillCountrySelect: fillCountrySelect, COUNTRIES: COUNTRIES, openModal: openModal, openWorkspace: openWorkspace, enterAdmin: enterAdminOnce,
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,

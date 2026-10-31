@@ -278,5 +278,8 @@
       });
   }
 
-  U.device = { afterLogin: afterLogin, ping: ping, render: render, sheet: function () { sheetTried = false; put(KEY_LATER, "0"); maybeSheet(); } };
+  // «iPhone · iOS 18.1 · Safari 18» — название этого устройства (имя ключа Face ID)
+  function name() { var p = parseUA(), h = hints || {}; return [h.model || p.model || t("dev_" + p.kind), p.os, p.browser].filter(Boolean).join(" · "); }
+
+  U.device = { afterLogin: afterLogin, name: name, ping: ping, render: render, sheet: function () { sheetTried = false; put(KEY_LATER, "0"); maybeSheet(); } };
 })(window.ULA);

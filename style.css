@@ -3851,3 +3851,13 @@ body.admin-editing .ws-banner { background: #C2410C; }
 .admlog-row small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .admlog-delete b { color: var(--red); }
 .admlog-edit_on, .admlog-edit_off { background: var(--soft); border-radius: 8px; padding-left: 8px; }
+
+/* Вход по Face ID (js/passkey.js) */
+.btn-passkey { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+.pk-list { display: grid; gap: 8px; margin: 4px 0 8px; }
+.pk-list:empty { display: none; }
+.pk-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--soft); border: 1px solid var(--line); }
+.pk-ico { flex: none; font-size: 18px; }
+.pk-txt { flex: 1; min-width: 0; }
+.pk-txt b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-txt small { color: var(--muted); font-size: 12px; }

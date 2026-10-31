@@ -1687,5 +1687,32 @@ I18N.ru = {
   adm_t_exchange_requests: "заявку на обмен",
   adm_t_workspace_members: "команду",
   adm_t_team_invites: "приглашение в команду",
-  adm_t_client_cabinets: "кабинет клиента"
+  adm_t_client_cabinets: "кабинет клиента",
+
+  // вход по Face ID (js/passkey.js)
+  pk_title: "Вход по Face ID",
+  pk_hint: "Входите без пароля — по лицу или отпечатку пальца. Ключ хранится только в вашем телефоне, пароль остаётся запасным способом.",
+  pk_login_apple: "Войти по Face ID / Touch ID",
+  pk_login_android: "Войти по отпечатку",
+  pk_login_windows: "Войти через Windows Hello",
+  pk_login_other: "Войти по ключу доступа",
+  pk_add_apple: "Включить Face ID на этом устройстве",
+  pk_add_android: "Включить вход по отпечатку",
+  pk_add_windows: "Включить Windows Hello",
+  pk_add_other: "Добавить ключ доступа",
+  pk_none: "Пока не включено ни на одном устройстве.",
+  pk_noname: "Ключ доступа",
+  pk_created: "добавлен {d}",
+  pk_used: "вход {d}",
+  pk_delete: "Удалить",
+  pk_delete_confirm: "Удалить этот ключ? На том устройстве снова нужно будет входить по паролю.",
+  pk_deleted: "Ключ удалён",
+  pk_added: "Готово! Теперь можно входить по Face ID",
+  pk_unsupported: "Этот браузер не поддерживает вход по Face ID. Откройте ULA в Safari или Chrome.",
+  pk_off: "Скоро будет доступно.",
+  pk_off_admin: "Нужно включить один раз: Supabase → Authentication → Passkeys → Enable.",
+  pk_err_off: "Вход по Face ID сейчас выключен. Войдите по паролю.",
+  pk_err_login: "Не получилось войти по Face ID. Войдите по паролю.",
+  pk_err_add: "Не получилось включить. Попробуйте ещё раз.",
+  pk_err_exists: "На этом устройстве Face ID уже включён."
 };

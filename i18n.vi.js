@@ -1649,5 +1649,32 @@ I18N.vi = {
   adm_t_exchange_requests: "yêu cầu đổi tiền",
   adm_t_workspace_members: "nhóm",
   adm_t_team_invites: "lời mời nhóm",
-  adm_t_client_cabinets: "tài khoản khách"
+  adm_t_client_cabinets: "tài khoản khách",
+
+  // вход по Face ID (js/passkey.js)
+  pk_title: "Đăng nhập bằng Face ID",
+  pk_hint: "Đăng nhập không cần mật khẩu — bằng khuôn mặt hoặc vân tay. Khóa chỉ lưu trên điện thoại của bạn; mật khẩu vẫn là cách dự phòng.",
+  pk_login_apple: "Đăng nhập bằng Face ID / Touch ID",
+  pk_login_android: "Đăng nhập bằng vân tay",
+  pk_login_windows: "Đăng nhập bằng Windows Hello",
+  pk_login_other: "Đăng nhập bằng khóa truy cập",
+  pk_add_apple: "Bật Face ID trên thiết bị này",
+  pk_add_android: "Bật đăng nhập bằng vân tay",
+  pk_add_windows: "Bật Windows Hello",
+  pk_add_other: "Thêm khóa truy cập",
+  pk_none: "Chưa bật trên thiết bị nào.",
+  pk_noname: "Khóa truy cập",
+  pk_created: "thêm {d}",
+  pk_used: "đăng nhập {d}",
+  pk_delete: "Xóa",
+  pk_delete_confirm: "Xóa khóa này? Thiết bị đó sẽ phải đăng nhập lại bằng mật khẩu.",
+  pk_deleted: "Đã xóa khóa",
+  pk_added: "Xong! Giờ có thể đăng nhập bằng Face ID",
+  pk_unsupported: "Trình duyệt này không hỗ trợ đăng nhập bằng Face ID. Hãy mở ULA trong Safari hoặc Chrome.",
+  pk_off: "Sắp ra mắt.",
+  pk_off_admin: "Cần bật một lần: Supabase → Authentication → Passkeys → Enable.",
+  pk_err_off: "Đăng nhập bằng Face ID đang tắt. Hãy dùng mật khẩu.",
+  pk_err_login: "Không đăng nhập được bằng Face ID. Hãy dùng mật khẩu.",
+  pk_err_add: "Không bật được. Vui lòng thử lại.",
+  pk_err_exists: "Face ID đã được bật trên thiết bị này."
 };

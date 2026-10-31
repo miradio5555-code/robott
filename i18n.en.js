@@ -1677,5 +1677,32 @@ I18N.en = {
   adm_t_exchange_requests: "exchange request",
   adm_t_workspace_members: "team",
   adm_t_team_invites: "team invite",
-  adm_t_client_cabinets: "client cabinet"
+  adm_t_client_cabinets: "client cabinet",
+
+  // вход по Face ID (js/passkey.js)
+  pk_title: "Sign in with Face ID",
+  pk_hint: "Sign in without a password — with your face or fingerprint. The key stays on your phone; the password remains as a backup.",
+  pk_login_apple: "Sign in with Face ID / Touch ID",
+  pk_login_android: "Sign in with fingerprint",
+  pk_login_windows: "Sign in with Windows Hello",
+  pk_login_other: "Sign in with a passkey",
+  pk_add_apple: "Turn on Face ID on this device",
+  pk_add_android: "Turn on fingerprint sign-in",
+  pk_add_windows: "Turn on Windows Hello",
+  pk_add_other: "Add a passkey",
+  pk_none: "Not turned on on any device yet.",
+  pk_noname: "Passkey",
+  pk_created: "added {d}",
+  pk_used: "used {d}",
+  pk_delete: "Delete",
+  pk_delete_confirm: "Delete this passkey? That device will need the password again.",
+  pk_deleted: "Passkey deleted",
+  pk_added: "Done! You can now sign in with Face ID",
+  pk_unsupported: "This browser does not support Face ID sign-in. Open ULA in Safari or Chrome.",
+  pk_off: "Coming soon.",
+  pk_off_admin: "Turn it on once: Supabase → Authentication → Passkeys → Enable.",
+  pk_err_off: "Face ID sign-in is off right now. Use your password.",
+  pk_err_login: "Face ID sign-in failed. Use your password.",
+  pk_err_add: "Could not turn it on. Please try again.",
+  pk_err_exists: "Face ID is already on for this device."
 };

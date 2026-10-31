@@ -1677,5 +1677,32 @@ I18N.zh = {
   adm_t_exchange_requests: "换汇申请",
   adm_t_workspace_members: "团队",
   adm_t_team_invites: "团队邀请",
-  adm_t_client_cabinets: "客户账户"
+  adm_t_client_cabinets: "客户账户",
+
+  // вход по Face ID (js/passkey.js)
+  pk_title: "Face ID 登录",
+  pk_hint: "无需密码——用面容或指纹登录。密钥只保存在您的手机上，密码仍可作为备用方式。",
+  pk_login_apple: "使用 Face ID / Touch ID 登录",
+  pk_login_android: "使用指纹登录",
+  pk_login_windows: "使用 Windows Hello 登录",
+  pk_login_other: "使用通行密钥登录",
+  pk_add_apple: "在此设备上开启 Face ID",
+  pk_add_android: "开启指纹登录",
+  pk_add_windows: "开启 Windows Hello",
+  pk_add_other: "添加通行密钥",
+  pk_none: "尚未在任何设备上开启。",
+  pk_noname: "通行密钥",
+  pk_created: "添加于 {d}",
+  pk_used: "登录 {d}",
+  pk_delete: "删除",
+  pk_delete_confirm: "删除此密钥？该设备将需要重新使用密码登录。",
+  pk_deleted: "密钥已删除",
+  pk_added: "完成！现在可以用 Face ID 登录",
+  pk_unsupported: "此浏览器不支持 Face ID 登录。请在 Safari 或 Chrome 中打开 ULA。",
+  pk_off: "即将推出。",
+  pk_off_admin: "需开启一次：Supabase → Authentication → Passkeys → Enable。",
+  pk_err_off: "Face ID 登录目前已关闭。请使用密码登录。",
+  pk_err_login: "Face ID 登录失败。请使用密码登录。",
+  pk_err_add: "开启失败，请重试。",
+  pk_err_exists: "此设备已开启 Face ID。"
 };
