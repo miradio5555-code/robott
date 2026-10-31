@@ -1654,7 +1654,7 @@ I18N.vi = {
   // вход по Face ID (js/passkey.js)
   pk_title: "Đăng nhập bằng Face ID",
   pk_hint: "Đăng nhập không cần mật khẩu — bằng khuôn mặt hoặc vân tay. Khóa chỉ lưu trên điện thoại của bạn; mật khẩu vẫn là cách dự phòng.",
-  pk_login_apple: "Đăng nhập bằng Face ID / Touch ID",
+  pk_login_apple: "Đăng nhập bằng Face ID",
   pk_login_android: "Đăng nhập bằng vân tay",
   pk_login_windows: "Đăng nhập bằng Windows Hello",
   pk_login_other: "Đăng nhập bằng khóa truy cập",
@@ -1677,5 +1677,30 @@ I18N.vi = {
   pk_err_login: "Không đăng nhập được bằng Face ID. Hãy dùng mật khẩu.",
   pk_err_add: "Không bật được. Vui lòng thử lại.",
   pk_err_exists: "Face ID đã được bật trên thiết bị này.",
-  pk_app: "Sắp có trong ứng dụng. Hiện Face ID hoạt động khi mở ULA bằng Safari."
+  pk_app: "Sắp có trong ứng dụng. Hiện Face ID hoạt động khi mở ULA bằng Safari.",
+
+  // Face ID: блокировка и настройки (js/passkey.js)
+  pk_sec: "Đăng nhập & khóa",
+  pk_foot_off: "Bật để đăng nhập không cần mật khẩu và mở khóa ULA bằng một cái nhìn khi quay lại — như ứng dụng ngân hàng.",
+  pk_lock_row: "Khóa ULA",
+  pk_lock_after: "Yêu cầu",
+  pk_after_0: "Ngay lập tức",
+  pk_after_60: "Sau 1 phút",
+  pk_after_300: "Sau 5 phút",
+  pk_after_900: "Sau 15 phút",
+  pk_other: "Thiết bị khác",
+  pk_locked: "Ứng dụng đã khóa",
+  pk_with_password: "Đăng nhập bằng mật khẩu",
+  pk_row_apple: "Đăng nhập bằng Face ID",
+  pk_use_apple: "Dùng Face ID",
+  pk_foot_on_apple: "Đăng nhập và mở khóa ULA chỉ bằng một cái nhìn — không cần mật khẩu. Khuôn mặt do iPhone tự kiểm tra, không gửi đi đâu.",
+  pk_row_android: "Đăng nhập bằng vân tay",
+  pk_use_android: "Dùng vân tay",
+  pk_foot_on_android: "Đăng nhập và mở khóa ULA bằng vân tay — không cần mật khẩu. Điện thoại tự kiểm tra, không gửi đi đâu.",
+  pk_row_windows: "Windows Hello",
+  pk_use_windows: "Dùng Windows Hello",
+  pk_foot_on_windows: "Đăng nhập và mở khóa ULA bằng Windows Hello — không cần mật khẩu.",
+  pk_row_other: "Đăng nhập bằng khóa truy cập",
+  pk_use_other: "Dùng khóa truy cập",
+  pk_foot_on_other: "Đăng nhập và mở khóa ULA không cần mật khẩu."
 };

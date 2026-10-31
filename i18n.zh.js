@@ -1682,7 +1682,7 @@ I18N.zh = {
   // вход по Face ID (js/passkey.js)
   pk_title: "Face ID 登录",
   pk_hint: "无需密码——用面容或指纹登录。密钥只保存在您的手机上，密码仍可作为备用方式。",
-  pk_login_apple: "使用 Face ID / Touch ID 登录",
+  pk_login_apple: "使用面容 ID 登录",
   pk_login_android: "使用指纹登录",
   pk_login_windows: "使用 Windows Hello 登录",
   pk_login_other: "使用通行密钥登录",
@@ -1705,5 +1705,30 @@ I18N.zh = {
   pk_err_login: "Face ID 登录失败。请使用密码登录。",
   pk_err_add: "开启失败，请重试。",
   pk_err_exists: "此设备已开启 Face ID。",
-  pk_app: "应用内即将支持。目前在 Safari 中打开 ULA 可使用 Face ID。"
+  pk_app: "应用内即将支持。目前在 Safari 中打开 ULA 可使用 Face ID。",
+
+  // Face ID: блокировка и настройки (js/passkey.js)
+  pk_sec: "登录与锁定",
+  pk_foot_off: "开启后无需密码即可登录，返回 ULA 时看一眼即可解锁——就像银行应用。",
+  pk_lock_row: "锁定 ULA",
+  pk_lock_after: "需要验证",
+  pk_after_0: "立即",
+  pk_after_60: "1 分钟后",
+  pk_after_300: "5 分钟后",
+  pk_after_900: "15 分钟后",
+  pk_other: "其他设备",
+  pk_locked: "应用已锁定",
+  pk_with_password: "使用密码登录",
+  pk_row_apple: "面容 ID 登录",
+  pk_use_apple: "使用面容 ID",
+  pk_foot_on_apple: "看一眼即可登录和解锁 ULA，无需密码。面容由 iPhone 自行验证，不会上传。",
+  pk_row_android: "指纹登录",
+  pk_use_android: "使用指纹",
+  pk_foot_on_android: "用指纹登录和解锁 ULA，无需密码。指纹由手机自行验证，不会上传。",
+  pk_row_windows: "Windows Hello",
+  pk_use_windows: "使用 Windows Hello",
+  pk_foot_on_windows: "使用 Windows Hello 登录和解锁 ULA，无需密码。",
+  pk_row_other: "通行密钥登录",
+  pk_use_other: "使用通行密钥",
+  pk_foot_on_other: "无需密码即可登录和解锁 ULA。"
 };

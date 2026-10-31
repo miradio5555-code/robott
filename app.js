@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -719,7 +719,7 @@
     var session = res && res.data && res.data.session;
     if (session && ULA.recovery.isRecoveryLink()) recover(session);
     else if (session && !recovering) await enterAdminOnce(session.user);
-    else if (!session) showView("login");
+    else if (!session) { showView("login"); ULA.passkey.onLoginView(); }
   }
 
   // После входа: узнаём роль (админ / байер) и кабинет пользователя
@@ -987,6 +987,7 @@
       switchTab("orders");
       $("#login-password").value = "";
       showView("login");
+      ULA.passkey.onLoginView();   // Face ID на экране входа предлагается сам
     });
 
     // склад

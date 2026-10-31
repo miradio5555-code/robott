@@ -1682,7 +1682,7 @@ I18N.en = {
   // вход по Face ID (js/passkey.js)
   pk_title: "Sign in with Face ID",
   pk_hint: "Sign in without a password — with your face or fingerprint. The key stays on your phone; the password remains as a backup.",
-  pk_login_apple: "Sign in with Face ID / Touch ID",
+  pk_login_apple: "Sign in with Face ID",
   pk_login_android: "Sign in with fingerprint",
   pk_login_windows: "Sign in with Windows Hello",
   pk_login_other: "Sign in with a passkey",
@@ -1705,5 +1705,30 @@ I18N.en = {
   pk_err_login: "Face ID sign-in failed. Use your password.",
   pk_err_add: "Could not turn it on. Please try again.",
   pk_err_exists: "Face ID is already on for this device.",
-  pk_app: "Coming soon in the app. For now Face ID works when you open ULA in Safari."
+  pk_app: "Coming soon in the app. For now Face ID works when you open ULA in Safari.",
+
+  // Face ID: блокировка и настройки (js/passkey.js)
+  pk_sec: "Sign-in & lock",
+  pk_foot_off: "Turn on to sign in without a password and unlock ULA with a glance when you come back — like a banking app.",
+  pk_lock_row: "Lock ULA",
+  pk_lock_after: "Require",
+  pk_after_0: "Immediately",
+  pk_after_60: "After 1 min",
+  pk_after_300: "After 5 min",
+  pk_after_900: "After 15 min",
+  pk_other: "Other devices",
+  pk_locked: "App is locked",
+  pk_with_password: "Sign in with password",
+  pk_row_apple: "Sign in with Face ID",
+  pk_use_apple: "Use Face ID",
+  pk_foot_on_apple: "Sign in and unlock ULA with a glance — no password. Your face is checked by the iPhone itself and never sent anywhere.",
+  pk_row_android: "Fingerprint sign-in",
+  pk_use_android: "Use fingerprint",
+  pk_foot_on_android: "Sign in and unlock ULA with your fingerprint — no password. It is checked by the phone itself and never sent anywhere.",
+  pk_row_windows: "Windows Hello",
+  pk_use_windows: "Use Windows Hello",
+  pk_foot_on_windows: "Sign in and unlock ULA with Windows Hello — no password.",
+  pk_row_other: "Passkey sign-in",
+  pk_use_other: "Use passkey",
+  pk_foot_on_other: "Sign in and unlock ULA without a password."
 };
