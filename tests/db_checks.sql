@@ -1883,3 +1883,24 @@ end $$;
 reset role;
 reset request.uid;
 \echo '✅ 32. Файлы в чате: только из своей папки и только загруженные, чужие файлы не видны, без входа — ничего'
+
+-- 45. Обмен у администратора: кабинет админа считается проверенным (паспорт не нужен), у обычного байера — по-прежнему нужен
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000f9', 'adm45@test.kg', '{"full_name":"Админ ULA","phone":"+996555000555","workspace_name":"ULA-обмен"}');
+insert into public.admins (user_id) values ('00000000-0000-0000-0000-0000000000f9') on conflict do nothing;
+set request.uid = '00000000-0000-0000-0000-0000000000f9';
+set role authenticated;
+do $$
+begin
+  update public.workspaces set fx_on = true where owner_id = '00000000-0000-0000-0000-0000000000f9';
+  if not (select fx_on from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000f9') then raise exception 'ПРОВАЛ: админ не смог включить обмен'; end if;
+end $$;
+reset role;
+reset request.uid;
+do $$
+begin
+  if public.kyc_ok((select id from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000d1')) then
+    raise exception 'ПРОВАЛ: байер без проверки считается проверенным';
+  end if;
+end $$;
+\echo '✅ 45. Обмен у администратора включается без паспорта, у байера — только после проверки'

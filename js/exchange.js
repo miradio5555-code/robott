@@ -226,7 +226,7 @@
     var sg = await c.db().storage.from("kyc").createSignedUrls(paths, 600);
     (sg.data || []).forEach(function (x) { if (x.signedUrl && x.path) fx.kycUrls[x.path] = x.signedUrl; });
   }
-  function kycOk() { return !!(fx.kyc && fx.kyc.status === "approved"); }
+  function kycOk() { return isAdmin() || !!(fx.kyc && fx.kyc.status === "approved"); }   // администратору (самой ULA) проверка не нужна (файл 45)
 
   function isActive(r) { return ["new", "paid", "confirmed", "sent"].indexOf(r.status) !== -1 || r.dispute === "open"; }
   function countActive() { return fx.list.filter(function (r) { return isActive(r) && r.status !== "sent"; }).length; }
@@ -855,7 +855,7 @@
     var keepCny = $("#fxp-cny") ? $("#fxp-cny").value : "";
     var sub = buyerSub();
     box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' + (isAdmin()
-      ? disputesAdminHtml() + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? kycAdminHtml() : "") + (state.ws ? requestsHtml() : "") + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? "" : kycAdminHtml()) + (kgBuyer() ? platformHtml() : "")
+      ? disputesAdminHtml() + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? kycAdminHtml() : "") + (state.ws ? requestsHtml() : "") + (canOwn() ? myHtml() : "") + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? "" : kycAdminHtml()) + (kgBuyer() ? platformHtml() : "")
       : subTabsHtml(sub) + (sub === "ula" ? ulaHtml() : (state.ws ? requestsHtml() + myHtml() : "")));
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
     if (keepCny && $("#fxp-cny")) $("#fxp-cny").value = keepCny;   // набранная сумма не теряется при перерисовке
