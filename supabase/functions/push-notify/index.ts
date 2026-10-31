@@ -101,7 +101,8 @@ Deno.serve(async (req) => {
       const { count } = await db.from("order_photos").select("id", { count: "exact", head: true }).eq("order_id", o.id);
       const sent = await send([w.owner_id], {
         title: "🛍 Новая заявка № " + (o.order_number || ""),
-        body: String(o.client_name || "—").slice(0, 60) + " · " + String(o.product_ru || "").slice(0, 80) + (count ? " · 📷 " + count : ""),
+        body: String(o.client_name || "—").slice(0, 60) + " · " + String(o.product_ru || "").slice(0, 80) + (count ? " · 📷 " + count : "") +
+          "\nОткройте и дополните заказ: цена, поставщик, вес.",
         tag: "request",
       });
       return json({ ok: true, sent });

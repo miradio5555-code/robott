@@ -332,5 +332,36 @@
     });
   }
 
+  // ---------- Новая заявка пришла, пока байер в кабинете: сигнал и подсказка «дополните заказ» ----------
+  // Раз в 30 секунд смотрим, нет ли заявок новее последней известной. Первая проверка только запоминает точку отсчёта.
+  var watch = { ws: null, since: null, busy: false };
+  async function checkNew() {
+    var db = c.db();
+    if (watch.busy || document.hidden || !db || !state.me || !state.ws) return;
+    if (watch.ws !== state.ws.id) { watch.ws = state.ws.id; watch.since = null; }
+    watch.busy = true;
+    try {
+      var q = db.from("orders").select("id, order_number, client_name, product_ru, created_at")
+        .eq("workspace_id", state.ws.id).eq("source", "request").order("created_at", { ascending: false });
+      var res = watch.since ? await q.gt("created_at", watch.since).limit(20) : await q.limit(1);
+      if (res.error) return;
+      var rows = res.data || [];
+      if (!watch.since) { watch.since = rows[0] ? rows[0].created_at : new Date(Date.now() - 60000).toISOString(); return; }
+      if (!rows.length) return;
+      watch.since = rows[0].created_at;
+      var known = {};
+      (state.orders || []).forEach(function (o) { known[o.id] = 1; });
+      var fresh = rows.filter(function (r) { return !known[r.id]; });
+      if (!fresh.length) return;
+      var r0 = fresh[0];
+      if (U.alerts) U.alerts.ping({ title: t("rq_new_title", { n: r0.order_number }), body: (r0.client_name || "") + " · " + (r0.product_ru || ""), tag: "request" });
+      toast(fresh.length > 1 ? t("rq_new_many", { n: fresh.length }) : t("rq_new_toast", { n: r0.order_number }), "ok");
+      if (c.reloadOrders) await c.reloadOrders();
+    } catch (e) { /* сеть — попробуем в следующий раз */ }
+    finally { watch.busy = false; }
+  }
+  setInterval(checkNew, 30000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) checkNew(); });
+
   U.requests = { init: init, render: render, bind: bind, openLink: openLink, _validate: validate };
 })(window.ULA);

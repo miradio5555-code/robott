@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261130e"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261130f"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1795,6 +1795,7 @@
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
+        fillWarnHtml(o) +
         payHtml(o) +
         cardHistoryHtml(o) +
         (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
@@ -1845,6 +1846,26 @@
   // Метка «📥 Заявка»: заказ создал клиент по ссылке, ещё не обработан
   function reqTag(o) {
     return o.source === "request" && o.status === "new" ? '<span class="batch-tag req-tag">' + ULA.icon("inbox", 13) + esc(t("rq_tag")) + "</span>" : "";
+  }
+
+  // Заявка от клиента: какие важные поля байер ещё не заполнил (сохранять можно и без них — только напоминаем)
+  function missingFields(o) {
+    if (!o || o.source !== "request" || CLOSED.indexOf(o.status) >= 0) return [];
+    var m = [];
+    if (!(num(o.unit_price_cny) > 0)) m.push("rq_m_buy");
+    if (!(num(o.client_price) > 0)) m.push("rq_m_sell");
+    if (!o.supplier && !o.supplier_link) m.push("rq_m_supplier");
+    if (!(num(o.weight_kg) > 0)) m.push("rq_m_weight");
+    return m;
+  }
+  function missingText(m) { return m.map(function (k) { return t(k); }).join(", "); }
+  function fillWarnHtml(o) {
+    var m = missingFields(o);
+    if (!m.length) return "";
+    return '<button type="button" class="rq-fill" data-act="edit" data-write>' +
+      '<span class="rq-fill-ico" aria-hidden="true">!</span>' +
+      '<span class="rq-fill-txt">' + esc(t("rq_fill", { f: missingText(m) })) + "</span>" +
+      '<b class="rq-fill-btn">' + esc(t("rq_fill_btn")) + "</b></button>";
   }
 
   // Метка «📦 Партия» на карточке заказа
@@ -2858,6 +2879,7 @@
       '<div data-id="' + esc(o.id) + '" class="detail">' +
         '<div class="detail-top"><span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
           '<span class="muted">' + fmtDate(o.order_date) + "</span></div>" +
+        fillWarnHtml(o) +
         '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
         (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0, photoThumbs(o)) + "</div>" : "") +
@@ -3505,6 +3527,11 @@
       closeModal("modal-order");
       if (failed) toast(t("photo_failed", { n: failed }), "error");
       else toast(form.editing ? t("saved") : t("saved") + ": № " + ins.data.order_number, "ok");
+      // заявка клиента: напомнить, что ещё пусто (не мешает сохранению)
+      if (form.editing && form.editing.source === "request") {
+        var left = missingFields(Object.assign({}, form.editing, v));
+        if (left.length) setTimeout(function () { toast(t("rq_fill_left", { f: missingText(left) })); }, 1200);
+      }
       await loadOrders();
       if (statusChanged) tgNotify([orderId]);   // клиенту в Telegram — новый статус
     } catch (err) {
@@ -3537,7 +3564,7 @@
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
-    csvCell: csvCell, todayISO: todayISO, reloadOrders: loadOrders, renderAll: renderAll,
+    csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, reloadOrders: loadOrders, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };
