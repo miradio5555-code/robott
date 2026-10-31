@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202d"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -935,7 +935,9 @@
   function renderWsBanner() {
     var on = !!((state.readOnly || state.adminEdit) && state.ws);
     $("#ws-banner").classList.toggle("hidden", !on);
-    $("#ws-back").classList.toggle("hidden", !state.myWs);
+    // назад: в свой кабинет, а у админа без своего кабинета — к списку байеров
+    $("#ws-back").classList.toggle("hidden", !state.myWs && !(state.me && state.me.role === "admin"));
+    $("#ws-back").textContent = t(state.myWs ? "back_to_mine" : "nav_buyers");
     if (on) $("#ws-banner-text").textContent = t("readonly_banner", { n: state.ws.name });
     ULA.adminEdit.banner();
   }
@@ -1139,7 +1141,10 @@
     });
 
     // админ: вернуться из чужого кабинета в свой
-    $("#ws-back").addEventListener("click", function () { if (state.myWs) openWorkspace(state.myWs); });
+    $("#ws-back").addEventListener("click", function () {
+      if (state.myWs) { openWorkspace(state.myWs); return; }
+      switchTab("buyers");
+    });
     ULA.adminEdit.bind();   // режим правки чужого кабинета и журнал
 
     // админ: приглашения и кабинеты
@@ -1994,8 +1999,11 @@
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     // нижнее меню: у байера — Главная, Заказы, «+», Клиенты (Долги и Витрина — в «Ещё»); у админа — Главная, Байеры, «+», Поддержка (Обмен — в «Ещё»)
     // «plus» — круглая «+» посередине (новый заказ): есть, когда открыт свой кабинет. Порядок кнопок — как в списке.
+    // админ в кабинете байера видит его разделы (Заказы, Клиенты), «Байеры» — чтобы вернуться к списку
     var plus = !!state.ws && !state.readOnly;
+    var foreign = !!state.ws && !(state.myWs && state.myWs.id === state.ws.id);
     var bnTabs = !isAdmin ? ["home", "orders", "plus", "clients"]
+      : foreign ? (plus ? ["orders", "clients", "plus", "buyers"] : ["home", "orders", "clients", "buyers"])
       : plus ? ["home", "buyers", "plus", "support"] : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
     $$("#bottom-nav [data-tab]").forEach(function (b) {
       var i = bnTabs.indexOf(b.getAttribute("data-tab"));
