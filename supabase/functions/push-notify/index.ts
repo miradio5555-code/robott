@@ -5,6 +5,7 @@
 //   "support" — написали в поддержку: байер → всем администраторам; администратор (с полем user) → этому байеру.
 //   "kyc"     — байер отправил документы на проверку → администраторам.
 //   "exchange" / "exchange_paid" — клиент оставил заявку на обмен / загрузил оплату (без входа, по номеру заявки) → владельцу кабинета.
+//   "request" — клиент оставил заявку на товар по ссылке (без входа, по ссылке слежения) → владельцу кабинета.
 // Ключи отправителя создаются сами при первом запуске и лежат в таблице push_keys (читает только эта функция).
 // =====================================================
 
@@ -81,6 +82,27 @@ Deno.serve(async (req) => {
         title: paid ? "💰 Клиент оплатил обмен" : "💱 Новая заявка на обмен",
         body: String(x.client_name || "—").slice(0, 60) + " · ¥" + x.cny + " = " + x.som + " сом",
         tag: "fx",
+      });
+      return json({ ok: true, sent });
+    }
+
+    // ---------- без входа: заявка на товар (новый заказ) ----------
+    if (action === "request") {
+      const tok = String(body.token ?? "");
+      if (tok.length < 16 || tok.length > 128) return json({ ok: false });
+      const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { data: o } = await db.from("orders").select("id, workspace_id, client_name, product_ru, order_number")
+        .eq("public_token", tok).eq("source", "request").gte("created_at", since).maybeSingle();
+      if (!o) return json({ ok: true, sent: 0 });
+      const { error: dup } = await db.from("order_push").insert({ order_id: o.id });
+      if (dup) return json({ ok: true, sent: 0 });   // уже отправляли
+      const { data: w } = await db.from("workspaces").select("owner_id").eq("id", o.workspace_id).maybeSingle();
+      if (!w?.owner_id) return json({ ok: true, sent: 0 });
+      const { count } = await db.from("order_photos").select("id", { count: "exact", head: true }).eq("order_id", o.id);
+      const sent = await send([w.owner_id], {
+        title: "🛍 Новая заявка № " + (o.order_number || ""),
+        body: String(o.client_name || "—").slice(0, 60) + " · " + String(o.product_ru || "").slice(0, 80) + (count ? " · 📷 " + count : ""),
+        tag: "request",
       });
       return json({ ok: true, sent });
     }

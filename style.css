@@ -3779,3 +3779,12 @@ body.readonly .ha-grid { display: none; }
 .push-card b { display: block; font-size: 15px; }
 .push-card p { margin: 3px 0 8px; font-size: 13px; line-height: 1.4; color: var(--muted, #777); }
 .push-card p:last-child { margin-bottom: 0; }
+
+/* Заявка по ссылке: фото товара */
+.rq-phs { display: flex; flex-wrap: wrap; gap: 8px; }
+.rq-ph { position: relative; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; background: var(--soft); border: 1px solid var(--line-strong); }
+.rq-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rq-ph-x { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 16px; line-height: 24px; padding: 0; cursor: pointer; }
+.rq-ph-add { display: grid; place-content: center; justify-items: center; gap: 2px; cursor: pointer; border-style: dashed; color: var(--muted); text-align: center; }
+.rq-ph-add span { font-size: 22px; line-height: 1; color: var(--ink); }
+.rq-ph-add small { font-size: 11px; line-height: 1.1; padding: 0 4px; }
