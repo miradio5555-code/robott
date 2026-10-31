@@ -1951,3 +1951,66 @@ exception when insufficient_privilege then null;
 end $$;
 reset role;
 \echo '✅ 47. Устройства: свои — пишет и видит человек, все — админ, без входа — ничего'
+
+-- 48. Режим правки: админ без него чужой кабинет не меняет, с ним — меняет как владелец; всё в журнале; байер включить не может
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare v_ws uuid; v_ord uuid; n int;
+begin
+  select workspace_id into v_ws from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner';
+  select id into v_ord from public.orders where workspace_id = v_ws limit 1;
+  if v_ord is null then raise exception 'ПРОВАЛ теста: у байера нет заказа'; end if;
+  update public.orders set admin_comment = 'правка админа' where id = v_ord;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ПРОВАЛ: админ изменил чужой заказ без режима правки'; end if;
+
+  perform public.admin_edit_start(v_ws);
+  update public.orders set admin_comment = 'правка админа' where id = v_ord;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'ПРОВАЛ: админ в режиме правки не смог изменить заказ'; end if;
+  update public.workspaces set warehouse_address = 'Гуанчжоу, тест' where id = v_ws;
+  if (select warehouse_address from public.workspaces where id = v_ws) <> 'Гуанчжоу, тест' then raise exception 'ПРОВАЛ: админ в режиме правки не изменил настройки кабинета'; end if;
+  if not exists (select 1 from public.admin_audit where workspace_id = v_ws and tbl = 'orders' and op = 'UPDATE' and row_id = v_ord::text and 'admin_comment' = any(cols)) then
+    raise exception 'ПРОВАЛ: правка заказа не попала в журнал';
+  end if;
+  if not exists (select 1 from public.admin_audit where workspace_id = v_ws and op = 'edit_on') then raise exception 'ПРОВАЛ: включение правки не в журнале'; end if;
+
+  perform public.admin_edit_stop();
+  update public.orders set admin_comment = 'после выхода' where id = v_ord;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ПРОВАЛ: после выхода из режима правки админ всё ещё меняет'; end if;
+  if not exists (select 1 from public.admin_audit where workspace_id = v_ws and op = 'edit_off') then raise exception 'ПРОВАЛ: выход из правки не в журнале'; end if;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  begin
+    perform public.admin_edit_start((select workspace_id from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000d1' limit 1));
+    raise exception 'ПРОВАЛ: байер включил режим правки';
+  exception when insufficient_privilege then null;
+  end;
+  if exists (select 1 from public.admin_audit) then raise exception 'ПРОВАЛ: байер видит журнал администратора'; end if;
+end $$;
+reset role;
+-- срок вышел — режим не действует
+update public.admin_edit set until = now() - interval '1 minute';
+insert into public.admin_edit (admin_id, workspace_id, until)
+  select '00000000-0000-0000-0000-00000000000a', workspace_id, now() - interval '1 minute'
+    from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner'
+  on conflict (admin_id) do update set until = excluded.until, workspace_id = excluded.workspace_id;
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare n int;
+begin
+  update public.orders set admin_comment = 'просрочено' where workspace_id = (select workspace_id from public.workspace_members where user_id = '00000000-0000-0000-0000-0000000000b1' and role = 'owner');
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ПРОВАЛ: просроченный режим правки всё ещё действует'; end if;
+end $$;
+reset role;
+reset request.uid;
+delete from public.admin_edit;
+\echo '✅ 48. Режим правки: только админ, только на время, только выбранный кабинет, всё в журнале'

@@ -338,7 +338,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261201a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261201b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -767,6 +767,7 @@
     var memRow = memRows.filter(function (m) { return m.role === "staff"; })[0] || memRows[0] || null;
     var myWs = memRow ? memRow.workspace : null;
     state.myRole = memRow ? memRow.role : null;
+    state.ownRole = state.myRole;   // роль в своём кабинете; в режиме правки чужого myRole временно «owner»
     document.body.classList.toggle("is-staff", state.myRole === "staff");
 
     // у байера обязательно должен быть кабинет; админ может работать и без своего
@@ -873,10 +874,13 @@
   var WS_FIELDS = "id, name, order_prefix, warehouse_address, warehouse_contacts, logo_path, fx_on, fx_tiers, fx_note, fx_updated_at, fx_eta, " +
     "default_purchase_currency, default_client_currency, default_delivery_currency, default_delivery_tariff, custom_rates, request_token, profit_goals";
 
-  // Открыть кабинет. Свой — можно менять. Чужой (только админ) — только смотреть.
+  // Открыть кабинет. Свой — можно менять. Чужой (только админ) — смотреть, а в режиме правки — менять как владелец.
   async function openWorkspace(ws) {
     state.ws = ws;
-    state.readOnly = !(state.myWs && state.myWs.id === ws.id);
+    var mine = !!(state.myWs && state.myWs.id === ws.id);
+    state.adminEdit = await ULA.adminEdit.check(ws, mine);   // до какого времени включена правка (файл 48)
+    state.readOnly = !mine && !state.adminEdit;
+    state.myRole = state.adminEdit ? "owner" : state.ownRole;
     document.body.classList.toggle("readonly", state.readOnly);
     state.orders = [];
     state.clients = [];
@@ -925,10 +929,11 @@
   }
 
   function renderWsBanner() {
-    var on = !!(state.readOnly && state.ws);
+    var on = !!((state.readOnly || state.adminEdit) && state.ws);
     $("#ws-banner").classList.toggle("hidden", !on);
     $("#ws-back").classList.toggle("hidden", !state.myWs);
     if (on) $("#ws-banner-text").textContent = t("readonly_banner", { n: state.ws.name });
+    ULA.adminEdit.banner();
   }
 
   function setLoginError(msg) {
@@ -1128,6 +1133,7 @@
 
     // админ: вернуться из чужого кабинета в свой
     $("#ws-back").addEventListener("click", function () { if (state.myWs) openWorkspace(state.myWs); });
+    ULA.adminEdit.bind();   // режим правки чужого кабинета и журнал
 
     // админ: приглашения и кабинеты
     $("#invite-create").addEventListener("click", createInvite);
@@ -3573,7 +3579,7 @@
     $: $, $$: $$, esc: esc, toast: toast, handleError: handleError,
     money: money, numStr: numStr, parseNum: parseNum, locale: locale,
     curName: curName, fillCurrencySelect: fillCurrencySelect,
-    countryName: countryName, countryFlag: countryFlag, fillCountrySelect: fillCountrySelect, COUNTRIES: COUNTRIES, openModal: openModal,
+    countryName: countryName, countryFlag: countryFlag, fillCountrySelect: fillCountrySelect, COUNTRIES: COUNTRIES, openModal: openModal, openWorkspace: openWorkspace,
     fmtTime: fmtTime, state: state, WS_FIELDS: WS_FIELDS, APP_VERSION: APP_VERSION,
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
