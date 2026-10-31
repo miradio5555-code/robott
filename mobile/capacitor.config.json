@@ -2,8 +2,15 @@
   "appId": "com.ulafactory.app",
   "appName": "ULA Factory",
   "webDir": "www",
+  "server": {
+    "url": "https://miradio5555-code.github.io/robott/",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#F2F2F7"
+    "backgroundColor": "#F2F2F7",
+    "appendUserAgent": "ULAFactoryApp",
+    "limitsNavigationsToAppBoundDomains": false
   }
 }

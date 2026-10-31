@@ -1676,5 +1676,6 @@ I18N.vi = {
   pk_err_off: "Đăng nhập bằng Face ID đang tắt. Hãy dùng mật khẩu.",
   pk_err_login: "Không đăng nhập được bằng Face ID. Hãy dùng mật khẩu.",
   pk_err_add: "Không bật được. Vui lòng thử lại.",
-  pk_err_exists: "Face ID đã được bật trên thiết bị này."
+  pk_err_exists: "Face ID đã được bật trên thiết bị này.",
+  pk_app: "Sắp có trong ứng dụng. Hiện Face ID hoạt động khi mở ULA bằng Safari."
 };

@@ -120,6 +120,7 @@
   }
   function canPush() { return "Notification" in window && "PushManager" in window && !!navigator.serviceWorker; }
   function iosNoApp() {
+    if (/ULAFactoryApp/.test(navigator.userAgent || "")) return false;   // приложение ULA — уже «приложение»
     var ios = /iPhone|iPad|iPod/.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     var app = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
     return ios && !app;

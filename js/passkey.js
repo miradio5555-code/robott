@@ -15,7 +15,9 @@
   var KEY = "ula_passkey";   // на этом устройстве есть ключ — показываем кнопку на экране входа
   var st = { list: [], off: false, busy: false };
 
-  function supported() { return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get); }
+  // в приложении iPhone Face ID для сайта заработает после настройки домена (associated domains) — пока скрыт
+  function app() { return /ULAFactoryApp/.test(navigator.userAgent || ""); }
+  function supported() { return !app() && !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get); }
   function has() { try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } }
   function mark(on) { try { if (on) localStorage.setItem(KEY, "1"); else localStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
 
@@ -76,7 +78,7 @@
   function render() {
     var box = $("#pk-list"), add = $("#pk-add"), note = $("#pk-note");
     add.textContent = t("pk_add_" + kind());
-    if (!supported()) { note.textContent = t("pk_unsupported"); add.classList.add("hidden"); box.innerHTML = ""; return; }
+    if (!supported()) { note.textContent = t(app() ? "pk_app" : "pk_unsupported"); add.classList.add("hidden"); box.innerHTML = ""; return; }
     if (st.off) {
       note.textContent = t(state.me && state.me.role === "admin" ? "pk_off_admin" : "pk_off");
       add.classList.add("hidden"); box.innerHTML = ""; return;

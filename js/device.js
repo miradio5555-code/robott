@@ -32,6 +32,7 @@
 
   // ---------- Что за устройство ----------
   function installed() {
+    if (/ULAFactoryApp/.test(navigator.userAgent || "")) return true;   // приложение из App Store
     return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
   }
   function parseUA() {

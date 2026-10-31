@@ -1704,5 +1704,6 @@ I18N.en = {
   pk_err_off: "Face ID sign-in is off right now. Use your password.",
   pk_err_login: "Face ID sign-in failed. Use your password.",
   pk_err_add: "Could not turn it on. Please try again.",
-  pk_err_exists: "Face ID is already on for this device."
+  pk_err_exists: "Face ID is already on for this device.",
+  pk_app: "Coming soon in the app. For now Face ID works when you open ULA in Safari."
 };

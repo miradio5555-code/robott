@@ -312,7 +312,8 @@
     try {
       var r = await fetch(url.replace(/\/$/, "") + "/auth/v1/settings", { headers: { apikey: key } });
       var j = await r.json();
-      var on = !!(j && j.external && j.external.google);
+      // в приложении iPhone Google не пускает (вход внутри приложений запрещён) — кнопку не показываем
+      var on = !!(j && j.external && j.external.google) && !isApp();
       $$("[data-oauth]").forEach(function (el) { el.classList.toggle("hidden", !on); });
     } catch (e) { /* нет сети — кнопку не показываем */ }
   }
@@ -338,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -2068,6 +2069,8 @@
     var ua = navigator.userAgent || "";
     return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   }
+  // открыто в приложении ULA Factory (iPhone, mobile/) — оно дописывает метку в строку браузера
+  function isApp() { return /ULAFactoryApp/.test(navigator.userAgent || ""); }
   function isPhone() { return (navigator.maxTouchPoints || 0) > 0 || /Android|iPhone|iPad/.test(navigator.userAgent || ""); }
   function updateInstallBtn() {
     var b = $("#install-btn");
@@ -3598,7 +3601,7 @@
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
-    csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, reloadOrders: loadOrders, refresh: refreshData, renderAll: renderAll,
+    csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, isApp: isApp, reloadOrders: loadOrders, refresh: refreshData, renderAll: renderAll,
     statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
     db: function () { return db; } // база появляется позже, при запуске
   };

@@ -1704,5 +1704,6 @@ I18N.zh = {
   pk_err_off: "Face ID 登录目前已关闭。请使用密码登录。",
   pk_err_login: "Face ID 登录失败。请使用密码登录。",
   pk_err_add: "开启失败，请重试。",
-  pk_err_exists: "此设备已开启 Face ID。"
+  pk_err_exists: "此设备已开启 Face ID。",
+  pk_app: "应用内即将支持。目前在 Safari 中打开 ULA 可使用 Face ID。"
 };
