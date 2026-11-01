@@ -3959,3 +3959,71 @@ label.ios-row { cursor: pointer; }
 .cab-wallet .wl-list { margin-top: 4px; }
 .cab-wallet details { margin-top: 10px; }
 @media (max-width: 420px) { .wl-form-row { grid-template-columns: 1fr; } }
+
+/* Главная байера: спокойная рабочая панель с акцентом на действия и деньги. */
+#tab-home .page-head {
+  margin: 18px 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+#tab-home .page-title {
+  font-size: clamp(27px, 4vw, 34px);
+  font-weight: 700;
+  letter-spacing: -.035em;
+}
+#tab-home .home-act,
+#tab-home .home-money { margin-bottom: 22px; }
+#tab-home .home-h {
+  margin-bottom: 10px;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  text-transform: none;
+}
+#tab-home .home-more { color: var(--primary); font-weight: 700; }
+#tab-home .ha-grid { gap: 10px; }
+#tab-home .ha-tile {
+  min-height: 94px;
+  border-color: var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .18s ease, background-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+#tab-home .ha-tile:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+#tab-home .ha-tile .ha-ico { background: var(--red-tint); color: var(--red); }
+#tab-home .ha-main {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+#tab-home .ha-main .ha-ico { background: rgba(255,255,255,.14); color: var(--on-primary); }
+#tab-home .ha-main small { color: color-mix(in srgb, var(--on-primary) 76%, transparent); }
+@media (hover: hover) {
+  #tab-home .ha-tile:hover { border-color: var(--red); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  #tab-home .ha-main:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+}
+#tab-home .summary { border-color: var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); }
+#tab-home .summary-item { min-width: 0; padding: 15px 16px; }
+#tab-home .summary-label { font-size: 13px; }
+#tab-home .summary-value { font-size: clamp(18px, 2.5vw, 22px); font-weight: 650; overflow-wrap: anywhere; }
+#tab-home .assistant { border-color: var(--line); box-shadow: var(--shadow-sm); }
+#tab-home .warehouse {
+  background: linear-gradient(115deg, var(--hero), color-mix(in srgb, var(--hero) 87%, var(--red)));
+  box-shadow: var(--shadow-sm);
+}
+@media (min-width: 760px) {
+  #tab-home .home-act,
+  #tab-home .home-money { margin-bottom: 26px; }
+  #tab-home .ha-tile { min-height: 106px; }
+}
+@media (max-width: 640px) {
+  #tab-home .page-head { margin: 12px 0 16px; padding-bottom: 12px; }
+  #tab-home .home-act,
+  #tab-home .home-money { margin-bottom: 18px; }
+  #tab-home .ha-tile { min-height: 82px; }
+  #tab-home .summary-item { padding: 13px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tab-home .ha-tile { transition: none; }
+}
