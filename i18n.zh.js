@@ -706,7 +706,7 @@ I18N.zh = {
   auth_b1: "订单、付款和物流集中管理",
   auth_b2: "客户通过链接自行查看订单",
   auth_b3: "利润和欠款一目了然",
-  auth_err_google: "Google 登录失败：登录服务拒绝了 Google 的响应。请先用邮箱和密码登录，我们正在修复。",
+  auth_err_google: "Google 无法完成登录。Supabase 中的 Google 密钥可能已过期或不正确。请暂时使用邮箱和密码登录。修复方法：Google Cloud → APIs & Services → Credentials → 选择 OAuth 客户端 → 创建新的 Client secret；然后进入 Supabase → Authentication → Sign In / Providers → Google → 粘贴密钥并点击 Save。请勿把密钥发给他人。",
   auth_err_expired: "邮件中的链接已过期或已使用。请点击“忘记密码？”重新获取。",
   auth_err_generic: "登录失败，请重试",
   nav_shop: "店铺",

@@ -706,7 +706,7 @@ I18N.en = {
   auth_b1: "Orders, payments and delivery in one place",
   auth_b2: "Clients track their order by a link",
   auth_b3: "Profit and debts at a glance",
-  auth_err_google: "Google sign-in failed: the sign-in service rejected Google's reply. Sign in with email and password, we are fixing it.",
+  auth_err_google: "Google could not finish sign-in. Supabase may have an old or incorrect Google secret. Sign in with email and password for now. To fix it: Google Cloud → APIs & Services → Credentials → your OAuth client → create a new Client secret; then Supabase → Authentication → Sign In / Providers → Google → paste it and click Save. Never send the secret to anyone.",
   auth_err_expired: "The link from the email has expired or was already used. Tap “Forgot password?” and request a new one.",
   auth_err_generic: "Could not sign in. Please try again",
   nav_shop: "Storefront",
