@@ -1,0 +1,31 @@
+# Проверки при каждой отправке на GitHub: сайт (синтаксис, словари, версия) и база (все SQL-файлы + правила безопасности).
+# Результат: вкладка Actions в репозитории. Красный крестик — что-то сломано, письмо придёт на почту.
+name: Проверки
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    name: Сайт
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/check_web.js
+      - run: node --check scripts/backup_supabase_storage.mjs
+
+  db:
+    name: База
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || contains(join(github.event.commits.*.modified, ','), '.sql') || contains(join(github.event.commits.*.added, ','), '.sql')
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tests/run_db_tests.sh

@@ -1,0 +1,75 @@
+# Ночная копия базы и всех файлов Supabase Storage (03:00 по Бишкеку).
+# Копия зашифрована; GitHub хранит её 30 дней в Actions → «Копия базы» → Artifacts.
+#
+# Включить (один раз): GitHub → репозиторий → Settings → Secrets and variables → Actions → New repository secret:
+#   SUPABASE_DB_URL  — Supabase → Connect → «Session pooler» (порт 5432), строка с вашим паролем базы
+#   SUPABASE_URL     — адрес проекта, заканчивается на .supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY — старый секретный service_role JWT из Supabase → Settings → API Keys (начинается на eyJ)
+#   BACKUP_PASSWORD  — придумайте длинный пароль и сохраните отдельно: без него копию не открыть
+# Важно: service_role даёт полный доступ. Вставляйте его только в GitHub Secrets, не в код и не в чат.
+# Пока все четыре секрета не заданы, копия пропускается.
+#
+# Внутри архива: дамп базы, все файлы из Storage и manifest.json с перечнем хранилищ и файлов.
+name: Копия базы
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  schedule:
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SB_URL: ${{ secrets.SUPABASE_URL }}
+      SB_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+    steps:
+      - name: Секреты заданы?
+        id: on
+        run: |
+          missing=()
+          [ -n "$DB_URL" ] || missing+=(SUPABASE_DB_URL)
+          [ -n "$SB_URL" ] || missing+=(SUPABASE_URL)
+          [ -n "$SB_SERVICE_ROLE_KEY" ] || missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          [ -n "$BACKUP_PASSWORD" ] || missing+=(BACKUP_PASSWORD)
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "ok=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "Не заданы Secrets: ${missing[*]}. Копию пока не делаю."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.on.outputs.ok == '1'
+        with:
+          node-version: 20
+      - name: Скачать базу, фото и файлы
+        if: steps.on.outputs.ok == '1'
+        run: |
+          set -euo pipefail
+          TMP_DIR="$RUNNER_TEMP/ula-backup"
+          DAY="$(date -u +%F)"
+          ARCHIVE="ula-${DAY}.tar.gz"
+          trap 'rm -rf "$TMP_DIR" "$GITHUB_WORKSPACE/$ARCHIVE"' EXIT
+          mkdir -p "$TMP_DIR"
+          docker run --rm -e DB_URL -v "$TMP_DIR:/out" postgres:17 \
+            sh -ec 'pg_dump "$DB_URL" -Fc --no-owner --no-privileges -n public -n auth -f /out/database.dump'
+          test -s "$TMP_DIR/database.dump"
+          SUPABASE_URL="$SB_URL" SUPABASE_SERVICE_ROLE_KEY="$SB_SERVICE_ROLE_KEY" \
+            node scripts/backup_supabase_storage.mjs "$TMP_DIR/storage"
+          tar -C "$TMP_DIR" -czf "$GITHUB_WORKSPACE/$ARCHIVE" database.dump storage
+          printf '%s\n' "$BACKUP_PASSWORD" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            --output "$GITHUB_WORKSPACE/${ARCHIVE}.gpg" "$GITHUB_WORKSPACE/$ARCHIVE"
+          rm -f "$GITHUB_WORKSPACE/$ARCHIVE"
+          ls -lh "$GITHUB_WORKSPACE/${ARCHIVE}.gpg"
+      - uses: actions/upload-artifact@v4
+        if: steps.on.outputs.ok == '1'
+        with:
+          name: ula-db-${{ github.run_id }}
+          path: "ula-*.tar.gz.gpg"
+          retention-days: 30

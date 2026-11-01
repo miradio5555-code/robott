@@ -63,6 +63,9 @@
 | `supabase/functions/` | Функции Supabase: `ai-assistant` (ИИ для админа), `telegram-notify` (уведомления о поддержке) |
 | `tests/` | Проверки базы: `bash tests/run_db_tests.sh` |
 | `DATABASE.md` | **Как обслуживать базу**: какие файлы запущены, как добавить новый, как восстановить |
+| `BACKUP.md` | Настройка проверок и ночной копии базы, фотографий и файлов |
+| `.github/workflows/` | Проверки после публикации и зашифрованная ночная копия |
+| `scripts/backup_supabase_storage.mjs` | Копирование файлов из всех хранилищ Supabase |
 
 **Порядок запуска SQL:** строго по номеру — `supabase_schema.sql` (0), затем `migration_01…` → `migration_16…`.
 Старые файлы повторно не запускать: они сами остановятся с сообщением «СТОП». Подробно — в [DATABASE.md](DATABASE.md).
