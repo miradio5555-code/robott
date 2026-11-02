@@ -56,20 +56,35 @@
       card(t("bi_logistics"), esc(t("bi_insufficient")), t("bi_logistics_missing")) + '</div>';
     $("#bi-body").innerHTML = body;
   }
+  // Показываем понятную причину и безопасный код ошибки без данных клиента.
+  function showError(error, status) {
+    var code = String(error && error.code || "");
+    var key = "bi_load_error";
+    if (status === 401 || code === "PGRST301") key = "bi_login_error";
+    else if (code === "42501" || status === 403) key = "bi_access_error";
+    else if (code === "PGRST202" || code === "42883") key = "bi_migration_error";
+    else if (typeof navigator !== "undefined" && navigator.onLine === false) key = "bi_network_error";
+    var safeCode = /^[A-Z0-9]{3,12}$/i.test(code) ? code : "";
+    var suffix = safeCode || (status >= 400 && status <= 599 ? "HTTP " + status : "");
+    $("#bi-body").textContent = t(key) + (suffix ? " (" + suffix + ")" : "");
+  }
   async function load() {
     if (!state.me || state.me.role !== "admin" || !state.ws || !c.db()) return;
     var from = $("#bi-from").value, to = $("#bi-to").value;
     if (!from || !to || from > to) { $("#bi-body").textContent = t("bi_bad_dates"); return; }
     var requestId = ++requestNumber, workspaceId = state.ws.id;
     $("#bi-body").textContent = t("loading");
+    var result;
     try {
-      var result = await c.db().rpc("admin_business_overview", { p_workspace: workspaceId, p_from: from, p_to: to });
-      if (requestId !== requestNumber || !state.ws || state.ws.id !== workspaceId || state.tab !== "business") return;
-      if (result.error || !result.data) { $("#bi-body").textContent = t("bi_load_error"); return; }
-      render(result.data);
+      result = await c.db().rpc("admin_business_overview", { p_workspace: workspaceId, p_from: from, p_to: to });
     } catch (e) {
-      if (requestId === requestNumber) $("#bi-body").textContent = t("bi_load_error");
+      if (requestId === requestNumber) showError(null, 0);
+      return;
     }
+    if (requestId !== requestNumber || !state.ws || state.ws.id !== workspaceId || state.tab !== "business") return;
+    if (result.error || !result.data) { showError(result.error, result.status || 0); return; }
+    try { render(result.data); }
+    catch (e) { $("#bi-body").textContent = t("bi_render_error"); }
   }
   function open() {
     if (!state.me || state.me.role !== "admin") return;

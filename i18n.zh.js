@@ -1775,7 +1775,7 @@ I18N.zh = {
   bi_choose_workspace: "请先在买手列表中选择一个工作区。", bi_workspace: "工作区：{name}",
   bi_period: "时间范围", bi_7: "7天", bi_30: "30天", bi_90: "90天", bi_365: "1年", bi_custom: "自定义日期", bi_from: "开始", bi_to: "结束", bi_show: "查看",
   bi_insufficient: "数据不足", bi_empty: "此期间没有订单或费用记录。", bi_no_orders: "此期间没有使用该货币的订单。", bi_bad_dates: "请选择有效日期，开始日期不能晚于结束日期。",
-  bi_load_error: "无法加载概览。请检查网络以及 Supabase 是否已运行迁移51。",
+  bi_load_error: "无法加载概览。请重试并向支持人员提供错误代码。", bi_login_error: "登录已过期，请重新登录。", bi_access_error: "需要管理员权限。如果已启用双重验证，请完成验证。", bi_migration_error: "找不到概览函数，请检查 Supabase 中是否已运行迁移51。", bi_network_error: "网络未连接，请检查网络后重试。", bi_render_error: "数据已获取，但无法显示概览。请联系支持人员。",
   bi_scope: "订单按订单日期筛选，费用按费用日期筛选。已取消的订单不计入，显示当前状态。",
   bi_currency_note: "不同货币分别显示，不进行汇率换算。", bi_active: "进行中订单", bi_completed: "已交付订单", bi_delayed: "延迟订单", bi_status_note: "所选期间订单的当前状态。", bi_missing_deadline: "订单缺少确认的交付期限。",
   bi_order_value: "订单金额", bi_order_value_note: "订单的客户报价，并非已收款金额。", bi_expenses: "已记录费用", bi_recorded_expenses: "仅包括费用栏目中记录的费用。", bi_missing_expenses: "此期间没有费用记录，并不代表没有费用。",
