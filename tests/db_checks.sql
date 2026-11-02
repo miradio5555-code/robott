@@ -2131,3 +2131,56 @@ delete from public.orders where admin_comment like 'wallet-%';
 delete from public.client_wallet;
 delete from public.client_cabinets where token = 'abcdefabcdefabcdefabcdefabcdef50';
 \echo '✅ 50. Баланс клиента: долги закрываются по порядку, оплата и возврат по заказу, чужим — нельзя, клиент видит баланс'
+
+-- 51. Обзор доступен только администратору и не смешивает кабинеты и валюты.
+insert into public.orders (workspace_id, order_date, client_name, product_ru, quantity, unit_price_cny, exchange_rate, client_currency, client_price, admin_comment)
+values
+  ((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', 'BI', 'BI', 2, 100, 1, 'USD', 300.25, 'bi-test'),
+  ((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', 'BI', 'BI', 1, 10, 1, 'CNY', null, 'bi-test'),
+  ((select id from public.workspaces where owner_id = '00000000-0000-0000-0000-0000000000c1' limit 1), '2001-02-03', 'BI', 'BI', 1, 10, 1, 'USD', 9000, 'bi-test');
+insert into public.expenses (workspace_id, spent_on, amount, currency)
+values ((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', 10.10, 'USD');
+
+set request.uid = '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+do $$
+declare j jsonb; usd jsonb; cny jsonb;
+begin
+  j := public.admin_business_overview((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', '2001-02-03');
+  select value into usd from jsonb_array_elements(j->'currencies') where value->>'code' = 'USD';
+  select value into cny from jsonb_array_elements(j->'currencies') where value->>'code' = 'CNY';
+  if (j->>'active')::int is distinct from 2 or (usd->>'order_value')::numeric is distinct from 300.25
+     or (usd->>'order_profit')::numeric is distinct from 100.25 or (usd->>'expenses')::numeric is distinct from 10.10
+     or (usd->>'average_value')::numeric is distinct from 300.25 then
+    raise exception 'ПРОВАЛ: неверный расчёт или смешаны кабинеты';
+  end if;
+  if cny is null or cny->>'order_value' is not null or (cny->>'missing_price')::int is distinct from 1 then
+    raise exception 'ПРОВАЛ: отсутствующая цена показана как известная';
+  end if;
+  begin
+    perform public.admin_business_overview((select v::uuid from t where k = 'b_ws_id'), '2001-02-04', '2001-02-03');
+    raise exception 'ПРОВАЛ: принят неверный период';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+begin
+  begin
+    perform public.admin_business_overview((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', '2001-02-03');
+    raise exception 'ПРОВАЛ: байер получил доступ к обзору администратора';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+reset request.uid;
+set role anon;
+do $$
+begin
+  begin
+    perform public.admin_business_overview((select v::uuid from t where k = 'b_ws_id'), '2001-02-03', '2001-02-03');
+    raise exception 'ПРОВАЛ: аноним получил доступ к обзору';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+\echo '✅ 51. Бизнес-обзор: права, валюты, точные суммы и отсутствующие данные'

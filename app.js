@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202g"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202h"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1049,6 +1049,7 @@
     ULA.debts.bind();
     ULA.report.bind();
     ULA.analytics.bind();
+    ULA.business.bind();
     ULA.bulk.bind();
     ULA.onboarding.bind();
     ULA.tgws.bind();
@@ -1980,8 +1981,8 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "home" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support") && isAdmin) ? name : "orders";
-    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support") state.tab = isAdmin ? "buyers" : "orders";
+    state.tab = name === "home" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
+    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
@@ -1990,6 +1991,7 @@
     $("#tab-debts").classList.toggle("hidden", state.tab !== "debts");
     $("#tab-report").classList.toggle("hidden", state.tab !== "report");
     $("#tab-analytics").classList.toggle("hidden", state.tab !== "analytics");
+    $("#tab-business").classList.toggle("hidden", state.tab !== "business");
     $("#tab-expenses").classList.toggle("hidden", state.tab !== "expenses");
     $("#tab-suppliers").classList.toggle("hidden", state.tab !== "suppliers");
     $("#tab-buyers").classList.toggle("hidden", state.tab !== "buyers");
@@ -2037,6 +2039,7 @@
     if (state.tab === "debts") ULA.debts.open();
     if (state.tab === "report") ULA.report.open();
     if (state.tab === "analytics") ULA.analytics.open();
+    if (state.tab === "business") ULA.business.open();
     if (state.tab === "expenses" && db && state.ws) ULA.expenses.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
@@ -2053,7 +2056,7 @@
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
       var ICONS = { home: "home", exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "users", support: "message", profile: "id" };
+        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", support: "message", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
