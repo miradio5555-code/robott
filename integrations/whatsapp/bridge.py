@@ -39,7 +39,7 @@ def incoming(payload):
 class Bridge:
     def __init__(self, config):
         self.c=config
-        state_dir=Path(os.environ.get('STATE_DIR',str(ROOT)))
+        state_dir=Path(os.environ.get('STATE_DIR',str(ROOT))) / self.c.get('STATE_SUBDIR','')
         state_dir.mkdir(parents=True,exist_ok=True)
         state_dir.chmod(0o700)
         self.db=sqlite3.connect(state_dir/'state.sqlite',check_same_thread=False)
@@ -108,6 +108,7 @@ class Bridge:
                     self.cloud.set_thread(phone,{'mode':'human' if human else 'bot'})
                 if answer is None:
                     self.db.execute('insert into seen values(?)',(mid,));self.db.commit();return
+                answer=answer.replace('ULA Factory',self.c.get('BRAND_NAME','ULA Factory'))
                 self.db.execute('insert into responses values(?,?)',(mid,answer));self.db.commit()
             if self.cloud:self.cloud.queue(phone,mid,answer,stop or start)
             else:self.send(phone,answer,mid)
@@ -115,6 +116,8 @@ class Bridge:
             self.db.execute('update contacts set last_reply=? where phone=?',(time.time(),phone));self.db.commit()
     def poll(self):
         while True:
+            if self.c.get('DISABLED'):
+                time.sleep(2);continue
             try:
                 if self.cloud:self.cloud.tick()
                 elif self.c.get('SUPABASE_SERVICE_KEY'):
@@ -133,6 +136,9 @@ class Bridge:
 def main():
     config=json.loads((ROOT/'config.local.json').read_text())
     if len(config.get('WEBHOOK_SECRET',''))<32: raise ValueError('Webhook secret too short')
+    if config.get('MULTI_TENANT'):
+        from supervisor import serve
+        serve(config);return
     bridge=Bridge(config)
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args): pass  # Do not log callback URLs/secrets.

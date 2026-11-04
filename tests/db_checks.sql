@@ -2228,3 +2228,30 @@ do $$ begin
 end $$;
 reset role;
 \echo '✅ 52. WhatsApp: изоляция диалогов, сервисные функции, повтор событий и подтверждение расчётов'
+
+-- 53: only workspace owners may request/retrieve QR; no browser API tokens.
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+select public.wa_request_connection((select v::uuid from t where k='wa_ws'),'connect');
+do $$ begin
+ if not exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws') and state='queued') then raise exception 'ПРОВАЛ: владелец не может начать подключение'; end if;
+ begin perform * from public.wa_connections;raise exception 'ПРОВАЛ: browser видит ключи WhatsApp';exception when insufficient_privilege then null;end;
+ begin perform public.wa_pairing_claim();raise exception 'ПРОВАЛ: browser получил очередь подключений';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000c1';set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws')) then raise exception 'ПРОВАЛ: чужой QR доступен'; end if;
+ begin perform public.wa_request_connection((select v::uuid from t where k='wa_ws'),'disconnect');raise exception 'ПРОВАЛ: чужой WhatsApp отключён';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 53. QR доступен владельцу, чужое подключение и серверные токены закрыты'
+-- A staff member can read messages but cannot see or replace the owner's QR.
+insert into public.workspace_members(workspace_id,user_id,role) values((select v::uuid from t where k='wa_ws'),'00000000-0000-0000-0000-0000000000a5','staff') on conflict do nothing;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws')) then raise exception 'ПРОВАЛ: помощник видит QR владельца'; end if;
+ begin perform public.wa_request_connection((select v::uuid from t where k='wa_ws'),'connect');raise exception 'ПРОВАЛ: помощник подключил другой номер';exception when insufficient_privilege then null;end;
+end $$;
+reset role;

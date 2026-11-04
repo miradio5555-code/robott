@@ -1,0 +1,33 @@
+diff --git a/pkg/instance/service/instance_service.go b/pkg/instance/service/instance_service.go
+index fa43c94..b02c0c3 100644
+--- a/pkg/instance/service/instance_service.go
++++ b/pkg/instance/service/instance_service.go
+@@ -300,11 +300,8 @@ func (i instances) Connect(data *ConnectStruct, instance *instance_model.Instanc
+ }
+ 
+ func (i instances) Reconnect(instance *instance_model.Instance) error {
+-	_, err := i.ensureClientConnected(instance.Id)
+-	if err != nil {
+-		return err
+-	}
+-
++	// Reconnection must work when the runtime client is missing or disconnected.
++	// The token middleware already resolves the persisted, authorized instance.
+ 	return i.whatsmeowService.ReconnectClient(instance.Id)
+ }
+ 
+diff --git a/pkg/whatsmeow/service/whatsmeow.go b/pkg/whatsmeow/service/whatsmeow.go
+index 366f0ed..5d5f5e5 100644
+--- a/pkg/whatsmeow/service/whatsmeow.go
++++ b/pkg/whatsmeow/service/whatsmeow.go
+@@ -403,6 +403,10 @@ func (w whatsmeowService) StartClient(cd *ClientData) {
+ 		}
+ 	}
+ 
++	if version.Major > 0 && version.Minor > 0 && version.Patch > 0 {
++		store.SetWAVersion(store.WAVersionContainer{uint32(version.Major), uint32(version.Minor), uint32(version.Patch)})
++	}
++
+ 	// 🔒 FIX: Sempre criar logger, mesmo que WaDebug esteja vazio
+ 	// Usar "INFO" como nível mínimo para garantir que logs importantes apareçam
+ 	minLevel := w.config.WaDebug

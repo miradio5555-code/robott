@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202j"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202k"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -696,6 +696,7 @@
     }
     db.auth.onAuthStateChange(function (event, session) {
       if (event === "SIGNED_OUT" && mode === "admin") {
+        if (ULA.inbox) ULA.inbox.clear();
         adminEntryUserId = "";
         adminEntryPromise = null;
         state.orders = [];
@@ -2043,6 +2044,7 @@
     if (state.tab === "analytics") ULA.analytics.open();
     if (state.tab === "business") ULA.business.open();
     if (state.tab === "inbox") ULA.inbox.open().catch(handleError);
+    if (state.tab === "home") ULA.inbox.welcome().catch(handleError);
     if (state.tab === "expenses" && db && state.ws) ULA.expenses.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();

@@ -1756,3 +1756,7 @@ I18N.vi = {
 };
 
 I18N.vi.wa_title = "Tin nhắn";
+
+I18N.vi.wa_connect_title = "WhatsApp cho khách hàng của bạn";
+I18N.vi.wa_connect_hint = "Quét mã QR để kết nối số của bạn: tin nhắn, đơn hàng và thông báo trong không gian làm việc.";
+I18N.vi.wa_connect_button = "Kết nối WhatsApp";

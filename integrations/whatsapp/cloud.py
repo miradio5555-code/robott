@@ -67,18 +67,19 @@ class Cloud:
         if now-self.last_heartbeat>=30:
             connected=False
             try:
-                r=self.b.api(self.c['EVOLUTION_URL']+'/instance/status',self.c['INSTANCE_TOKEN']);connected=bool((r.get('data') or {}).get('Connected'))
+                r=self.b.api(self.c['EVOLUTION_URL']+'/instance/status',self.c['INSTANCE_TOKEN']);connected=bool((r.get('data') or {}).get('Connected') and (r.get('data') or {}).get('LoggedIn'))
             except Exception:pass
             self.connection_ok=connected
             self.patch('wa_settings',{'workspace_id':'eq.'+self.ws},{'last_heartbeat':datetime.now(timezone.utc).isoformat(),'connection_ok':connected})
             self.last_heartbeat=now
         if not self.connection_ok:
+            if self.c.get('MULTI_TENANT') and not self.c.get('PAIRING_READY'):return
             if now-self.last_reconnect>=60:
                 self.last_reconnect=now
                 try:self.b.api(self.c['EVOLUTION_URL']+'/instance/reconnect',self.c['INSTANCE_TOKEN'],{})
                 except Exception:
                     # The engine may have no runtime client after a failed initial dial.
-                    try:self.b.api(self.c['EVOLUTION_URL']+'/instance/connect',self.c['INSTANCE_TOKEN'],{'webhookUrl':'http://whatsapp-bridge:8091/webhook/'+self.c['WEBHOOK_SECRET'],'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE']})
+                    try:self.b.api(self.c['EVOLUTION_URL']+'/instance/connect',self.c['INSTANCE_TOKEN'],{'webhookUrl':self.c.get('WEBHOOK_URL') or 'http://whatsapp-bridge:8091/webhook/'+self.c['WEBHOOK_SECRET'],'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE']})
                     except Exception:pass
             return
         rows=self.call('rpc/wa_claim',{'p_workspace':self.ws}) or []

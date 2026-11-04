@@ -1794,3 +1794,7 @@ I18N.ru = {
 };
 
 I18N.ru.wa_title = "Сообщения";
+
+I18N.ru.wa_connect_title = "WhatsApp для ваших клиентов";
+I18N.ru.wa_connect_hint = "Подключите свой номер по QR-коду: сообщения, заказы и уведомления в вашем кабинете.";
+I18N.ru.wa_connect_button = "Подключить WhatsApp";

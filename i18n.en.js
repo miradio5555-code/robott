@@ -1784,3 +1784,7 @@ I18N.en = {
 };
 
 I18N.en.wa_title = "Messages";
+
+I18N.en.wa_connect_title = "WhatsApp for your customers";
+I18N.en.wa_connect_hint = "Connect your number by QR code: messages, orders and notifications in your workspace.";
+I18N.en.wa_connect_button = "Connect WhatsApp";

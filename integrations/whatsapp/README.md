@@ -38,3 +38,17 @@ The SQL tests cover tenant isolation, unauthorized service RPC calls, deduplicat
 ## Hosting
 
 The current adapter runs on the owner's computer. It requires Docker and the computer to stay on. For a VPS transfer, provision Docker, copy the protected configuration and databases over an authorized secure connection, restore volumes, stop the local dispatcher before starting the server dispatcher, and update the internal webhook. Do not publish Evolution Go's administrative API or this webhook port directly to the Internet. The specific VPS address/access remains to be identified by the owner.
+
+## Self-service workspace connection (migration 53)
+
+Owners can connect their own WhatsApp from the home card or Messages → Your WhatsApp. The site calls `wa_request_connection`; the local supervisor provisions a deterministic Evolution instance, then publishes a short-lived QR image in `wa_pairing`. Only that workspace's active owner can read the QR or request refresh/disconnect. Staff can use the inbox after connection but cannot replace the owner's number.
+
+`MULTI_TENANT:true` enables `supervisor.py`. Protected platform configuration additionally needs `EVOLUTION_ADMIN_KEY`; never place it in the site. `wa_connections` stores each instance's token and is inaccessible to browser roles. Before switching an existing installation, register its current instance/token in this private table and seed its pairing status, preserving the old local state directory for the default workspace.
+
+Each new workspace uses its own `data/<workspace UUID>/state.sqlite`, instance token, signed webhook and database scope. The supervisor's HMAC-verified URL determines the workspace; payload identifiers cannot override routing. Other workspaces' credentials are not fetched when provisioning a new instance. Existing instances are checked by deterministic ID and token before reuse.
+
+Disconnect stops this workspace's automation and message dispatch, preserving conversation history and device credentials for reconnecting. It does not delete the customer's WhatsApp account or erase inbox history. QR requests expire after three minutes; the image displayed in the browser has a shorter TTL and refreshes while pairing. No global API key, raw pairing code or instance token is returned to the website.
+
+The central supervisor still needs to remain running. Remote buyers talk only to Supabase; they never need access to localhost or the administrative Evolution API. For 24/7 use, move the central stack to the platform's server once its address/access is available.
+
+The local Evolution Go checkout also contains `evolution-local.patch`: using the fetched WhatsApp Web version for the handshake, and allowing the reconnect endpoint when its runtime client is already disconnected. Apply the patch to the same upstream revision before reproducing this stack on a server. The reconnect change has a focused Go regression test in the local Evolution checkout.

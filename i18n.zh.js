@@ -1784,3 +1784,7 @@ I18N.zh = {
 };
 
 I18N.zh.wa_title = "消息";
+
+I18N.zh.wa_connect_title = "为客户连接 WhatsApp";
+I18N.zh.wa_connect_hint = "扫描二维码连接您的号码，在工作区管理消息、订单和通知。";
+I18N.zh.wa_connect_button = "连接 WhatsApp";
