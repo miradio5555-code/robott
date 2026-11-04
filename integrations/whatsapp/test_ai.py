@@ -9,6 +9,7 @@ class NaturalReplyTests(unittest.TestCase):
   self.b.api=api;self.ai=NaturalReplies(self.b)
  def tearDown(self):self.b.db.close()
  def test_only_static_intents_leave_server_and_are_cached(self):
+  self.ai.warm('menu')
   first=self.ai.improve(MENU);again=self.ai.improve(MENU)
   self.assertEqual(first,again);self.assertEqual(len(self.calls),1)
   self.assertEqual(self.calls[0][0][2],{'workspace':'ws','intent':'menu'});self.assertIn(MENU,first)
@@ -19,9 +20,18 @@ class NaturalReplyTests(unittest.TestCase):
  def test_unavailable_model_falls_back_without_blocking_bot(self):
   def fail(*a,**kw):raise TimeoutError()
   self.b.api=fail
+  self.ai.warm('menu')
   self.assertEqual(self.ai.improve(MENU),MENU);self.assertEqual(self.ai.improve(MENU),MENU)
  def test_suspicious_output_is_rejected(self):
   self.b.api=lambda *a,**kw:{'answer':'Цена 500, звоните @agent'}
+  self.ai.warm('conditions')
   self.assertEqual(self.ai.improve(CONDITIONS),CONDITIONS)
  def test_disabled_flag_sends_no_requests(self):
   self.b.c['GEMINI_REPLY_ENABLED']=False;self.assertEqual(self.ai.improve(MENU),MENU);self.assertFalse(self.calls)
+
+ def test_uncached_reply_returns_without_waiting_for_generation(self):
+  from unittest.mock import patch
+  with patch.object(self.ai,'start') as start:
+   self.assertEqual(self.ai.improve(MENU),MENU)
+   start.assert_called_once_with('menu')
+  self.assertFalse(self.calls)

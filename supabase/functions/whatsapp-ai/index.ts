@@ -35,7 +35,7 @@ Deno.serve(async req=>{
   const model=selectedModel;
   phase="generate";
   const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
-   method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},signal:AbortSignal.timeout(10000),
+   method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},signal:AbortSignal.timeout(30000),
    body:JSON.stringify({systemInstruction:{parts:[{text:"Ты редактор коротких ответов магазина в WhatsApp. Пиши по-русски естественно, доброжелательно, без канцелярита. Не утверждай, что ты человек. Не придумывай цены, сроки, скидки, наличие, оплату или статус заказа. Не добавляй ссылки, номера, имена, эмодзи и списки. Верни только текст ответа."}]},contents:[{role:"user",parts:[{text:facts[body.intent]}]}],generationConfig:{temperature:0.5,maxOutputTokens:256}}),
   });
   if(!response.ok)return json({error:response.status===429?"rate_limited":"ai_unavailable",provider_status:response.status},503);

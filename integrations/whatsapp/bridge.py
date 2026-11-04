@@ -51,14 +51,14 @@ class Bridge:
         self.db.execute('CREATE TABLE IF NOT EXISTS responses(id TEXT PRIMARY KEY, text TEXT NOT NULL)')
         from business import Business
         self.business=Business(self)
-        from ai import NaturalReplies
-        self.natural=NaturalReplies(self)
         self.cloud=None
         if self.c.get('INBOX_ENABLED'):
             from cloud import Cloud
             self.cloud=Cloud(self)
         self.lock=threading.RLock()
-    def api(self,url,key,data=None,method=None,extra_headers=None):
+        from ai import NaturalReplies
+        self.natural=NaturalReplies(self)
+    def api(self,url,key,data=None,method=None,extra_headers=None,timeout=20):
         # One verified TLS connection per host and worker. Avoid a new handshake
         # for every queue poll / pairing step on high-latency connections.
         u=urlsplit(url)
@@ -77,8 +77,10 @@ class Bridge:
             conn=pool.get(host)
             if conn is None:
                 cls=http.client.HTTPSConnection if u.scheme=='https' else http.client.HTTPConnection
-                conn=pool[host]=cls(u.hostname,u.port,timeout=20)
+                conn=pool[host]=cls(u.hostname,u.port,timeout=timeout)
             try:
+                conn.timeout=timeout
+                if getattr(conn,'sock',None):conn.sock.settimeout(timeout)
                 conn.request(verb,route,body=body,headers=headers)
                 res=conn.getresponse();raw=res.read()
                 if res.will_close:conn.close();pool.pop(host,None)
