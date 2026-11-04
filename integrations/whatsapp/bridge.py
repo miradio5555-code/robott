@@ -51,6 +51,8 @@ class Bridge:
         self.db.execute('CREATE TABLE IF NOT EXISTS responses(id TEXT PRIMARY KEY, text TEXT NOT NULL)')
         from business import Business
         self.business=Business(self)
+        from ai import NaturalReplies
+        self.natural=NaturalReplies(self)
         self.cloud=None
         if self.c.get('INBOX_ENABLED'):
             from cloud import Cloud
@@ -136,6 +138,7 @@ class Bridge:
                     self.cloud.set_thread(phone,{'mode':'human' if human else 'bot'})
                 if answer is None:
                     self.db.execute('insert into seen values(?)',(mid,));self.db.commit();return
+                answer=self.natural.improve(answer)
                 answer=answer.replace('ULA Factory',self.c.get('BRAND_NAME','ULA Factory'))
                 self.db.execute('insert into responses values(?,?)',(mid,answer));self.db.commit()
             if self.cloud:self.cloud.queue(phone,mid,answer,stop or start)
