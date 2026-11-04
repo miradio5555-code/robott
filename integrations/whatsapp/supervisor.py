@@ -3,7 +3,8 @@ import hashlib,hmac,json,re,secrets,threading,time,uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone,timedelta
 from urllib.parse import urlencode
-from urllib.error import HTTPError
+from urllib.error import HTTPError,URLError
+from http.client import HTTPException
 from pathlib import Path
 from bridge import Bridge
 
@@ -14,12 +15,7 @@ class Supervisor:
         self.transport=object.__new__(Bridge);self.transport.c=config
     def db(self,table,params=None,data=None,method=None,prefer=None):
         route=table+('?' +urlencode(params) if params else '')
-        if prefer:
-            from urllib.request import Request,urlopen
-            req=Request(self.c['SUPABASE_URL']+'/rest/v1/'+route,headers={'apikey':self.c['SUPABASE_SERVICE_KEY'],'Content-Type':'application/json','Prefer':prefer},data=json.dumps(data).encode(),method=method or 'POST')
-            with urlopen(req,timeout=20) as r:
-                raw=r.read();return json.loads(raw) if raw else None
-        return self.transport.api(self.c['SUPABASE_URL']+'/rest/v1/'+route,self.c['SUPABASE_SERVICE_KEY'],data,method)
+        return self.transport.api(self.c['SUPABASE_URL']+'/rest/v1/'+route,self.c['SUPABASE_SERVICE_KEY'],data,method,extra_headers={'Prefer':prefer} if prefer else None)
     def evo(self,route,token,data=None):return self.transport.api(self.c['EVOLUTION_URL']+route,token,data)
     def secret(self,ws):return hmac.new(self.c['WEBHOOK_SECRET'].encode(),ws.encode(),hashlib.sha256).hexdigest()
     def webhook(self,ws):return 'http://whatsapp-bridge:8091/webhook/'+self.secret(ws)+'/'+ws
@@ -128,7 +124,16 @@ class Supervisor:
             self.last_status[ws]=time.time()
             self.finish(job,'starting');self.last_qr[ws]=0
         except Exception as e:
-            code='license_or_instance_limit' if isinstance(e,HTTPError) and e.code in (402,403,503) else 'connection_failed'
+            code='network_error' if isinstance(e,(URLError,OSError,HTTPException)) and not isinstance(e,HTTPError) else 'connection_failed'
+            if isinstance(e,HTTPError):
+                if e.code in (402,403):code='license_or_instance_limit'
+                elif e.code==429:code='provider_rate_limit'
+                elif e.code>=500:
+                    try:detail=str(json.loads(e.read()).get('error','')).lower()
+                    except Exception:detail=''
+                    if any(x in detail for x in ('timeout','handshake','failed to dial','network','no such host')):code='network_error'
+                    elif job['action']=='phone':code='phone_link_failed'
+            print('Pairing failed:',code,type(e).__name__,flush=True)
             self.finish(job,'error',code)
         finally:
             try:self.db('wa_pairing',{'workspace_id':'eq.'+ws,'processing_seq':'eq.'+str(seq)},{'lease_until':None,'handled_seq':seq},'PATCH')

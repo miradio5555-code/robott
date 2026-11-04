@@ -1,9 +1,12 @@
 """Local Evolution Go adapter. No third-party Python dependencies."""
-import hashlib, hmac, json, os, re, sqlite3, threading, time
+import hashlib, hmac, http.client, io, json, os, re, sqlite3, threading, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.request import Request, urlopen
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
+from urllib.error import HTTPError
 from pathlib import Path
+
+_http_connections = threading.local()
 
 ROOT = Path(__file__).resolve().parent
 STATUS = {'new':'создан', 'awaiting_payment':'ожидает оплаты', 'purchasing':'закупается',
@@ -53,13 +56,38 @@ class Bridge:
             from cloud import Cloud
             self.cloud=Cloud(self)
         self.lock=threading.RLock()
-    def api(self,url,key,data=None,method=None):
+    def api(self,url,key,data=None,method=None,extra_headers=None):
+        # One verified TLS connection per host and worker. Avoid a new handshake
+        # for every queue poll / pairing step on high-latency connections.
+        u=urlsplit(url)
+        if u.scheme not in ('http','https') or not u.hostname:raise ValueError('invalid_api_url')
         headers={'Content-Type':'application/json','apikey':key}
-        if 'supabase' in url and not key.startswith('sb_secret_'):
+        if u.hostname.endswith(('.supabase.co','.supabase.in')) and not key.startswith('sb_secret_'):
             headers['Authorization']='Bearer '+key
-        req=Request(url,headers=headers,data=json.dumps(data).encode() if data is not None else None,method=method)
-        with urlopen(req,timeout=20) as res:
-            raw=res.read(); return json.loads(raw) if raw else None
+        if extra_headers:headers.update(extra_headers)
+        body=json.dumps(data).encode() if data is not None else None
+        verb=method or ('POST' if data is not None else 'GET')
+        route=u.path or '/'
+        if u.query:route+='?'+u.query
+        if not hasattr(_http_connections,'pool'):_http_connections.pool={}
+        pool=_http_connections.pool;host=(u.scheme,u.hostname,u.port)
+        for attempt in range(2):
+            conn=pool.get(host)
+            if conn is None:
+                cls=http.client.HTTPSConnection if u.scheme=='https' else http.client.HTTPConnection
+                conn=pool[host]=cls(u.hostname,u.port,timeout=20)
+            try:
+                conn.request(verb,route,body=body,headers=headers)
+                res=conn.getresponse();raw=res.read()
+                if res.will_close:conn.close();pool.pop(host,None)
+                if res.status>=400:raise HTTPError(url,res.status,res.reason,res.headers,io.BytesIO(raw))
+                return json.loads(raw) if raw else None
+            except HTTPError:raise
+            except (OSError,http.client.HTTPException):
+                conn.close();pool.pop(host,None)
+                # Mutations may have reached the server: never replay them here.
+                if attempt or verb not in ('GET','HEAD'):raise
+        raise RuntimeError('request_failed')
     def send(self,phone,text,id):
         return self.api(self.c['EVOLUTION_URL']+'/send/text',self.c['INSTANCE_TOKEN'],{'number':phone,'text':text,'id':hashlib.sha256(id.encode()).hexdigest()[:32]})
     def handle(self,event):
