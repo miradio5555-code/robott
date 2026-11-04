@@ -2941,9 +2941,9 @@ html[data-theme="dark"] #tab-orders .chips-ico .chip.active:not(.chip-all) .ci {
 /* Время (с): кольцо 0–.6, левая половинка U .3–.85, правая .65–1.2, пульс 1.1–1.6, название .9–1.4, пролёт внутрь знака с 1.75 (сайт открывается на 1.85) */
 .intro { display: none; }
 .intro.play { display: block; position: fixed; inset: 0; z-index: 9999; overflow: hidden; pointer-events: auto; cursor: pointer;
-  --i1: #0F0E11; --i2: #1E1C22; --ic: #fff; --ir: rgba(255,255,255,.32); }
-html[data-theme="light"] .intro.play { --i1: #F4F3F6; --i2: #FFFFFF; --ic: #151417; --ir: rgba(21,20,23,.0); }
-@media (prefers-color-scheme: light) { html:not([data-theme="dark"]) .intro.play { --i1: #F4F3F6; --i2: #FFFFFF; --ic: #151417; --ir: rgba(21,20,23,.0); } }
+  --i1: #F4F3F6; --i2: #FFFFFF; --ic: #151417; --ir: rgba(21,20,23,.0); }
+html[data-theme="dark"] .intro.play { --i1: #0F0E11; --i2: #1E1C22; --ic: #fff; --ir: rgba(255,255,255,.32); }
+@media (prefers-color-scheme: dark) { html:not([data-theme="light"]):not([data-theme="dark"]) .intro.play { --i1: #0F0E11; --i2: #1E1C22; --ic: #fff; --ir: rgba(255,255,255,.32); } }
 .intro-bg { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, var(--i2), var(--i1));
   animation: intro-bg-out .65s cubic-bezier(.5,0,.2,1) 1.85s forwards; }
 /* тёплое свечение за знаком */
