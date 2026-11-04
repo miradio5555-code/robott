@@ -79,7 +79,7 @@ class Cloud:
                 try:self.b.api(self.c['EVOLUTION_URL']+'/instance/reconnect',self.c['INSTANCE_TOKEN'],{})
                 except Exception:
                     # The engine may have no runtime client after a failed initial dial.
-                    try:self.b.api(self.c['EVOLUTION_URL']+'/instance/connect',self.c['INSTANCE_TOKEN'],{'webhookUrl':self.c.get('WEBHOOK_URL') or 'http://whatsapp-bridge:8091/webhook/'+self.c['WEBHOOK_SECRET'],'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE']})
+                    try:self.b.api(self.c['EVOLUTION_URL']+'/instance/connect',self.c['INSTANCE_TOKEN'],{'webhookUrl':self.c.get('WEBHOOK_URL') or 'http://whatsapp-bridge:8091/webhook/'+self.c['WEBHOOK_SECRET'],'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE','QRCODE','CONNECTION']})
                     except Exception:pass
             return
         rows=self.call('rpc/wa_claim',{'p_workspace':self.ws}) or []

@@ -9,7 +9,7 @@ from bridge import Bridge
 
 class Supervisor:
     def __init__(self,config):
-        self.c=config;self.bridges={};self.connections={};self.lock=threading.RLock();self.jobs=ThreadPoolExecutor(max_workers=4);self.last_scan=0;self.last_qr={};self.last_status={}
+        self.c=config;self.bridges={};self.connections={};self.lock=threading.RLock();self.jobs=ThreadPoolExecutor(max_workers=4);self.last_scan=0;self.last_qr={};self.last_status={};self.configured=set()
         # Transport only; no local/customer state is created for this helper.
         self.transport=object.__new__(Bridge);self.transport.c=config
     def db(self,table,params=None,data=None,method=None,prefer=None):
@@ -38,7 +38,8 @@ class Supervisor:
         if seq is not None:params['request_seq']='eq.'+str(seq)
         return self.db('wa_pairing',params,fields,'PATCH')
     def configure(self,conn):
-        return self.evo('/instance/connect',conn['api_token'],{'webhookUrl':self.webhook(conn['workspace_id']),'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE']})
+        result=self.evo('/instance/connect',conn['api_token'],{'webhookUrl':self.webhook(conn['workspace_id']),'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE','QRCODE','CONNECTION']})
+        self.configured.add(conn['workspace_id']);return result
     def add_bridge(self,conn):
         ws=conn['workspace_id']
         with self.lock:
@@ -81,7 +82,11 @@ class Supervisor:
             self.db('wa_connections',{'workspace_id':'eq.'+ws},{'active':True},'PATCH');conn['active']=True
         self.add_bridge(conn);return conn
     def finish(self,job,state,error=None):
-        self.pairing(job['workspace_id'],{'state':state,'error_code':error,'handled_seq':job['processing_seq'],'lease_until':None},job['processing_seq'])
+        fields={'error_code':error,'handled_seq':job['processing_seq'],'lease_until':None}
+        if state=='starting':
+            # QR/Connected events can arrive before configure() returns. Do not overwrite them.
+            self.db('wa_pairing',{'workspace_id':'eq.'+job['workspace_id'],'request_seq':'eq.'+str(job['processing_seq']),'state':'in.(queued,starting)'},{**fields,'state':state,'updated_at':datetime.now(timezone.utc).isoformat()},'PATCH')
+        else:self.pairing(job['workspace_id'],{**fields,'state':state},job['processing_seq'])
     def process(self,job):
         ws=job['workspace_id'];seq=job['processing_seq']
         try:
@@ -123,6 +128,7 @@ class Supervisor:
         p=rows[0]
         with self.lock:
             if ws in self.bridges:self.bridges[ws].c['PAIRING_READY']=p['state']=='connected'
+        if p['state']=='connected' and ws not in self.configured:self.configure(conn)
         if p['request_seq']!=p['handled_seq'] or p['state'] in ('queued','disconnecting','disconnected','error'):return
         if now-self.last_status.get(ws,0)<5:return
         self.last_status[ws]=now
@@ -157,9 +163,29 @@ class Supervisor:
                     self.last_scan=time.time()
             except Exception as e:print('Pairing retry:',type(e).__name__,flush=True)
             time.sleep(2)
+    def pairing_event(self,ws,event):
+        kind=event.get('event');data=event.get('data') or {}
+        if not isinstance(data,dict):return kind in ('QRCode','Connected','PairSuccess')
+        if kind not in ('QRCode','Connected','PairSuccess'):return False
+        if kind!='QRCode' and data.get('status')!='open':return True
+        rows=self.db('wa_pairing',{'workspace_id':'eq.'+ws,'select':'state,request_seq,requested_at','limit':1})
+        if not rows or rows[0]['state'] in ('disconnected','disconnecting'):return True
+        p=rows[0]
+        if kind=='QRCode':
+            if p['state'] in ('connected','error'):return True
+            qr=(data.get('qrcode') or '').split('|')[0]
+            if not qr.startswith('data:image/png;base64,') or len(qr)>30000:return True
+            self.pairing(ws,{'state':'qr','qr':qr,'qr_expires_at':(datetime.now(timezone.utc)+timedelta(seconds=20)).isoformat(),'error_code':None},p['request_seq'])
+        else:
+            self.pairing(ws,{'state':'connected','qr':None,'qr_expires_at':None,'error_code':None},p['request_seq'])
+            self.settings(ws,{'connection_ok':True,'last_heartbeat':datetime.now(timezone.utc).isoformat()})
+            with self.lock:
+                if ws in self.bridges:self.bridges[ws].c['PAIRING_READY']=True
+        return True
     def handle(self,ws,event):
         with self.lock:b=self.bridges.get(ws)
         if not b or b.c.get('DISABLED'):raise ValueError('inactive_workspace')
+        if self.pairing_event(ws,event):return
         # Ignore any workspace/instance identifiers contained in the untrusted payload.
         b.handle(event)
 

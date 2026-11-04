@@ -2,7 +2,7 @@
 (function (U) {
   'use strict';
   var c=U.core, state=c.state, esc=c.esc, $=c.$;
-  var ws=null, selected=null, threads=[], orders=[], quotes=[], settings={}, pairing={}, owner=false, generation=0, limit=100, messageLimit=100, busy=false, signature='', timer=null;
+  var ws=null, selected=null, threads=[], orders=[], quotes=[], settings={}, pairing={}, owner=false, generation=0, limit=100, messageLimit=100, busy=false, signature='', timer=null, pairTimer=null, pairLoading=false;
   var labels={
     ru:{title:'Сообщения',hint:'WhatsApp, клиенты и заказы — в одном месте',all:'Все',unread:'Непрочитанные',human:'Нужен менеджер',mine:'Мои',search:'Имя или телефон',empty:'Диалогов пока нет. Входящие сообщения появятся здесь.',choose:'Выберите диалог',send:'Отправить',placeholder:'Сообщение клиенту…',take:'Взять диалог',bot:'Вернуть боту',close:'Закрыть',refresh:'Обновить',settings:'Автоматизация',enabled:'Отправка сообщений',bot_enabled:'Автоответчик',notify_new:'Новые заказы',notify_status:'Статусы заказов',notify_payment:'Изменения оплаты',language:'Язык уведомлений',template:'Шаблон статуса',tokens:'Подстановки: {order} — номер, {status} — статус.',save:'Сохранить',online:'WhatsApp подключён',offline:'Сервис недоступен или давно не обновлялся',notConfigured:'WhatsApp для этого кабинета ещё не настроен.',error:'Не удалось загрузить сообщения. Обновите страницу или проверьте подключение.',migration:'Раздел сообщений ещё не установлен в базе.',client:'Карточка клиента',related:'Связанные заказы',noOrders:'Связанных заказов пока нет.',quote:'Отправить расчёт',quoteConfirm:'Отправить клиенту расчёт по текущей сумме заказа? Подтверждение не является оплатой.',queued:'В очереди',sending:'Отправляется',sent:'Отправлено',delivered:'Доставлено',read:'Прочитано',received:'Получено',failed:'Ошибка отправки',cancelled:'Отменено',retry:'Повторить',photo:'Фото',paused:'Менеджер',auto:'Бот',closed:'Закрыт',optedOut:'Клиент отключил сообщения',assigned:'Назначено вам',other:'Назначено сотруднику',older:'Ранее',more:'Ещё диалоги',accepted:'Расчёт подтверждён',declined:'Расчёт отклонён',pending:'Ожидает подтверждения',expired:'Расчёт устарел',noWorkspace:'Сначала откройте нужный кабинет.',saved:'Сохранено',quoteSent:'Расчёт поставлен в очередь',readOnly:'Только просмотр. Для ответа откройте кабинет с правом изменения.',working:'Обработка…',photoError:'Не удалось открыть фото',writeError:'Действие не выполнено. Проверьте подключение, права и состояние заказа.'},
     en:{title:'Messages',hint:'WhatsApp, customers and orders together',all:'All',unread:'Unread',human:'Needs an agent',mine:'Assigned to me',search:'Name or phone',empty:'No conversations yet. Incoming messages will appear here.',choose:'Select a conversation',send:'Send',placeholder:'Message the customer…',take:'Take conversation',bot:'Return to bot',close:'Close',refresh:'Refresh',settings:'Automation',enabled:'Message sending',bot_enabled:'Automatic replies',notify_new:'New orders',notify_status:'Order status changes',notify_payment:'Payment changes',language:'Notification language',template:'Status template',tokens:'Placeholders: {order}, {status}.',save:'Save',online:'WhatsApp connected',offline:'Service offline or heartbeat expired',notConfigured:'WhatsApp has not been configured for this workspace.',error:'Could not load messages. Check your connection and refresh.',migration:'The inbox database update is not installed.',client:'Customer',related:'Related orders',noOrders:'No linked orders yet.',quote:'Send quote',quoteConfirm:'Send the current order total to this customer? Confirmation is not a payment.',queued:'Queued',sending:'Sending',sent:'Sent',delivered:'Delivered',read:'Read',received:'Received',failed:'Sending failed',cancelled:'Cancelled',retry:'Retry',photo:'Photo',paused:'Agent',auto:'Bot',closed:'Closed',optedOut:'Customer opted out',assigned:'Assigned to you',other:'Assigned to a colleague',older:'Earlier',more:'More conversations',accepted:'Quote accepted',declined:'Quote declined',pending:'Awaiting confirmation',expired:'Quote expired',noWorkspace:'Open a workspace first.',saved:'Saved',quoteSent:'Quote queued',readOnly:'Read only. Open an editable workspace to reply.',working:'Working…',photoError:'Could not open photo',writeError:'Action failed. Check connection, permissions and order status.'},
@@ -40,6 +40,22 @@
     $('#wa-pair-refresh').hidden=pending||(status==='connected'&&settings.connection_ok)||status==='disconnected';
     $('#wa-disconnect').hidden=status==='disconnected'||status==='disconnecting';
   }
+  function acceptPairing(next){
+    if((next.request_seq||0)<(pairing.request_seq||0))return;
+    if(next.request_seq===pairing.request_seq&&next.updated_at&&pairing.updated_at&&next.updated_at<pairing.updated_at)return;
+    pairing=next;
+  }
+  async function fastPairing(){
+    if(!live()||!owner||pairLoading||document.visibilityState!=='visible'||['queued','starting','qr','disconnecting'].indexOf(pairing.state)<0)return;
+    pairLoading=true;var id=ws,g=generation;
+    try{
+      var result=await c.db().from('wa_pairing').select('*').eq('workspace_id',id).maybeSingle();
+      if(g!==generation||!live()||ws!==id||result.error)return;
+      var previous=pairing.state;acceptPairing(result.data||{});
+      if(previous!=='connected'&&pairing.state==='connected'){settings.connection_ok=true;settings.last_heartbeat=new Date().toISOString();connection();}
+      renderPairing();
+    }finally{pairLoading=false;}
+  }
   async function requestPair(action){
     if(!owner||!writable()||busy)return;
     if(action==='disconnect'&&!window.confirm(l('pairConfirm')))return;
@@ -54,7 +70,7 @@
     var results=await Promise.all([c.db().from('wa_threads').select('*').eq('workspace_id',w).order('last_message_at',{ascending:false}).limit(limit),c.db().from('wa_settings').select('*').eq('workspace_id',w).maybeSingle(),owner?c.db().from('wa_pairing').select('*').eq('workspace_id',w).maybeSingle():Promise.resolve({data:null})]);
     if(g!==generation||!live())return;
     if(results[0].error||results[1].error||results[2].error){showError(results[0].error||results[1].error||results[2].error);return;}
-    threads=results[0].data||[];settings=results[1].data||{};pairing=results[2].data||{};$('#wa-feedback').textContent='';renderList();connection();renderPairing();
+    threads=results[0].data||[];settings=results[1].data||{};acceptPairing(results[2].data||{});$('#wa-feedback').textContent='';renderList();connection();renderPairing();
     if(selected)await loadThread(false);
   }
   async function loadThread(read){
@@ -110,7 +126,7 @@
   }
   async function open(){
     generation++;var previous=ws;ws=state.ws&&state.ws.id;
-    if(previous!==ws){selected=null;threads=[];orders=[];signature='';$('#wa-list').innerHTML='';$('#wa-log').innerHTML='';$('#wa-orders').innerHTML='';$('#wa-compose-text').value='';}
+    if(previous!==ws){pairing={};selected=null;threads=[];orders=[];signature='';$('#wa-list').innerHTML='';$('#wa-log').innerHTML='';$('#wa-orders').innerHTML='';$('#wa-compose-text').value='';}
     document.querySelectorAll('#tab-inbox [data-wa-label]').forEach(function(el){el.textContent=l(el.dataset.waLabel);});
     $('#wa-search').placeholder=l('search');$('#wa-compose-text').placeholder=l('placeholder');
     $('#wa-no-workspace').hidden=!!ws;$('#wa-layout').hidden=!ws;$('#wa-settings').hidden=true;$('#wa-pairing').hidden=true;$('#wa-qr').src='';$('#wa-conversation').hidden=!selected;$('#wa-select-empty').hidden=!!selected;
@@ -118,10 +134,11 @@
     if(!ws||!c.db())return;
     var g=generation,own=await c.db().rpc('is_owner',{p_ws:ws});if(g!==generation||!live())return;owner=!!own.data;
     await load();if(g!==generation||!live())return;renderSettings();
+    clearInterval(pairTimer);pairTimer=setInterval(function(){fastPairing().catch(function(){});},1000);
     clearInterval(timer);timer=setInterval(function(){if(live())renderPairing();if(live()&&document.visibilityState==='visible')load().catch(showError);},5000);
   }
   function clearSensitive(){
-    generation++;clearInterval(timer);timer=null;ws=null;selected=null;owner=false;pairing={};threads=[];orders=[];quotes=[];signature='';
+    generation++;clearInterval(timer);clearInterval(pairTimer);timer=null;pairTimer=null;ws=null;selected=null;owner=false;pairing={};threads=[];orders=[];quotes=[];signature='';
     $('#wa-qr').removeAttribute('src');$('#wa-pairing').hidden=true;
     ['wa-list','wa-log','wa-orders'].forEach(function(id){$('#'+id).innerHTML='';});
     $('#wa-compose-text').value='';$('#wa-conversation').hidden=true;

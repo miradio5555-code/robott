@@ -60,4 +60,22 @@ class PairingTests(unittest.TestCase):
   self.s.poll_pairing({'workspace_id':self.default,'api_token':'token'})
   self.assertEqual(updates[0]['state'],'connected');self.assertIsNone(updates[0]['qr'])
   self.assertTrue(self.s.bridges[self.default].c['PAIRING_READY'])
+ def test_qr_event_is_published_without_waiting_for_poll(self):
+  updates=[]
+  self.s.db=lambda *a,**k:[{'state':'starting','request_seq':4}]
+  self.s.evo=lambda *a,**k:(_ for _ in ()).throw(AssertionError('event must not wait for polling'))
+  self.s.pairing=lambda ws,fields,seq:updates.append((ws,fields,seq))
+  self.assertTrue(self.s.pairing_event(self.default,{'event':'QRCode','data':{'qrcode':'data:image/png;base64,aGVsbG8=|private'}}))
+  self.assertEqual(updates[0][1]['state'],'qr');self.assertEqual(updates[0][2],4);self.assertNotIn('|',updates[0][1]['qr'])
+ def test_start_finish_cannot_overwrite_an_early_qr_event(self):
+  updates=[];self.s.db=lambda *args,**kwargs:updates.append(args)
+  self.s.finish({'workspace_id':self.default,'processing_seq':4},'starting')
+  self.assertEqual(updates[0][1]['state'],'in.(queued,starting)')
+ def test_connected_event_clears_qr_immediately(self):
+  updates=[];settings=[]
+  self.s.db=lambda *a,**k:[{'state':'qr','request_seq':4}]
+  self.s.pairing=lambda ws,fields,seq:updates.append(fields)
+  self.s.settings=lambda ws,fields:settings.append(fields)
+  self.s.pairing_event(self.default,{'event':'Connected','data':{'status':'open'}})
+  self.assertEqual(updates[0]['state'],'connected');self.assertIsNone(updates[0]['qr']);self.assertTrue(settings[0]['connection_ok'])
 if __name__=='__main__':unittest.main()
