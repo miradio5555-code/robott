@@ -118,7 +118,7 @@
     if(!ws||!c.db())return;
     var g=generation,own=await c.db().rpc('is_owner',{p_ws:ws});if(g!==generation||!live())return;owner=!!own.data;
     await load();if(g!==generation||!live())return;renderSettings();
-    clearInterval(timer);timer=setInterval(function(){if(live()&&document.visibilityState==='visible')load().catch(showError);},5000);
+    clearInterval(timer);timer=setInterval(function(){if(live())renderPairing();if(live()&&document.visibilityState==='visible')load().catch(showError);},5000);
   }
   function clearSensitive(){
     generation++;clearInterval(timer);timer=null;ws=null;selected=null;owner=false;pairing={};threads=[];orders=[];quotes=[];signature='';

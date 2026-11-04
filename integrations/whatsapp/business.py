@@ -70,7 +70,7 @@ class Business:
             elif step=='confirm':
                 if cmd not in ('да','подтвердить'):return 'Для создания заявки напишите ДА, для отмены — ОТМЕНА.'
                 # Stable ID makes retrying the same draft safe after network errors.
-                d.setdefault('id',str(uuid.uuid5(uuid.NAMESPACE_URL,'ula-whatsapp:'+phone+':'+mid)));self.save(phone,s)
+                d.setdefault('id',str(uuid.uuid5(uuid.NAMESPACE_URL,'ula-whatsapp:'+self.c['WORKSPACE_ID']+':'+phone+':'+mid)));self.save(phone,s)
                 ans=self.create(phone,d);s.pop('step',None);s.pop('draft',None)
             else:ans=MENU
             self.save(phone,s);return ans

@@ -45,12 +45,16 @@ class Supervisor:
             self.connections[ws]=conn
             if ws in self.bridges:
                 self.bridges[ws].c['DISABLED']=not conn['active'];return self.bridges[ws]
-            config={**self.c,'WORKSPACE_ID':ws,'INSTANCE_TOKEN':conn['api_token'],'WEBHOOK_URL':self.webhook(ws),'DISABLED':not conn['active'],'MULTI_TENANT':True}
-            if ws!=self.c['WORKSPACE_ID']:config['STATE_SUBDIR']=ws
-            rows=self.db('workspaces',{'id':'eq.'+ws,'select':'name,default_purchase_currency,default_client_currency,default_delivery_currency,default_delivery_tariff','limit':1})
-            if not rows:raise ValueError('workspace_not_found')
-            config['BRAND_NAME']=rows[0]['name'][:120]
-            config['ORDER_DEFAULTS']={k.replace('default_',''):v for k,v in rows[0].items() if k.startswith('default_') and v is not None}
+        # A new workspace's metadata lookup must not block existing webhooks.
+        config={**self.c,'WORKSPACE_ID':ws,'INSTANCE_TOKEN':conn['api_token'],'WEBHOOK_URL':self.webhook(ws),'DISABLED':not conn['active'],'MULTI_TENANT':True}
+        if ws!=self.c['WORKSPACE_ID']:config['STATE_SUBDIR']=ws
+        rows=self.db('workspaces',{'id':'eq.'+ws,'select':'name,default_purchase_currency,default_client_currency,default_delivery_currency,default_delivery_tariff','limit':1})
+        if not rows:raise ValueError('workspace_not_found')
+        config['BRAND_NAME']=rows[0]['name'][:120]
+        config['ORDER_DEFAULTS']={k.replace('default_',''):v for k,v in rows[0].items() if k.startswith('default_') and v is not None}
+        with self.lock:
+            if ws in self.bridges:
+                self.bridges[ws].c['DISABLED']=not conn['active'];return self.bridges[ws]
             b=Bridge(config);self.bridges[ws]=b
             threading.Thread(target=b.poll,daemon=True).start();return b
     def ensure_connection(self,ws):

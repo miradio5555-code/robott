@@ -28,6 +28,14 @@ class BusinessTests(unittest.TestCase):
     def test_other_workspace_token_rejected(self):
         self.assertIn('не найдена',self.say('https://miradio5555-code.github.io/robott/?c='+'a'*32))
         self.assertIn('workspace_id=eq.own',self.calls[0][0]);self.assertNotIn('cabinet',self.bot.load('996555000000'))
+    def test_request_ids_are_workspace_scoped(self):
+        ids=[]
+        self.bot.create=lambda phone,d:(ids.append(d['id']) or 'saved')
+        for workspace in ('own','another'):
+            self.b.c['WORKSPACE_ID']=workspace
+            for msg in ('2','Иван','Товар','1','Нет'):self.say(msg)
+            self.say('ДА','same-provider-id')
+        self.assertNotEqual(ids[0],ids[1])
     def test_cancel_draft(self):
         self.say('2');self.say('Иван');self.say('отмена');self.assertNotIn('draft',self.bot.load('996555000000'));self.assertFalse(self.orders)
     def test_quantity_validation(self):
