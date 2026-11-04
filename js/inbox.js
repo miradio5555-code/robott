@@ -9,10 +9,10 @@
     zh:{title:'消息',hint:'在此管理 WhatsApp、客户和订单',all:'全部',unread:'未读',human:'需要人工',mine:'我的会话',search:'姓名或电话',empty:'暂无会话，收到的消息将在此显示。',choose:'选择会话',send:'发送',placeholder:'给客户发送消息…',take:'接管会话',bot:'交回机器人',close:'关闭',refresh:'刷新',settings:'自动化',enabled:'消息发送',bot_enabled:'自动回复',notify_new:'新订单',notify_status:'订单状态',notify_payment:'付款变更',language:'通知语言',template:'状态模板',tokens:'占位符：{order} 订单号，{status} 状态。',save:'保存',online:'WhatsApp 已连接',offline:'服务离线或状态已过期',notConfigured:'此工作区尚未配置 WhatsApp。',error:'无法加载消息，请检查网络后刷新。',migration:'尚未安装消息数据库更新。',client:'客户资料',related:'关联订单',noOrders:'暂无关联订单。',quote:'发送报价',quoteConfirm:'将当前订单金额发送给客户？确认报价不代表付款。',queued:'排队中',sending:'发送中',sent:'已发送',delivered:'已送达',read:'已读',received:'已收到',failed:'发送失败',cancelled:'已取消',retry:'重试',photo:'照片',paused:'人工',auto:'机器人',closed:'已关闭',optedOut:'客户已取消订阅',assigned:'已分配给您',other:'已分配给同事',older:'更早消息',more:'更多会话',accepted:'报价已确认',declined:'报价已拒绝',pending:'等待确认',expired:'报价已过期',noWorkspace:'请先打开工作区。',saved:'已保存',quoteSent:'报价已加入队列',readOnly:'只读，请打开可编辑的工作区以回复。',working:'处理中…',photoError:'无法打开照片',writeError:'操作失败，请检查网络、权限和订单状态。'},
     vi:{title:'Tin nhắn',hint:'WhatsApp, khách hàng và đơn hàng cùng một nơi',all:'Tất cả',unread:'Chưa đọc',human:'Cần nhân viên',mine:'Của tôi',search:'Tên hoặc số điện thoại',empty:'Chưa có hội thoại. Tin nhắn mới sẽ hiện ở đây.',choose:'Chọn hội thoại',send:'Gửi',placeholder:'Nhắn cho khách…',take:'Nhận hội thoại',bot:'Chuyển lại bot',close:'Đóng',refresh:'Làm mới',settings:'Tự động hóa',enabled:'Gửi tin nhắn',bot_enabled:'Trả lời tự động',notify_new:'Đơn hàng mới',notify_status:'Trạng thái đơn',notify_payment:'Thay đổi thanh toán',language:'Ngôn ngữ thông báo',template:'Mẫu trạng thái',tokens:'Biến: {order}, {status}.',save:'Lưu',online:'WhatsApp đã kết nối',offline:'Dịch vụ ngoại tuyến hoặc hết hạn trạng thái',notConfigured:'WhatsApp chưa được cấu hình cho không gian này.',error:'Không tải được tin nhắn. Kiểm tra kết nối và làm mới.',migration:'Chưa cài bản cập nhật cơ sở dữ liệu tin nhắn.',client:'Khách hàng',related:'Đơn hàng liên quan',noOrders:'Chưa có đơn hàng liên kết.',quote:'Gửi báo giá',quoteConfirm:'Gửi tổng tiền hiện tại của đơn hàng? Xác nhận không phải thanh toán.',queued:'Đang chờ',sending:'Đang gửi',sent:'Đã gửi',delivered:'Đã giao',read:'Đã đọc',received:'Đã nhận',failed:'Gửi thất bại',cancelled:'Đã hủy',retry:'Thử lại',photo:'Ảnh',paused:'Nhân viên',auto:'Bot',closed:'Đã đóng',optedOut:'Khách đã tắt tin nhắn',assigned:'Được giao cho bạn',other:'Được giao cho đồng nghiệp',older:'Trước đó',more:'Thêm hội thoại',accepted:'Đã chấp nhận báo giá',declined:'Đã từ chối báo giá',pending:'Chờ xác nhận',expired:'Báo giá hết hạn',noWorkspace:'Hãy mở không gian làm việc trước.',saved:'Đã lưu',quoteSent:'Báo giá đã vào hàng đợi',readOnly:'Chỉ xem. Mở không gian có quyền sửa để trả lời.',working:'Đang xử lý…',photoError:'Không mở được ảnh',writeError:'Thao tác thất bại. Kiểm tra kết nối, quyền và trạng thái đơn.'}
   };
-  Object.assign(labels.ru,{pairTitle:'Ваш WhatsApp',pairHelp:'На телефоне: WhatsApp → Связанные устройства → Привязка устройства. Отсканируйте QR-код своего кабинета.',pairConnect:'Подключить WhatsApp',pairRefresh:'Обновить QR-код',pairDisconnect:'Отключить',pairPrivate:'QR-код доступен только владельцу кабинета.',pairWait:'Готовим подключение…',pairQueued:'Запрос принят. Ожидаем сервис подключения…',pairQR:'Отсканируйте QR-код телефоном',pairExpired:'QR-код истёк. Нажмите «Обновить QR-код».',pairError:'Не удалось подготовить подключение. Повторите попытку или обратитесь к администратору.',pairOff:'WhatsApp ещё не подключён',pairConfirm:'Остановить интеграцию WhatsApp для этого кабинета? История сообщений сохранится.'});
-  Object.assign(labels.en,{pairTitle:'Your WhatsApp',pairHelp:'On your phone: WhatsApp → Linked devices → Link a device. Scan the QR code for your workspace.',pairConnect:'Connect WhatsApp',pairRefresh:'Refresh QR code',pairDisconnect:'Disconnect',pairPrivate:'Only the workspace owner can see this QR code.',pairWait:'Preparing connection…',pairQueued:'Request received. Waiting for the connection service…',pairQR:'Scan the QR code with your phone',pairExpired:'QR code expired. Refresh to get a new code.',pairError:'Could not prepare connection. Retry or contact the administrator.',pairOff:'WhatsApp is not connected yet',pairConfirm:'Stop WhatsApp integration for this workspace? Message history will be preserved.'});
-  Object.assign(labels.zh,{pairTitle:'您的 WhatsApp',pairHelp:'在手机上打开 WhatsApp → 已关联的设备 → 关联设备，扫描此工作区的二维码。',pairConnect:'连接 WhatsApp',pairRefresh:'刷新二维码',pairDisconnect:'断开连接',pairPrivate:'只有工作区所有者可以查看此二维码。',pairWait:'正在准备连接…',pairQueued:'请求已接收，正在等待连接服务…',pairQR:'请使用手机扫描二维码',pairExpired:'二维码已过期，请刷新。',pairError:'无法建立连接，请重试或联系管理员。',pairOff:'WhatsApp 尚未连接',pairConfirm:'停止此工作区的 WhatsApp 集成？消息历史将保留。'});
-  Object.assign(labels.vi,{pairTitle:'WhatsApp của bạn',pairHelp:'Trên điện thoại: WhatsApp → Thiết bị liên kết → Liên kết thiết bị. Quét mã QR cho không gian của bạn.',pairConnect:'Kết nối WhatsApp',pairRefresh:'Làm mới mã QR',pairDisconnect:'Ngắt kết nối',pairPrivate:'Chỉ chủ không gian có thể xem mã QR này.',pairWait:'Đang chuẩn bị kết nối…',pairQueued:'Đã nhận yêu cầu. Đang chờ dịch vụ kết nối…',pairQR:'Quét mã QR bằng điện thoại',pairExpired:'Mã QR hết hạn. Hãy làm mới.',pairError:'Không thể chuẩn bị kết nối. Thử lại hoặc liên hệ quản trị viên.',pairOff:'WhatsApp chưa được kết nối',pairConfirm:'Dừng tích hợp WhatsApp cho không gian này? Lịch sử tin nhắn được giữ lại.'});
+  Object.assign(labels.ru,{pairTitle:'Ваш WhatsApp',pairHelp:'Выберите подключение через QR-код или по номеру телефона.',pairConnect:'Через QR-код',pairRefresh:'Обновить QR-код',pairDisconnect:'Отключить',pairPrivate:'QR-код доступен только владельцу кабинета.',pairWait:'Готовим подключение…',pairQueued:'Запрос принят. Ожидаем сервис подключения…',pairQR:'Отсканируйте QR-код телефоном',pairExpired:'QR-код истёк. Нажмите «Обновить QR-код».',pairError:'Не удалось подготовить подключение. Повторите попытку или обратитесь к администратору.',pairOff:'WhatsApp ещё не подключён',pairConfirm:'Остановить интеграцию WhatsApp для этого кабинета? История сообщений сохранится.'});
+  Object.assign(labels.en,{pairTitle:'Your WhatsApp',pairHelp:'Choose a QR code or your phone number to link WhatsApp.',pairConnect:'Use QR code',pairRefresh:'Refresh QR code',pairDisconnect:'Disconnect',pairPrivate:'Only the workspace owner can see this QR code.',pairWait:'Preparing connection…',pairQueued:'Request received. Waiting for the connection service…',pairQR:'Scan the QR code with your phone',pairExpired:'QR code expired. Refresh to get a new code.',pairError:'Could not prepare connection. Retry or contact the administrator.',pairOff:'WhatsApp is not connected yet',pairConfirm:'Stop WhatsApp integration for this workspace? Message history will be preserved.'});
+  Object.assign(labels.zh,{pairTitle:'您的 WhatsApp',pairHelp:'选择扫描二维码或使用电话号码来关联 WhatsApp。',pairConnect:'使用二维码',pairRefresh:'刷新二维码',pairDisconnect:'断开连接',pairPrivate:'只有工作区所有者可以查看此二维码。',pairWait:'正在准备连接…',pairQueued:'请求已接收，正在等待连接服务…',pairQR:'请使用手机扫描二维码',pairExpired:'二维码已过期，请刷新。',pairError:'无法建立连接，请重试或联系管理员。',pairOff:'WhatsApp 尚未连接',pairConfirm:'停止此工作区的 WhatsApp 集成？消息历史将保留。'});
+  Object.assign(labels.vi,{pairTitle:'WhatsApp của bạn',pairHelp:'Chọn quét mã QR hoặc dùng số điện thoại để liên kết WhatsApp.',pairConnect:'Dùng mã QR',pairRefresh:'Làm mới mã QR',pairDisconnect:'Ngắt kết nối',pairPrivate:'Chỉ chủ không gian có thể xem mã QR này.',pairWait:'Đang chuẩn bị kết nối…',pairQueued:'Đã nhận yêu cầu. Đang chờ dịch vụ kết nối…',pairQR:'Quét mã QR bằng điện thoại',pairExpired:'Mã QR hết hạn. Hãy làm mới.',pairError:'Không thể chuẩn bị kết nối. Thử lại hoặc liên hệ quản trị viên.',pairOff:'WhatsApp chưa được kết nối',pairConfirm:'Dừng tích hợp WhatsApp cho không gian này? Lịch sử tin nhắn được giữ lại.'});
   function l(k){var lang=typeof getLang==='function'?getLang():'ru';return (labels[lang]||labels.ru)[k]||k;}
   function live(){return state.me&&state.ws&&state.ws.id===ws&&state.tab==='inbox';}
   function writable(){return live()&&!state.readOnly;}
@@ -30,13 +30,24 @@
     var on=settings.connection_ok&&settings.last_heartbeat&&Date.now()-new Date(settings.last_heartbeat).getTime()<120000;
     $('#wa-connection').textContent=!settings.workspace_id?l('notConfigured'):on?l('online'):l('offline');$('#wa-connection').classList.toggle('wa-online',!!on);
   }
+  Object.assign(labels.ru,{"pairCodeReady": "Введите код в WhatsApp", "pairPhone": "По номеру телефона", "pairPhoneLabel": "Ваш номер WhatsApp с кодом страны", "pairGetCode": "Получить код", "pairCodeHelp": "На телефоне: WhatsApp → Связанные устройства → Привязка устройства → Привязка по номеру телефона. Введите этот код. Это не SMS.", "pairCodeExpired": "Код истёк. Запросите новый.", "pairInvalidPhone": "Введите номер с кодом страны, например +996…", "pairRateLimit": "Подождите минуту перед повторным запросом кода.", "pairCodePrivate": "Код виден только владельцу. Никому его не сообщайте."});
+  Object.assign(labels.en,{"pairCodeReady": "Enter the code in WhatsApp", "pairPhone": "Use phone number", "pairPhoneLabel": "Your WhatsApp number including country code", "pairGetCode": "Get code", "pairCodeHelp": "On your phone: WhatsApp → Linked devices → Link a device → Link with phone number. Enter this code. It is not an SMS.", "pairCodeExpired": "Code expired. Request a new one.", "pairInvalidPhone": "Enter your number including country code, e.g. +996…", "pairRateLimit": "Wait one minute before requesting another code.", "pairCodePrivate": "Only the owner can see this code. Do not share it."});
+  Object.assign(labels.zh,{"pairCodeReady": "在 WhatsApp 中输入代码", "pairPhone": "使用电话号码", "pairPhoneLabel": "您的 WhatsApp 号码（含国家代码）", "pairGetCode": "获取代码", "pairCodeHelp": "手机上：WhatsApp → 已关联的设备 → 关联设备 → 使用电话号码关联。输入此代码；这不是短信验证码。", "pairCodeExpired": "代码已过期，请重新获取。", "pairInvalidPhone": "请输入含国家代码的号码，例如 +996…", "pairRateLimit": "请等待一分钟后再获取代码。", "pairCodePrivate": "只有所有者可见此代码，请勿分享。"});
+  Object.assign(labels.vi,{"pairCodeReady": "Nhập mã trong WhatsApp", "pairPhone": "Dùng số điện thoại", "pairPhoneLabel": "Số WhatsApp của bạn gồm mã quốc gia", "pairGetCode": "Lấy mã", "pairCodeHelp": "Trên điện thoại: WhatsApp → Thiết bị liên kết → Liên kết thiết bị → Liên kết bằng số điện thoại. Nhập mã này. Đây không phải SMS.", "pairCodeExpired": "Mã đã hết hạn. Hãy lấy mã mới.", "pairInvalidPhone": "Nhập số gồm mã quốc gia, ví dụ +996…", "pairRateLimit": "Đợi một phút trước khi lấy mã mới.", "pairCodePrivate": "Chỉ chủ sở hữu thấy mã này. Không chia sẻ mã."});
   function renderPairing(){
     $('#wa-pairing').hidden=!owner||state.readOnly;
     var status=pairing.state||'disconnected',pending=['queued','starting','disconnecting'].indexOf(status)>=0;
     var valid=status==='qr'&&pairing.qr_expires_at&&new Date(pairing.qr_expires_at).getTime()>Date.now()&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(pairing.qr||'');
     $('#wa-pair-state').textContent=l(status==='connected'?(settings.connection_ok?'online':'offline'):status==='queued'?'pairQueued':pending?'pairWait':status==='qr'?(valid?'pairQR':'pairExpired'):status==='error'?'pairError':'pairOff');
+    var codeValid=status==='code'&&pairing.code_expires_at&&new Date(pairing.code_expires_at).getTime()>Date.now()&&/^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(pairing.pairing_code||'');
+    $('#wa-code-wrap').hidden=!codeValid;$('#wa-phone-code').textContent=codeValid?pairing.pairing_code:'';
+    if(status==='code')$('#wa-pair-state').textContent=codeValid?l('pairCodeReady'):l('pairCodeExpired');
+    if(pairing.error_code==='code_expired')$('#wa-pair-state').textContent=l('pairCodeExpired');
+    $('#wa-phone-toggle').hidden=pending||status==='connected';
+    $('#wa-phone-submit').disabled=busy||pending||!!(pairing.requested_at&&Date.now()-new Date(pairing.requested_at).getTime()<60000);
+    if(status==='connected'){$('#wa-phone-form').hidden=true;$('#wa-phone-number').value='';}
     $('#wa-qr-wrap').hidden=!valid;$('#wa-qr').src=valid?pairing.qr:'';
-    $('#wa-connect').hidden=status==='connected'||pending||status==='qr';
+    $('#wa-connect').hidden=status==='connected'||pending||status==='qr'||status==='code';
     $('#wa-pair-refresh').hidden=pending||(status==='connected'&&settings.connection_ok)||status==='disconnected';
     $('#wa-disconnect').hidden=status==='disconnected'||status==='disconnecting';
   }
@@ -46,7 +57,7 @@
     pairing=next;
   }
   async function fastPairing(){
-    if(!live()||!owner||pairLoading||document.visibilityState!=='visible'||['queued','starting','qr','disconnecting'].indexOf(pairing.state)<0)return;
+    if(!live()||!owner||pairLoading||document.visibilityState!=='visible'||['queued','starting','qr','code','disconnecting'].indexOf(pairing.state)<0)return;
     pairLoading=true;var id=ws,g=generation;
     try{
       var result=await c.db().from('wa_pairing').select('*').eq('workspace_id',id).maybeSingle();
@@ -63,6 +74,15 @@
     try{await rpc('wa_request_connection',{p_workspace:ws,p_action:action});await load();}
     catch(e){c.toast(l('pairError'),'error');}
     finally{busy=false;['wa-connect','wa-pair-refresh','wa-disconnect'].forEach(function(id){$('#'+id).disabled=false;});}
+  }
+  async function requestPhone(e){
+    e.preventDefault();if(!owner||!writable()||busy)return;
+    var phone=$('#wa-phone-number').value.replace(/[\s().+\-]/g,'');
+    if(!/^[1-9][0-9]{8,14}$/.test(phone)){c.toast(l('pairInvalidPhone'),'error');return;}
+    var w=ws,g=generation;busy=true;$('#wa-phone-submit').disabled=true;
+    try{await rpc('wa_request_phone',{p_workspace:w,p_phone:phone});if(w!==ws||g!==generation)return;$('#wa-phone-number').value='';await load();}
+    catch(err){if(w===ws)c.toast(l(String(err.message||err).indexOf('rate_limit')>=0?'pairRateLimit':'pairError'),'error');}
+    finally{busy=false;if(w===ws)renderPairing();}
   }
   async function load(){
     if(!live())return;
@@ -126,7 +146,7 @@
   }
   async function open(){
     generation++;var previous=ws;ws=state.ws&&state.ws.id;
-    if(previous!==ws){pairing={};selected=null;threads=[];orders=[];signature='';$('#wa-list').innerHTML='';$('#wa-log').innerHTML='';$('#wa-orders').innerHTML='';$('#wa-compose-text').value='';}
+    if(previous!==ws){$('#wa-phone-code').textContent='';$('#wa-phone-number').value='';$('#wa-phone-form').hidden=true;$('#wa-code-wrap').hidden=true;pairing={};selected=null;threads=[];orders=[];signature='';$('#wa-list').innerHTML='';$('#wa-log').innerHTML='';$('#wa-orders').innerHTML='';$('#wa-compose-text').value='';}
     document.querySelectorAll('#tab-inbox [data-wa-label]').forEach(function(el){el.textContent=l(el.dataset.waLabel);});
     $('#wa-search').placeholder=l('search');$('#wa-compose-text').placeholder=l('placeholder');
     $('#wa-no-workspace').hidden=!!ws;$('#wa-layout').hidden=!ws;$('#wa-settings').hidden=true;$('#wa-pairing').hidden=true;$('#wa-qr').src='';$('#wa-conversation').hidden=!selected;$('#wa-select-empty').hidden=!!selected;
@@ -139,7 +159,7 @@
   }
   function clearSensitive(){
     generation++;clearInterval(timer);clearInterval(pairTimer);timer=null;pairTimer=null;ws=null;selected=null;owner=false;pairing={};threads=[];orders=[];quotes=[];signature='';
-    $('#wa-qr').removeAttribute('src');$('#wa-pairing').hidden=true;
+    $('#wa-qr').removeAttribute('src');$('#wa-phone-code').textContent='';$('#wa-phone-number').value='';$('#wa-phone-form').hidden=true;$('#wa-code-wrap').hidden=true;$('#wa-pairing').hidden=true;
     ['wa-list','wa-log','wa-orders'].forEach(function(id){$('#'+id).innerHTML='';});
     $('#wa-compose-text').value='';$('#wa-conversation').hidden=true;
   }
@@ -152,6 +172,8 @@
     box.classList.toggle('hidden',!results[0].data||connected);
   }
   function bind(){
+    $('#wa-phone-toggle').addEventListener('click',function(){$('#wa-phone-form').hidden=!$('#wa-phone-form').hidden;if(!$('#wa-phone-form').hidden)$('#wa-phone-number').focus();});
+    $('#wa-phone-form').addEventListener('submit',requestPhone);
     $('#wa-connect').addEventListener('click',function(){requestPair('connect');});
     $('#wa-pair-refresh').addEventListener('click',function(){requestPair('refresh');});
     $('#wa-disconnect').addEventListener('click',function(){requestPair('disconnect');});

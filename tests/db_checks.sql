@@ -2255,3 +2255,20 @@ do $$ begin
  begin perform public.wa_request_connection((select v::uuid from t where k='wa_ws'),'connect');raise exception 'ПРОВАЛ: помощник подключил другой номер';exception when insufficient_privilege then null;end;
 end $$;
 reset role;
+-- 54: phone pairing uses the same owner-only isolation and validates input server-side.
+reset role;
+update public.wa_pairing set requested_at=now()-interval '2 minutes' where workspace_id=(select v::uuid from t where k='wa_ws');
+set request.uid='00000000-0000-0000-0000-0000000000b1';set role authenticated;
+do $$ begin
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'abc');raise exception 'ПРОВАЛ: invalid phone allowed';exception when raise_exception then if sqlerrm<>'invalid_phone' then raise;end if;end;
+ perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'+996 (555) 000-111');
+ if not exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws') and method='phone' and action='phone' and phone='996555000111' and pairing_code is null) then raise exception 'ПРОВАЛ: phone pairing not queued';end if;
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'996555000111');raise exception 'ПРОВАЛ: rate limit missing';exception when raise_exception then if sqlerrm<>'rate_limit' then raise;end if;end;
+end $$;
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'996555000111');raise exception 'ПРОВАЛ: staff phone pairing allowed';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 54. Phone pairing: owner only, international number validation and rate limit'

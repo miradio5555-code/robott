@@ -1,5 +1,5 @@
 """One isolated Evolution instance and local state directory per workspace."""
-import hashlib,hmac,json,secrets,threading,time,uuid
+import hashlib,hmac,json,re,secrets,threading,time,uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone,timedelta
 from urllib.parse import urlencode
@@ -83,6 +83,7 @@ class Supervisor:
         self.add_bridge(conn);return conn
     def finish(self,job,state,error=None):
         fields={'error_code':error,'handled_seq':job['processing_seq'],'lease_until':None}
+        if state in ('connected','error','disconnected'):fields.update(pairing_code=None,code_expires_at=None,phone=None)
         if state=='starting':
             # QR/Connected events can arrive before configure() returns. Do not overwrite them.
             self.db('wa_pairing',{'workspace_id':'eq.'+job['workspace_id'],'request_seq':'eq.'+str(job['processing_seq']),'state':'in.(queued,starting)'},{**fields,'state':state,'updated_at':datetime.now(timezone.utc).isoformat()},'PATCH')
@@ -103,7 +104,7 @@ class Supervisor:
                     except HTTPError as e:
                         # An already disconnected runtime is also disabled locally and in the DB.
                         if e.code!=500:raise
-                self.pairing(ws,{'qr':None,'qr_expires_at':None},seq);self.finish(job,'disconnected');return
+                self.pairing(ws,{'qr':None,'qr_expires_at':None,'pairing_code':None,'code_expires_at':None,'phone':None},seq);self.finish(job,'disconnected');return
             conn=self.ensure_connection(ws)
             wsrow=self.db('workspaces',{'id':'eq.'+ws,'select':'name','limit':1})[0]
             self.db('wa_settings',{'on_conflict':'workspace_id'},{'workspace_id':ws,'enabled':True,'status_template':wsrow['name']+' · №{order}: {status}'},prefer='resolution=ignore-duplicates')
@@ -113,6 +114,17 @@ class Supervisor:
                 except HTTPError as e:
                     if e.code!=500:raise
             self.configure(conn)
+            if job['action']=='phone':
+                phone=job.get('phone') or ''
+                if not re.fullmatch(r'[1-9][0-9]{8,14}',phone):raise ValueError('invalid_phone')
+                status=self.evo('/instance/status',conn['api_token']).get('data') or {}
+                if status.get('Connected') and status.get('LoggedIn'):
+                    self.finish(job,'connected');return
+                result=self.evo('/instance/pair',conn['api_token'],{'phone':phone}).get('data') or {}
+                code=result.get('PairingCode') or ''
+                if not re.fullmatch(r'[A-Z0-9]{4}-?[A-Z0-9]{4}',code):raise ValueError('invalid_pairing_code')
+                # A Connected event may have arrived while the provider request completed.
+                self.db('wa_pairing',{'workspace_id':'eq.'+ws,'request_seq':'eq.'+str(seq),'state':'in.(queued,starting)'},{'state':'code','pairing_code':code,'code_expires_at':(datetime.now(timezone.utc)+timedelta(seconds=120)).isoformat(),'phone':None,'updated_at':datetime.now(timezone.utc).isoformat()},'PATCH')
             self.last_status[ws]=time.time()
             self.finish(job,'starting');self.last_qr[ws]=0
         except Exception as e:
@@ -123,7 +135,7 @@ class Supervisor:
             except Exception:pass
     def poll_pairing(self,conn):
         ws=conn['workspace_id'];now=time.time()
-        rows=self.db('wa_pairing',{'workspace_id':'eq.'+ws,'select':'state,request_seq,handled_seq,requested_at','limit':1})
+        rows=self.db('wa_pairing',{'workspace_id':'eq.'+ws,'select':'state,method,code_expires_at,request_seq,handled_seq,requested_at','limit':1})
         if not rows:return
         p=rows[0]
         with self.lock:
@@ -136,12 +148,16 @@ class Supervisor:
         if s.get('Connected') and s.get('LoggedIn'):
             with self.lock:
                 if ws in self.bridges:self.bridges[ws].c['PAIRING_READY']=True
-            if p['state']!='connected':self.pairing(ws,{'state':'connected','qr':None,'qr_expires_at':None,'error_code':None},p['request_seq'])
+            if p['state']!='connected':self.pairing(ws,{'state':'connected','qr':None,'qr_expires_at':None,'pairing_code':None,'code_expires_at':None,'phone':None,'error_code':None},p['request_seq'])
             return
         # Connected records may be temporarily offline; don't silently issue a new pairing.
         if p['state']=='connected':return
         if p.get('requested_at') and datetime.now(timezone.utc)-datetime.fromisoformat(p['requested_at'])>timedelta(minutes=3):
-            self.pairing(ws,{'state':'error','error_code':'qr_expired','qr':None,'qr_expires_at':None},p['request_seq']);return
+            self.pairing(ws,{'state':'error','error_code':'qr_expired','qr':None,'qr_expires_at':None,'pairing_code':None,'code_expires_at':None,'phone':None},p['request_seq']);return
+        if p.get('method')=='phone':
+            if p.get('code_expires_at') and datetime.now(timezone.utc)>=datetime.fromisoformat(p['code_expires_at']):
+                self.pairing(ws,{'state':'error','error_code':'code_expired','pairing_code':None,'code_expires_at':None,'phone':None},p['request_seq'])
+            return
         if now-self.last_qr.get(ws,0)<10:return
         self.last_qr[ws]=now
         info=self.evo('/instance/info/'+conn['instance_id'],self.c['EVOLUTION_ADMIN_KEY']).get('data') or {}
@@ -168,16 +184,16 @@ class Supervisor:
         if not isinstance(data,dict):return kind in ('QRCode','Connected','PairSuccess')
         if kind not in ('QRCode','Connected','PairSuccess'):return False
         if kind!='QRCode' and data.get('status')!='open':return True
-        rows=self.db('wa_pairing',{'workspace_id':'eq.'+ws,'select':'state,request_seq,requested_at','limit':1})
+        rows=self.db('wa_pairing',{'workspace_id':'eq.'+ws,'select':'state,method,request_seq,requested_at','limit':1})
         if not rows or rows[0]['state'] in ('disconnected','disconnecting'):return True
         p=rows[0]
         if kind=='QRCode':
-            if p['state'] in ('connected','error'):return True
+            if p['state'] in ('connected','error') or p.get('method')=='phone':return True
             qr=(data.get('qrcode') or '').split('|')[0]
             if not qr.startswith('data:image/png;base64,') or len(qr)>30000:return True
             self.pairing(ws,{'state':'qr','qr':qr,'qr_expires_at':(datetime.now(timezone.utc)+timedelta(seconds=20)).isoformat(),'error_code':None},p['request_seq'])
         else:
-            self.pairing(ws,{'state':'connected','qr':None,'qr_expires_at':None,'error_code':None},p['request_seq'])
+            self.pairing(ws,{'state':'connected','qr':None,'qr_expires_at':None,'pairing_code':None,'code_expires_at':None,'phone':None,'error_code':None},p['request_seq'])
             self.settings(ws,{'connection_ok':True,'last_heartbeat':datetime.now(timezone.utc).isoformat()})
             with self.lock:
                 if ws in self.bridges:self.bridges[ws].c['PAIRING_READY']=True

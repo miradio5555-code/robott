@@ -79,3 +79,31 @@ class PairingTests(unittest.TestCase):
   self.s.pairing_event(self.default,{'event':'Connected','data':{'status':'open'}})
   self.assertEqual(updates[0]['state'],'connected');self.assertIsNone(updates[0]['qr']);self.assertTrue(settings[0]['connection_ok'])
 if __name__=='__main__':unittest.main()
+
+class PhonePairingTests(unittest.TestCase):
+ def setUp(self):
+  self.s=Supervisor({'WORKSPACE_ID':'ws','WEBHOOK_SECRET':'secret'})
+ def test_phone_request_publishes_valid_code_for_same_sequence(self):
+  writes=[];calls=[]
+  def db(table,params=None,data=None,method=None,**kw):
+   if data is not None:writes.append((table,params,data));return []
+   if table=='workspaces':return [{'name':'Shop'}]
+   return [{'request_seq':9}]
+  self.s.db=db;self.s.ensure_connection=lambda ws:{'api_token':'private'};self.s.configure=lambda conn:None;self.s.settings=lambda *args:None
+  def evo(route,token,data=None):
+   calls.append((route,data))
+   return {'data':{'PairingCode':'ABCD-1234'}} if route=='/instance/pair' else {'data':{'Connected':False,'LoggedIn':False}}
+  self.s.evo=evo
+  self.s.process({'workspace_id':'ws','processing_seq':9,'action':'phone','phone':'996555123456'})
+  codes=[w for w in writes if w[2].get('state')=='code']
+  self.assertEqual(len(codes),1);self.assertEqual(codes[0][2]['pairing_code'],'ABCD-1234')
+  self.assertEqual(codes[0][1]['request_seq'],'eq.9');self.assertEqual(codes[0][1]['state'],'in.(queued,starting)')
+  self.assertIsNone(codes[0][2]['phone']);self.assertIn(('/instance/pair',{'phone':'996555123456'}),calls)
+ def test_qr_event_does_not_replace_phone_code(self):
+  self.s.db=lambda *a,**k:[{'state':'starting','method':'phone','request_seq':9}]
+  self.s.pairing=lambda *a,**k:self.fail('QR replaced phone pairing')
+  self.assertTrue(self.s.pairing_event('ws',{'event':'QRCode','data':{'qrcode':'data:image/png;base64,aGVsbG8='}}))
+ def test_terminal_error_removes_pairing_secret(self):
+  updates=[];self.s.pairing=lambda ws,data,seq:updates.append(data)
+  self.s.finish({'workspace_id':'ws','processing_seq':9},'error','connection_failed')
+  self.assertIsNone(updates[0]['pairing_code']);self.assertIsNone(updates[0]['phone'])
