@@ -339,7 +339,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202i"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261202j"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1050,6 +1050,7 @@
     ULA.report.bind();
     ULA.analytics.bind();
     ULA.business.bind();
+    ULA.inbox.bind();
     ULA.bulk.bind();
     ULA.onboarding.bind();
     ULA.tgws.bind();
@@ -1981,7 +1982,7 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "home" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
+    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
@@ -1998,6 +1999,7 @@
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
     $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
+    $("#tab-inbox").classList.toggle("hidden", state.tab !== "inbox");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
@@ -2040,6 +2042,7 @@
     if (state.tab === "report") ULA.report.open();
     if (state.tab === "analytics") ULA.analytics.open();
     if (state.tab === "business") ULA.business.open();
+    if (state.tab === "inbox") ULA.inbox.open().catch(handleError);
     if (state.tab === "expenses" && db && state.ws) ULA.expenses.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
@@ -2056,7 +2059,7 @@
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
       var ICONS = { home: "home", exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", support: "message", profile: "id" };
+        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", inbox: "message", support: "message", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
@@ -2577,6 +2580,7 @@
       if (state.tab === "quote") { await ULA.fx.load(true); ULA.quote.open(); }
       else if (state.tab === "shipments") { await loadOrders(); await ULA.shipments.load(false); }
       else if (state.tab === "support") { await ULA.support.loadThreads(); await ULA.support.checkUnread(); }
+      else if (state.tab === "inbox") await ULA.inbox.load();
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
       else if (state.tab === "expenses") { await loadOrders(); await ULA.expenses.reload(); }

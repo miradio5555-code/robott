@@ -1,0 +1,4 @@
+config.local.json
+state.sqlite*
+__pycache__/
+data/

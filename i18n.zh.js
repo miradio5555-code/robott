@@ -1782,3 +1782,5 @@ I18N.zh = {
   bi_order_profit: "订单利润", bi_profit_note: "根据已输入的价格和运费计算，不含一般费用。", bi_net: "净利润", bi_net_missing: "无法确认费用是否完整或重复计算。", bi_average: "平均订单金额", bi_average_profit: "平均订单利润", bi_missing_price: "请填写该货币所有订单的客户价格。", bi_missing_cost: "请填写所有订单的客户价格、采购价格和汇率。",
   bi_more_metrics: "还需要的数据", bi_suppliers: "供应商表现", bi_suppliers_missing: "需要关联记录及交付和质量数据。", bi_retention: "客户留存", bi_retention_missing: "需要统一的计算规则和可靠的客户识别。", bi_logistics: "物流表现", bi_logistics_missing: "需要计划和实际交付日期。",
 };
+
+I18N.zh.wa_title = "消息";

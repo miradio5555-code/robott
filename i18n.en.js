@@ -1782,3 +1782,5 @@ I18N.en = {
   bi_order_profit: "Order profit", bi_profit_note: "Based on entered prices and shipping costs, excluding overheads.", bi_net: "Net profit", bi_net_missing: "Expense completeness and possible double counting cannot be verified.", bi_average: "Average order value", bi_average_profit: "Average profit per order", bi_missing_price: "Enter customer prices for all orders in this currency.", bi_missing_cost: "Enter customer prices, purchase prices and exchange rates for all orders.",
   bi_more_metrics: "What else is needed", bi_suppliers: "Supplier performance", bi_suppliers_missing: "Linked records and delivery and quality data are needed.", bi_retention: "Client retention", bi_retention_missing: "A consistent definition and reliable client identification are needed.", bi_logistics: "Logistics performance", bi_logistics_missing: "Planned and actual delivery dates are needed.",
 };
+
+I18N.en.wa_title = "Messages";

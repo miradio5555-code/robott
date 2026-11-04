@@ -1754,3 +1754,5 @@ I18N.vi = {
   bi_order_profit: "Lợi nhuận đơn hàng", bi_profit_note: "Tính theo giá và phí vận chuyển đã nhập, chưa gồm chi phí chung.", bi_net: "Lợi nhuận ròng", bi_net_missing: "Chưa thể xác minh chi phí đầy đủ và tránh tính trùng.", bi_average: "Giá trị đơn trung bình", bi_average_profit: "Lợi nhuận trung bình mỗi đơn", bi_missing_price: "Nhập giá khách hàng cho mọi đơn thuộc tiền tệ này.", bi_missing_cost: "Nhập giá khách hàng, giá mua và tỷ giá cho mọi đơn.",
   bi_more_metrics: "Dữ liệu còn thiếu", bi_suppliers: "Hiệu quả nhà cung cấp", bi_suppliers_missing: "Cần liên kết dữ liệu về thời hạn và chất lượng.", bi_retention: "Khách hàng quay lại", bi_retention_missing: "Cần quy tắc nhất quán và nhận dạng khách hàng đáng tin cậy.", bi_logistics: "Hiệu quả vận chuyển", bi_logistics_missing: "Cần ngày giao dự kiến và thực tế.",
 };
+
+I18N.vi.wa_title = "Tin nhắn";

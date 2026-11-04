@@ -2184,3 +2184,47 @@ begin
 end $$;
 reset role;
 \echo '✅ 51. Бизнес-обзор: права, валюты, точные суммы и отсутствующие данные'
+
+-- 52. WhatsApp: tenant isolation, write RPCs, quote ownership and safe retries.
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+insert into public.wa_settings(workspace_id,enabled) select public.my_workspace_id(),true on conflict do nothing;
+insert into t select 'wa_ws',public.my_workspace_id()::text;
+update public.orders set client_phone='+996555000111' where id=(select v::uuid from t where k='b_order');
+insert into t select 'wa_thread',(public.wa_ingest(public.my_workspace_id(),'996555000111','incoming-test','hello')->>'id');
+-- Duplicate delivery does not increase unread count.
+select public.wa_ingest(public.my_workspace_id(),'996555000111','incoming-test','hello') \gset
+set role authenticated;
+insert into t select 'wa_message',public.wa_send((select v::uuid from t where k='wa_thread'),'Ответ менеджера')::text;
+do $$ begin
+ if not exists(select 1 from public.wa_thread_orders where thread_id=(select v::uuid from t where k='wa_thread') and order_id=(select v::uuid from t where k='b_order')) then raise exception 'ПРОВАЛ: полный номер не связал заказ'; end if;
+ if (select unread from public.wa_threads where id=(select v::uuid from t where k='wa_thread'))<>1 then raise exception 'ПРОВАЛ: webhook дублирует непрочитанные'; end if;
+ begin perform public.wa_claim((select v::uuid from t where k='wa_ws'));raise exception 'ПРОВАЛ: browser получил service RPC';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_threads) or exists(select 1 from public.wa_messages) then raise exception 'ПРОВАЛ: чужие диалоги видны'; end if;
+ begin perform public.wa_send((select v::uuid from t where k='wa_thread'),'Чужой ответ');raise exception 'ПРОВАЛ: отправка в чужой диалог';exception when insufficient_privilege then null;end;
+ begin perform public.wa_thread_action((select v::uuid from t where k='wa_thread'),'take');raise exception 'ПРОВАЛ: захват чужого диалога';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+select public.wa_link_order((select v::uuid from t where k='wa_ws'),(select v::uuid from t where k='wa_thread'),(select v::uuid from t where k='b_order'));
+set role authenticated;
+insert into t select 'wa_quote',public.wa_publish_quote((select v::uuid from t where k='wa_thread'),(select v::uuid from t where k='b_order'))::text;
+reset role;
+do $$ declare code text; result text; begin
+ select q.code into code from public.wa_quotes q where id=(select v::uuid from t where k='wa_quote');
+ result=public.wa_decide_quote((select v::uuid from t where k='wa_ws'),'996555999999',code,true);
+ if result<>'not_found' then raise exception 'ПРОВАЛ: чужой телефон подтвердил расчёт'; end if;
+ result=public.wa_decide_quote((select v::uuid from t where k='wa_ws'),'996555000111',code,true);
+ if result<>'accepted' then raise exception 'ПРОВАЛ: подтверждение расчёта'; end if;
+end $$;
+set role anon;
+do $$ begin
+ begin perform public.wa_ingest((select v::uuid from t where k='wa_ws'),'996555000111','fake','fake');raise exception 'ПРОВАЛ: аноним подделал webhook';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 52. WhatsApp: изоляция диалогов, сервисные функции, повтор событий и подтверждение расчётов'
