@@ -38,6 +38,25 @@
   Object.assign(labels.en,{"pairNetwork": "The service cannot reliably reach WhatsApp or the database. Wait and try again.", "pairPhoneFailed": "WhatsApp did not issue a link code. Check your number and retry, or use a QR code.", "pairProviderRate": "WhatsApp limited the request rate. Wait before trying again.", "pairLicense": "Connection service unavailable: check the license or number limit."});
   Object.assign(labels.zh,{"pairNetwork": "服务无法稳定连接 WhatsApp 或数据库。请稍后重试。", "pairPhoneFailed": "WhatsApp 未提供关联代码。请检查号码并重试，或使用二维码。", "pairProviderRate": "WhatsApp 限制了请求频率，请稍后重试。", "pairLicense": "连接服务不可用，请检查许可证或号码数量限制。"});
   Object.assign(labels.vi,{"pairNetwork": "Dịch vụ không thể kết nối ổn định với WhatsApp hoặc cơ sở dữ liệu. Đợi và thử lại.", "pairPhoneFailed": "WhatsApp không cấp mã liên kết. Kiểm tra số và thử lại hoặc dùng mã QR.", "pairProviderRate": "WhatsApp giới hạn tần suất yêu cầu. Đợi trước khi thử lại.", "pairLicense": "Dịch vụ kết nối không khả dụng: kiểm tra giấy phép hoặc giới hạn số."});
+  Object.assign(labels.ru,{pairCopy:'Копировать код',pairCopied:'Код скопирован',pairCopyFailed:'Не удалось скопировать. Выделите код и скопируйте вручную.'});
+  Object.assign(labels.en,{pairCopy:'Copy code',pairCopied:'Code copied',pairCopyFailed:'Could not copy. Select the code and copy it manually.'});
+  Object.assign(labels.zh,{pairCopy:'复制代码',pairCopied:'代码已复制',pairCopyFailed:'无法复制，请选中代码并手动复制。'});
+  Object.assign(labels.vi,{pairCopy:'Sao chép mã',pairCopied:'Đã sao chép mã',pairCopyFailed:'Không thể sao chép. Chọn mã và sao chép thủ công.'});
+  async function copyPairCode(){
+    if(!live()||!owner||state.readOnly||pairing.state!=='code'||!pairing.code_expires_at||new Date(pairing.code_expires_at).getTime()<=Date.now())return;
+    var code=pairing.pairing_code||'';
+    if(!/^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(code))return;
+    var id=ws,g=generation;
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(code);
+      else{
+        var input=document.createElement('textarea');input.value=code;input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);
+        try{input.select();input.setSelectionRange(0,code.length);if(!document.execCommand('copy'))throw new Error('copy_failed');}
+        finally{input.remove();}
+      }
+      if(id===ws&&g===generation)c.toast(l('pairCopied'),'ok');
+    }catch(err){if(id===ws&&g===generation)c.toast(l('pairCopyFailed'),'error');}
+  }
   function renderPairing(){
     $('#wa-pairing').hidden=!owner||state.readOnly;
     var status=pairing.state||'disconnected',pending=['queued','starting','disconnecting'].indexOf(status)>=0;
@@ -178,6 +197,7 @@
     box.classList.toggle('hidden',!results[0].data||connected);
   }
   function bind(){
+    $('#wa-copy-code').addEventListener('click',copyPairCode);
     $('#wa-phone-toggle').addEventListener('click',function(){$('#wa-phone-form').hidden=!$('#wa-phone-form').hidden;if(!$('#wa-phone-form').hidden)$('#wa-phone-number').focus();});
     $('#wa-phone-form').addEventListener('submit',requestPhone);
     $('#wa-connect').addEventListener('click',function(){requestPair('connect');});
