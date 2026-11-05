@@ -29,7 +29,8 @@ class Business:
         if re.search(r'условия|как (?:вы )?работаете|как это работает|сколько стоит|цен[аыу]\b',t):return '4'
         if t in ('спасибо','благодарю','thanks','thank you'):return 'thanks'
         return t
-    def respond(self,phone,text,mid,media=None):
+    def respond(self,phone,text,mid,media=None,settings=None):
+        settings=settings or {}
         s=self.load(phone);t=text.strip();cmd=t.lower().rstrip('?! .')
         if cmd in ('меню','отмена','старт','start'):
             s.pop('draft',None);s.pop('step',None);s.pop('human',None);self.save(phone,s);return MENU
@@ -40,6 +41,7 @@ class Business:
             cmd=self.intent(t)
             if cmd=='меню':return MENU
             if cmd=='thanks':return 'Пожалуйста! Если появится вопрос — напишите сюда. Для новой заявки напишите «Хочу заказать», для связи с менеджером — «Менеджер».'
+            if cmd=='delivery' and settings.get('delivery_message'):return settings['delivery_message']+'\nДля связи с менеджером напишите «Менеджер».'
             if cmd=='delivery':return 'Срок и стоимость доставки зависят от товара и маршрута — их уточняет менеджер. Если заказ уже оформлен, напишите «Где мой заказ», чтобы проверить его в личном кабинете. Для связи с менеджером напишите «Менеджер».'
             if cmd=='payment':return 'Способ оплаты и реквизиты уточняйте у менеджера. Если уже оплатили, сообщите ему номер заказа: платёж нужно проверить. Сообщение или фото чека само по себе не подтверждает оплату. Для связи напишите «Менеджер».'
 
@@ -47,6 +49,7 @@ class Business:
             s['human']=True;self.save(phone,s)
             return 'Автоответы приостановлены. Напишите вопрос и номер заказа здесь — менеджер увидит их в WhatsApp. Чтобы вернуться к боту, напишите МЕНЮ.'
         if cmd in ('4','условия') and not s.get('step'):
+            if settings.get('conditions_message'):return settings['conditions_message']+'\nДля новой заявки — 2, для менеджера — 3.'
             return 'Мы принимаем заявки на товары. Стоимость и сроки менеджер подтверждает после проверки товара и доставки. Заявка не означает оплату или подтверждение покупки. Для начала выберите 2, для менеджера — 3.'
         token=self.cabinet_token(t)
         if token:

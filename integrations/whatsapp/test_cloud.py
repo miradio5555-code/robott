@@ -4,7 +4,7 @@ class BridgeStub:
     def __init__(self):self.c={'WORKSPACE_ID':'own','SUPABASE_URL':'https://example.supabase.co','SUPABASE_SERVICE_KEY':'key','EVOLUTION_URL':'http://api','INSTANCE_TOKEN':'token'};self.sent=[]
     def send(self,*args):self.sent.append(args)
 class CloudTests(unittest.TestCase):
-    def setUp(self):self.b=BridgeStub();self.c=Cloud(self.b);self.c.last_heartbeat=10**20;self.c.connection_ok=True;self.patches=[];self.c.patch=lambda table,params,data:self.patches.append((table,params,data))
+    def setUp(self):self.b=BridgeStub();self.c=Cloud(self.b);self.c.last_heartbeat=10**20;self.c.connection_ok=True;self.c.settings=lambda:{'excluded_numbers':[]};self.patches=[];self.c.patch=lambda table,params,data:self.patches.append((table,params,data))
     def test_offline_does_not_consume_attempts(self):
         self.c.connection_ok=False;self.c.last_reconnect=10**20
         self.c.call=lambda *a,**k:(_ for _ in ()).throw(AssertionError('offline claim'))
@@ -32,4 +32,14 @@ class CloudTests(unittest.TestCase):
         calls=[];self.c.call=lambda route,data:(calls.append(data) or 'accepted')
         self.assertIn('подтверждён',self.c.quote('996555000000','ДА ABCDEF1234'))
         self.assertEqual(calls[0]['p_phone'],'996555000000');self.assertEqual(calls[0]['p_workspace'],'own')
+    def test_excluded_contact_cancels_automatic_messages(self):
+        self.c.settings=lambda:{'excluded_numbers':['996555000000']}
+        self.c.call=lambda *a,**k:[{'id':'m','thread_id':'t','kind':'text','attempts':1,'body':'hello'}]
+        self.c.thread_by_id=lambda id:{'phone':'996555000000','opted_out':False}
+        self.c.tick();self.assertFalse(self.b.sent);self.assertEqual(self.patches[0][2]['state'],'cancelled')
+    def test_explicit_human_reply_is_not_an_auto_reply(self):
+        self.c.settings=lambda:{'excluded_numbers':['996555000000']}
+        self.c.call=lambda *a,**k:[{'id':'m','thread_id':'t','kind':'text','attempts':1,'body':'hello','created_by':'owner'}]
+        self.c.thread_by_id=lambda id:{'phone':'996555000000','opted_out':False}
+        self.c.tick();self.assertEqual(len(self.b.sent),1)
 if __name__=='__main__':unittest.main()

@@ -101,6 +101,8 @@ class Bridge:
             return
         mid,phone,text=item
         with self.lock:
+            policy=self.cloud.audience(phone,text) if self.cloud else {'allowed':True}
+            if not policy.get('allowed'):return
             thread=self.cloud.ingest(event,phone,mid,text) if self.cloud else None
             if self.db.execute('select 1 from seen where id=?',(mid,)).fetchone(): return
             self.db.execute('insert or ignore into contacts(phone) values(?)',(phone,))
@@ -125,19 +127,24 @@ class Bridge:
             else:
                 msg=(event.get('data') or {}).get('Message') or {}
                 media=msg if msg.get('imageMessage') is not None else None
-                cfg=self.cloud.settings() if self.cloud else {}
+                cfg=policy.get('settings') or (self.cloud.settings() if self.cloud else {})
                 quote=self.cloud.quote(phone,text) if self.cloud and not stop else None
                 if self.cloud and not stop and not start and not quote and (not cfg.get('enabled') or not cfg.get('bot_enabled')):
                     self.db.execute('insert into seen values(?)',(mid,));self.db.commit();return
                 if any(k in msg for k in ('audioMessage','videoMessage','documentMessage','stickerMessage')):
                     session=self.business.load(phone);session['human']=True;self.business.save(phone,session)
                     answer='Вложение получено. Менеджер сможет открыть его в WhatsApp. Для возвращения к меню напишите МЕНЮ.'
-                else:answer=quote or (reply(text) if stop else self.business.respond(phone,text,mid,media))
+                else:answer=quote or (reply(text) if stop else self.business.respond(phone,text,mid,media,cfg))
                 if self.cloud and not stop:
                     human=bool(quote) or bool(self.business.load(phone).get('human'))
                     self.cloud.set_thread(phone,{'mode':'human' if human else 'bot'})
                 if answer is None:
                     self.db.execute('insert into seen values(?)',(mid,));self.db.commit();return
+                welcome=(cfg.get('welcome_message') or '').strip()
+                if welcome and policy.get('first_message') and not stop and not start and not quote:
+                    from business import MENU
+                    answer=welcome+'\n\n'+(answer.split('\n',1)[1] if answer==MENU else answer)
+                answer=answer.replace('{business}',self.c.get('BRAND_NAME','ULA Factory'))
                 answer=answer.replace('ULA Factory',self.c.get('BRAND_NAME','ULA Factory'))
                 self.db.execute('insert into responses values(?,?)',(mid,answer));self.db.commit()
             if self.cloud:self.cloud.queue(phone,mid,answer,stop or start)

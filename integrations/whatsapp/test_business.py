@@ -76,4 +76,17 @@ class BusinessTests(unittest.TestCase):
     def test_delivery_faq_does_not_invent_a_date(self):
         answer=self.say('Когда приедет доставка?');self.assertIn('уточняет менеджер',answer);self.assertFalse(self.calls)
 
+    def test_private_contact_is_not_copied_into_business_inbox(self):
+        class PrivateCloud:
+            def audience(self,*args):return {'allowed':False}
+            def ingest(self,*args):raise AssertionError('Private message copied')
+            def queue(self,*args):raise AssertionError('Private contact replied to')
+        self.b.cloud=PrivateCloud()
+        self.b.handle({'event':'Message','data':{'Info':{'ID':'family','Chat':'996555000000@s.whatsapp.net'},'Message':{'conversation':'Привет, как дела?'}}})
+        self.assertEqual(self.b.db.execute('select count(*) from contacts').fetchone()[0],0)
+    def test_buyer_delivery_text_is_scoped_to_current_call(self):
+        first=self.bot.respond('996555000000','Доставка','m',settings={'delivery_message':'Условия доставки нашего магазина'})
+        self.assertIn('нашего магазина',first)
+        self.assertNotIn('нашего магазина',self.say('Доставка'))
+
 if __name__=='__main__':unittest.main()

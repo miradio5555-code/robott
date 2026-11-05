@@ -2,6 +2,7 @@
 (function (U) {
   'use strict';
   var c=U.core, state=c.state, esc=c.esc, $=c.$;
+  var policyDraft={client_numbers:[],excluded_numbers:[]};
   var ws=null, selected=null, threads=[], orders=[], quotes=[], settings={}, pairing={}, owner=false, generation=0, limit=100, messageLimit=100, busy=false, signature='', timer=null, pairTimer=null, pairLoading=false;
   var labels={
     ru:{title:'Сообщения',hint:'WhatsApp, клиенты и заказы — в одном месте',all:'Все',unread:'Непрочитанные',human:'Нужен менеджер',mine:'Мои',search:'Имя или телефон',empty:'Диалогов пока нет. Входящие сообщения появятся здесь.',choose:'Выберите диалог',send:'Отправить',placeholder:'Сообщение клиенту…',take:'Взять диалог',bot:'Вернуть боту',close:'Закрыть',refresh:'Обновить',settings:'Автоматизация',enabled:'Отправка сообщений',bot_enabled:'Автоответчик',notify_new:'Новые заказы',notify_status:'Статусы заказов',notify_payment:'Изменения оплаты',language:'Язык уведомлений',template:'Шаблон статуса',tokens:'Подстановки: {order} — номер, {status} — статус.',save:'Сохранить',online:'WhatsApp подключён',offline:'Сервис недоступен или давно не обновлялся',notConfigured:'WhatsApp для этого кабинета ещё не настроен.',error:'Не удалось загрузить сообщения. Обновите страницу или проверьте подключение.',migration:'Раздел сообщений ещё не установлен в базе.',client:'Карточка клиента',related:'Связанные заказы',noOrders:'Связанных заказов пока нет.',quote:'Отправить расчёт',quoteConfirm:'Отправить клиенту расчёт по текущей сумме заказа? Подтверждение не является оплатой.',queued:'В очереди',sending:'Отправляется',sent:'Отправлено',delivered:'Доставлено',read:'Прочитано',received:'Получено',failed:'Ошибка отправки',cancelled:'Отменено',retry:'Повторить',photo:'Фото',paused:'Менеджер',auto:'Бот',closed:'Закрыт',optedOut:'Клиент отключил сообщения',assigned:'Назначено вам',other:'Назначено сотруднику',older:'Ранее',more:'Ещё диалоги',accepted:'Расчёт подтверждён',declined:'Расчёт отклонён',pending:'Ожидает подтверждения',expired:'Расчёт устарел',noWorkspace:'Сначала откройте нужный кабинет.',saved:'Сохранено',quoteSent:'Расчёт поставлен в очередь',readOnly:'Только просмотр. Для ответа откройте кабинет с правом изменения.',working:'Обработка…',photoError:'Не удалось открыть фото',writeError:'Действие не выполнено. Проверьте подключение, права и состояние заказа.'},
@@ -112,7 +113,7 @@
   async function load(){
     if(!live())return;
     var g=generation,w=ws;
-    var results=await Promise.all([c.db().from('wa_threads').select('*').eq('workspace_id',w).order('last_message_at',{ascending:false}).limit(limit),c.db().from('wa_settings').select('*').eq('workspace_id',w).maybeSingle(),owner?c.db().from('wa_pairing').select('*').eq('workspace_id',w).maybeSingle():Promise.resolve({data:null})]);
+    var results=await Promise.all([c.db().from('wa_threads').select('*').eq('workspace_id',w).order('last_message_at',{ascending:false}).limit(limit),(owner?c.db().rpc('wa_settings_owner',{p_workspace:w}):c.db().from('wa_settings').select('workspace_id,enabled,bot_enabled,notify_new,notify_status,notify_payment,language,status_template,last_heartbeat,connection_ok').eq('workspace_id',w).maybeSingle()),owner?c.db().from('wa_pairing').select('*').eq('workspace_id',w).maybeSingle():Promise.resolve({data:null})]);
     if(g!==generation||!live())return;
     if(results[0].error||results[1].error||results[2].error){showError(results[0].error||results[1].error||results[2].error);return;}
     threads=results[0].data||[];settings=results[1].data||{};acceptPairing(results[2].data||{});$('#wa-feedback').textContent='';renderList();connection();renderPairing();
@@ -132,6 +133,8 @@
     $('#wa-name').textContent=thread.display_name||'+'+thread.phone;$('#wa-phone').textContent='+'+thread.phone;
     $('#wa-owner').textContent=(thread.opted_out?l('optedOut')+' · ':'')+(thread.mode==='human'?l('paused'):thread.mode==='closed'?l('closed'):l('auto'))+(thread.assigned_to?' · '+l(thread.assigned_to===state.me.id?'assigned':'other'):'');
     $('#wa-composer').hidden=!writable()||thread.opted_out||!settings.enabled;$('#wa-actions').hidden=!writable();
+    $('#wa-mark-client').hidden=!owner||((settings.client_numbers||[]).indexOf(thread.phone)>=0&&(settings.excluded_numbers||[]).indexOf(thread.phone)<0);
+    $('#wa-exclude-contact').hidden=!owner||(settings.excluded_numbers||[]).indexOf(thread.phone)>=0;
     $('#wa-older').hidden=(results[0].data||[]).length<messageLimit;
     var msgs=(results[0].data||[]).slice().reverse(), sig=JSON.stringify([id,msgs,quotes,orders]);
     if(sig!==signature){signature=sig;var log=$('#wa-log'),nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<90;
@@ -141,9 +144,16 @@
     }
     if(read&&writable()){await rpc('wa_thread_action',{p_thread:id,p_action:'read'});thread.unread=0;renderList();}
   }
+  Object.assign(labels.ru,{"audience": "Кому отвечает бот", "newPolicy": "Новые номера", "newFirst": "Отвечать новым номерам и добавлять в клиенты", "newCommand": "Только после команды о покупке", "newNone": "Только существующим клиентам", "clientsList": "Номера клиентов", "excludeList": "Никогда не отвечать автоматически (родные, знакомые)", "phoneListHelp": "Номер с кодом страны, каждый с новой строки. Исключения важнее списка клиентов. Старые диалоги сами по себе не считаются клиентами.", "newHelp": "Новый номер — тот, которого ещё нет в разделе сообщений этого кабинета. Новый знакомый тоже получит ответ, если его нет в исключениях.", "welcomeText": "Приветствие при первом обращении", "deliveryText": "Ответ о доставке", "conditionsText": "Ответ об условиях работы", "customHelp": "Пустое поле — стандартный ответ. {business} — название вашего бизнеса. Для остановки автоответов номер нужно добавить в исключения.", "markClient": "Это клиент", "excludeContact": "Не отвечать этому номеру", "contactSaved": "Правило для номера сохранено"});
+  Object.assign(labels.en,{"audience": "Who the bot replies to", "newPolicy": "New numbers", "newFirst": "Reply to new numbers and add as customers", "newCommand": "Only after a purchase request", "newNone": "Existing customers only", "clientsList": "Customer numbers", "excludeList": "Never auto-reply (family and personal contacts)", "phoneListHelp": "One number per line, including country code. Exclusions override customers. Old conversations alone do not count as customers.", "newHelp": "New means no previous conversation in this workspace inbox. A new personal contact will also receive a reply unless excluded.", "welcomeText": "First-contact greeting", "deliveryText": "Delivery reply", "conditionsText": "Business terms reply", "customHelp": "Leave blank for the default reply. {business} inserts your business name. To stop automatic replies, add the number to exclusions.", "markClient": "Mark as customer", "excludeContact": "Do not auto-reply", "contactSaved": "Contact rule saved"});
+  Object.assign(labels.zh,{"audience": "机器人回复对象", "newPolicy": "新号码", "newFirst": "回复新号码并添加为客户", "newCommand": "仅在提出购买请求后回复", "newNone": "仅现有客户", "clientsList": "客户号码", "excludeList": "从不自动回复（亲友）", "phoneListHelp": "每行一个含国家代码的号码。排除列表优先于客户列表。已有对话本身不代表客户。", "newHelp": "新号码是此工作区收件箱中尚无对话的号码。未被排除的新朋友也会收到回复。", "welcomeText": "首次联系欢迎语", "deliveryText": "配送说明", "conditionsText": "业务条件说明", "customHelp": "留空使用默认回复。{business} 为业务名称。停止自动回复请将号码加入排除列表。", "markClient": "标记为客户", "excludeContact": "不自动回复此号码", "contactSaved": "号码规则已保存"});
+  Object.assign(labels.vi,{"audience": "Đối tượng bot trả lời", "newPolicy": "Số mới", "newFirst": "Trả lời số mới và thêm làm khách hàng", "newCommand": "Chỉ sau yêu cầu mua hàng", "newNone": "Chỉ khách hàng hiện tại", "clientsList": "Số khách hàng", "excludeList": "Không bao giờ tự trả lời (người thân, bạn bè)", "phoneListHelp": "Mỗi dòng một số gồm mã quốc gia. Danh sách loại trừ được ưu tiên. Hội thoại cũ không tự được coi là khách hàng.", "newHelp": "Số mới chưa có hội thoại trong hộp thư không gian này. Người quen mới cũng sẽ được trả lời nếu chưa bị loại trừ.", "welcomeText": "Lời chào lần đầu", "deliveryText": "Trả lời về vận chuyển", "conditionsText": "Trả lời về điều kiện làm việc", "customHelp": "Để trống để dùng mặc định. {business} là tên doanh nghiệp. Muốn dừng trả lời tự động hãy thêm số vào danh sách loại trừ.", "markClient": "Đánh dấu khách hàng", "excludeContact": "Không tự trả lời số này", "contactSaved": "Đã lưu quy tắc số"});
   function renderSettings(){
     $('#wa-settings').hidden=!owner||state.readOnly;
     ['enabled','bot_enabled','notify_new','notify_status','notify_payment'].forEach(function(k){$('#wa-setting-'+k).checked=!!settings[k];});
+    $('#wa-setting-new_contact_policy').value=settings.new_contact_policy||'first';
+    ['client_numbers','excluded_numbers'].forEach(function(k){policyDraft[k]=(settings[k]||[]).slice();$('#wa-setting-'+k).value=policyDraft[k].join('\n');});
+    ['welcome_message','delivery_message','conditions_message'].forEach(function(k){$('#wa-setting-'+k).value=settings[k]||'';});
     $('#wa-setting-language').value=settings.language||'ru';$('#wa-setting-template').value=settings.status_template||'ULA Factory · №{order}: {status}';
   }
   async function select(id){selected=id;messageLimit=100;signature='';$('#wa-compose-text').value='';await loadThread(true);}
@@ -157,10 +167,17 @@
       if(photoWs!==ws||photoThread!==selected||!live())return;
       if(photo.error){c.toast(l('photoError'),'error');return;}c.openLightbox([photo.data.signedUrl],0);return;
     }
-    if(!writable())return;
+    if(!writable()||(['client','exclude'].indexOf(a)>=0&&!owner))return;
     busy=true;b.disabled=true;
     try{
-      if(['take','bot','close'].indexOf(a)>=0)await rpc('wa_thread_action',{p_thread:selected,p_action:a});
+      if(a==='client'||a==='exclude'){
+        var contact=threads.find(function(t){return t.id===selected;});if(!contact)return;
+        var rule=a==='client'?{client_numbers_add:[contact.phone],excluded_numbers_remove:[contact.phone]}:{excluded_numbers_add:[contact.phone],client_numbers_remove:[contact.phone]};
+        await rpc('wa_settings_save',{p_workspace:ws,p_settings:rule});
+        if(a==='client')await rpc('wa_thread_action',{p_thread:selected,p_action:'bot'});
+        c.toast(l('contactSaved'),'ok');
+      }
+      else if(['take','bot','close'].indexOf(a)>=0)await rpc('wa_thread_action',{p_thread:selected,p_action:a});
       else if(a==='retry')await rpc('wa_retry',{p_message:b.dataset.waId});
       else if(a==='quote'){
         if(!window.confirm(l('quoteConfirm')))return;
@@ -211,7 +228,14 @@
     $('#wa-composer').addEventListener('submit',async function(e){e.preventDefault();if(busy||!writable()||!selected)return;var input=$('#wa-compose-text'),text=input.value.trim(),id=selected,w=ws;if(!text)return;busy=true;$('#wa-send').disabled=true;
       try{await rpc('wa_send',{p_thread:id,p_body:text});if(w===ws&&id===selected)input.value='';await load();}catch(err){c.toast(l('writeError'),'error');}finally{busy=false;$('#wa-send').disabled=false;}
     });
-    $('#wa-settings-form').addEventListener('submit',async function(e){e.preventDefault();if(!owner||!writable()||busy)return;var data={};['enabled','bot_enabled','notify_new','notify_status','notify_payment'].forEach(function(k){data[k]=$('#wa-setting-'+k).checked;});data.language=$('#wa-setting-language').value;data.status_template=$('#wa-setting-template').value;busy=true;$('#wa-settings-save').disabled=true;
+    $('#wa-settings-form').addEventListener('submit',async function(e){e.preventDefault();if(!owner||!writable()||busy)return;var data={};['enabled','bot_enabled','notify_new','notify_status','notify_payment'].forEach(function(k){data[k]=$('#wa-setting-'+k).checked;});data.new_contact_policy=$('#wa-setting-new_contact_policy').value;
+      for(var k of ['client_numbers','excluded_numbers']){
+        var nums=$('#wa-setting-'+k).value.split(/[\n,;]+/).map(function(v){return v.replace(/[\s().+\-]/g,'');}).filter(Boolean);
+        if(nums.length>5000||nums.some(function(v){return !/^[1-9][0-9]{8,14}$/.test(v);})){c.toast(l('pairInvalidPhone'),'error');return;}
+        data[k+'_add']=nums.filter(function(v){return policyDraft[k].indexOf(v)<0;});data[k+'_remove']=policyDraft[k].filter(function(v){return nums.indexOf(v)<0;});
+      }
+      ['welcome_message','delivery_message','conditions_message'].forEach(function(k){data[k]=$('#wa-setting-'+k).value.trim();});
+      data.language=$('#wa-setting-language').value;data.status_template=$('#wa-setting-template').value;busy=true;$('#wa-settings-save').disabled=true;
       try{await rpc('wa_settings_save',{p_workspace:ws,p_settings:data});await load();c.toast(l('saved'),'ok');}catch(err){c.toast(l('writeError'),'error');}finally{busy=false;$('#wa-settings-save').disabled=false;}
     });
   }

@@ -14,6 +14,10 @@ class Cloud:
     def settings(self):
         rows=self.query('wa_settings',{'workspace_id':'eq.'+self.ws,'select':'*'})
         return rows[0] if rows else {}
+    def audience(self,phone,text='',new=True):
+        # A new purchase request may enrol a prospect; ordinary personal chat may not.
+        purchase=self.b.business.intent(text)=='2'
+        return self.call('rpc/wa_incoming_policy',{'p_workspace':self.ws,'p_phone':phone,'p_purchase':purchase,'p_new':new}) or {'allowed':False}
     def thread(self,phone):
         rows=self.query('wa_threads',{'workspace_id':'eq.'+self.ws,'phone':'eq.'+phone,'select':'*','limit':1})
         return rows[0] if rows else None
@@ -61,7 +65,9 @@ class Cloud:
         if not re.fullmatch(r'[0-9]{9,15}@s.whatsapp.net',chat) or not mid:return
         found=self.query('wa_messages',{'workspace_id':'eq.'+self.ws,'direction':'eq.out','provider_id':'eq.'+mid,'select':'id','limit':1})
         if found:return
-        phone=chat.split('@')[0];self.ingest(event,phone,mid,text,'out');self.set_thread(phone,{'mode':'human'})
+        phone=chat.split('@')[0]
+        if not self.audience(phone,new=False).get('allowed'):return
+        self.ingest(event,phone,mid,text,'out');self.set_thread(phone,{'mode':'human'})
     def tick(self):
         now=time.time()
         if now-self.last_heartbeat>=30:
@@ -82,9 +88,13 @@ class Cloud:
                     try:self.b.api(self.c['EVOLUTION_URL']+'/instance/connect',self.c['INSTANCE_TOKEN'],{'webhookUrl':self.c.get('WEBHOOK_URL') or 'http://whatsapp-bridge:8091/webhook/'+self.c['WEBHOOK_SECRET'],'subscribe':['MESSAGE','READ_RECEIPT','SEND_MESSAGE','QRCODE','CONNECTION']})
                     except Exception:pass
             return
+        cfg=self.settings()
+        excluded=set(cfg.get('excluded_numbers') or [])
         rows=self.call('rpc/wa_claim',{'p_workspace':self.ws}) or []
         for m in rows:
             t=self.thread_by_id(m['thread_id'])
+            if t and t['phone'] in excluded and not m.get('created_by'):
+                self.patch('wa_messages',{'id':'eq.'+m['id'],'workspace_id':'eq.'+self.ws},{'state':'cancelled','lease_until':None});continue
             if not t or (t['opted_out'] and m['kind']!='control'):
                 self.patch('wa_messages',{'id':'eq.'+m['id'],'workspace_id':'eq.'+self.ws},{'state':'cancelled','lease_until':None});continue
             # Set provider ID before send: echoed events cannot pause the bot.

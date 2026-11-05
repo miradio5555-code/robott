@@ -2272,3 +2272,43 @@ do $$ begin
 end $$;
 reset role;
 \echo '✅ 54. Phone pairing: owner only, international number validation and rate limit'
+-- 55: customer targeting, exclusion priority and owner-only personal lists.
+reset role;
+update public.wa_settings set enabled=true,bot_enabled=true,new_contact_policy='first',client_numbers='{}',excluded_numbers='{}' where workspace_id=(select v::uuid from t where k='wa_ws');
+do $$ declare r jsonb; w uuid=(select v::uuid from t where k='wa_ws'); begin
+ r=public.wa_incoming_policy(w,'996799550001',false,true);
+ if not (r->>'allowed')::boolean or not (r->>'first_message')::boolean then raise exception 'ПРОВАЛ: first new number not allowed';end if;
+ if not exists(select 1 from public.wa_settings where workspace_id=w and '996799550001'=any(client_numbers)) then raise exception 'ПРОВАЛ: new customer not retained';end if;
+ insert into public.wa_threads(workspace_id,phone) values(w,'996799550002');
+ if (public.wa_incoming_policy(w,'996799550002',false,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: old personal thread treated as customer';end if;
+ if (public.wa_incoming_policy(w,'996799550006',false,false)->>'allowed')::boolean then raise exception 'ПРОВАЛ: personal outgoing enrolled';end if;
+ update public.wa_settings set client_numbers=array_append(client_numbers,'996799550003'),excluded_numbers=array['996799550003'] where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550003',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: exclusion did not override customer';end if;
+ update public.wa_settings set new_contact_policy='command' where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550004',false,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: command policy admitted ordinary greeting';end if;
+ if not (public.wa_incoming_policy(w,'996799550004',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: purchase request rejected';end if;
+ update public.wa_settings set new_contact_policy='none' where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550005',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: existing-only policy admitted stranger';end if;
+end $$;
+set request.uid='00000000-0000-0000-0000-0000000000b1';set role authenticated;
+select public.wa_settings_save((select v::uuid from t where k='wa_ws'),'{"client_numbers_add":["+996 799 550 005"],"welcome_message":"Здравствуйте, {business}!"}');
+do $$ declare r jsonb; begin
+ r=public.wa_settings_owner((select v::uuid from t where k='wa_ws'));
+ if r->>'welcome_message'<>'Здравствуйте, {business}!' or not (r->'client_numbers' ? '996799550005') or not (r->'client_numbers' ? '996799550001') then raise exception 'ПРОВАЛ: owner config lost concurrent auto-enrolment';end if;
+end $$;
+reset role;
+do $$ declare w uuid=(select v::uuid from t where k='wa_ws'); th uuid; begin
+ insert into public.wa_threads(workspace_id,phone) values(w,'996799550007') returning id into th;
+ insert into public.wa_messages(thread_id,workspace_id,direction,body,state) values(th,w,'out','automatic','queued');
+ update public.wa_settings set excluded_numbers=array_append(excluded_numbers,'996799550007') where workspace_id=w;
+ if exists(select 1 from public.wa_messages where thread_id=th and state='queued') then raise exception 'ПРОВАЛ: excluded number still queued';end if;
+ if public.wa_queue_reply(w,'996799550007','new-event','ignored',false) is not null then raise exception 'ПРОВАЛ: new auto reply queued for excluded number';end if;
+end $$;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ begin perform excluded_numbers from public.wa_settings;raise exception 'ПРОВАЛ: staff reads personal exclusions';exception when insufficient_privilege then null;end;
+ begin perform public.wa_settings_owner((select v::uuid from t where k='wa_ws'));raise exception 'ПРОВАЛ: staff reads owner settings';exception when insufficient_privilege then null;end;
+ begin perform public.wa_incoming_policy((select v::uuid from t where k='wa_ws'),'996799550001');raise exception 'ПРОВАЛ: browser invokes service policy';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 55. Audience: new vs personal contacts, exclusions, private lists and queued-message cancellation'
