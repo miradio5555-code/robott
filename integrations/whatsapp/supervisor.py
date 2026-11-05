@@ -53,7 +53,6 @@ class Supervisor:
             if ws in self.bridges:
                 self.bridges[ws].c['DISABLED']=not conn['active'];return self.bridges[ws]
             b=Bridge(config);self.bridges[ws]=b
-            b.natural.start()
             threading.Thread(target=b.poll,daemon=True).start();return b
     def ensure_connection(self,ws):
         rows=self.db('wa_connections',{'workspace_id':'eq.'+ws,'select':'*','limit':1})

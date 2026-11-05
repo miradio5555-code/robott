@@ -56,8 +56,6 @@ class Bridge:
             from cloud import Cloud
             self.cloud=Cloud(self)
         self.lock=threading.RLock()
-        from ai import NaturalReplies
-        self.natural=NaturalReplies(self)
     def api(self,url,key,data=None,method=None,extra_headers=None,timeout=20):
         # One verified TLS connection per host and worker. Avoid a new handshake
         # for every queue poll / pairing step on high-latency connections.
@@ -140,7 +138,6 @@ class Bridge:
                     self.cloud.set_thread(phone,{'mode':'human' if human else 'bot'})
                 if answer is None:
                     self.db.execute('insert into seen values(?)',(mid,));self.db.commit();return
-                answer=self.natural.improve(answer)
                 answer=answer.replace('ULA Factory',self.c.get('BRAND_NAME','ULA Factory'))
                 self.db.execute('insert into responses values(?,?)',(mid,answer));self.db.commit()
             if self.cloud:self.cloud.queue(phone,mid,answer,stop or start)

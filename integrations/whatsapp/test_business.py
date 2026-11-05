@@ -59,4 +59,21 @@ class BusinessTests(unittest.TestCase):
         sent=[];self.b.send=lambda phone,text,id:sent.append(text)
         self.b.handle(event);self.b.handle(event)
         self.assertEqual(len(sent),1);self.assertIn('Как к вам',sent[0]);self.assertEqual(self.bot.load('996555000000')['step'],'name')
+
+    def test_natural_order_question_still_requires_private_link(self):
+        self.assertIn('личную ссылку',self.say('Здравствуйте, где мой заказ?'));self.assertFalse(self.calls)
+    def test_natural_request_keeps_wizard_fields_literal(self):
+        self.assertIn('Как к вам обращаться',self.say('Хочу заказать'))
+        self.say('Иван');self.say('Оплата доставки товара')
+        self.assertEqual(self.bot.load('996555000000')['step'],'qty')
+        self.assertEqual(self.bot.load('996555000000')['draft']['product'],'Оплата доставки товара')
+    def test_payment_statement_never_confirms_payment(self):
+        self.assertIn('нужно проверить',self.say('Я уже оплатил'))
+        self.assertFalse(self.orders);self.assertFalse(self.calls)
+    def test_human_handoff_understands_regular_phrase(self):
+        self.assertIn('приостановлены',self.say('Хочу поговорить с менеджером'))
+        self.assertIsNone(self.say('Как оплатить?'))
+    def test_delivery_faq_does_not_invent_a_date(self):
+        answer=self.say('Когда приедет доставка?');self.assertIn('уточняет менеджер',answer);self.assertFalse(self.calls)
+
 if __name__=='__main__':unittest.main()

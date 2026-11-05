@@ -4,7 +4,7 @@ from urllib.parse import parse_qs, urlparse, urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 SITE='https://miradio5555-code.github.io/robott/'
-MENU=('ULA Factory · помощник\n1 — Мои заказы\n2 — Новая заявка (фото или ссылка)\n3 — Менеджер\n4 — Условия работы\nМЕНЮ — начать заново · СТОП — отключить сообщения')
+MENU=('Здравствуйте! Помогу с заказом, новой заявкой или вопросом менеджеру.\nULA Factory · помощник\n1 — Мои заказы\n2 — Новая заявка (фото или ссылка)\n3 — Менеджер\n4 — Условия работы\nМЕНЮ — начать заново · СТОП — отключить сообщения')
 
 class Business:
     def __init__(self, bridge):
@@ -17,6 +17,18 @@ class Business:
         self.db.execute('insert or replace into sessions values(?,?)',(phone,json.dumps(s)));self.db.commit()
     def api(self,route,data=None):
         return self.b.api(self.c['SUPABASE_URL']+'/rest/v1/'+route,self.c['SUPABASE_SERVICE_KEY'],data)
+    @staticmethod
+    def intent(text):
+        t=re.sub(r'\s+',' ',text.lower().replace('ё','е')).strip().rstrip('?!., ')
+        if t in ('привет','здравствуйте','здравствуй','добрый день','доброе утро','добрый вечер','hello','hi','помощь','help'):return 'меню'
+        if re.search(r'\b(менеджер(?:а|у|ом)?|оператор(?:а|у|ом)?|человек(?:а|ом)?)\b',t) and not re.search(r'\bне\b',t):return '3'
+        if re.search(r'где (?:мой |мои )?заказ|статус.*заказ|что с.*заказ|отследить.*заказ|мои заказы',t):return '1'
+        if re.search(r'хочу (?:сделать заказ|заказать|купить)|(?:оформить|создать|сделать) (?:новый заказ|заказ|заявку)|новая заявка',t):return '2'
+        if re.search(r'доставк|когда (?:придет|приедет|прибудет)|срок[и ]|сколько ждать',t):return 'delivery'
+        if re.search(r'оплат|реквизит|перевел|перевела|чек\b',t):return 'payment'
+        if re.search(r'условия|как (?:вы )?работаете|как это работает|сколько стоит|цен[аыу]\b',t):return '4'
+        if t in ('спасибо','благодарю','thanks','thank you'):return 'thanks'
+        return t
     def respond(self,phone,text,mid,media=None):
         s=self.load(phone);t=text.strip();cmd=t.lower().rstrip('?! .')
         if cmd in ('меню','отмена','старт','start'):
@@ -24,6 +36,13 @@ class Business:
         if cmd in ('отвязать','выйти'):
             self.save(phone,{});return 'Личный кабинет отвязан от WhatsApp. '+MENU
         if s.get('human'): return None
+        if not s.get('step'):
+            cmd=self.intent(t)
+            if cmd=='меню':return MENU
+            if cmd=='thanks':return 'Пожалуйста! Если появится вопрос — напишите сюда. Для новой заявки напишите «Хочу заказать», для связи с менеджером — «Менеджер».'
+            if cmd=='delivery':return 'Срок и стоимость доставки зависят от товара и маршрута — их уточняет менеджер. Если заказ уже оформлен, напишите «Где мой заказ», чтобы проверить его в личном кабинете. Для связи с менеджером напишите «Менеджер».'
+            if cmd=='payment':return 'Способ оплаты и реквизиты уточняйте у менеджера. Если уже оплатили, сообщите ему номер заказа: платёж нужно проверить. Сообщение или фото чека само по себе не подтверждает оплату. Для связи напишите «Менеджер».'
+
         if cmd in ('3','менеджер','оператор') and not s.get('step'):
             s['human']=True;self.save(phone,s)
             return 'Автоответы приостановлены. Напишите вопрос и номер заказа здесь — менеджер увидит их в WhatsApp. Чтобы вернуться к боту, напишите МЕНЮ.'
