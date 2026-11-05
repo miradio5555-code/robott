@@ -4,7 +4,7 @@ class BridgeStub:
     def __init__(self):self.c={'WORKSPACE_ID':'own','SUPABASE_URL':'https://example.supabase.co','SUPABASE_SERVICE_KEY':'key','EVOLUTION_URL':'http://api','INSTANCE_TOKEN':'token'};self.sent=[]
     def send(self,*args):self.sent.append(args)
 class CloudTests(unittest.TestCase):
-    def setUp(self):self.b=BridgeStub();self.c=Cloud(self.b);self.c.last_heartbeat=10**20;self.c.connection_ok=True;self.c.settings=lambda:{'excluded_numbers':[]};self.patches=[];self.c.patch=lambda table,params,data:self.patches.append((table,params,data))
+    def setUp(self):self.b=BridgeStub();self.c=Cloud(self.b);self.c.last_heartbeat=10**20;self.c.connection_ok=True;self.c.settings=lambda:{'excluded_numbers':[]};self.c.audience=lambda *a,**k:{'allowed':True};self.patches=[];self.c.patch=lambda table,params,data:self.patches.append((table,params,data))
     def test_offline_does_not_consume_attempts(self):
         self.c.connection_ok=False;self.c.last_reconnect=10**20
         self.c.call=lambda *a,**k:(_ for _ in ()).throw(AssertionError('offline claim'))
@@ -42,4 +42,9 @@ class CloudTests(unittest.TestCase):
         self.c.call=lambda *a,**k:[{'id':'m','thread_id':'t','kind':'text','attempts':1,'body':'hello','created_by':'owner'}]
         self.c.thread_by_id=lambda id:{'phone':'996555000000','opted_out':False}
         self.c.tick();self.assertEqual(len(self.b.sent),1)
+    def test_legacy_auto_reply_to_personal_thread_is_cancelled(self):
+        self.c.audience=lambda *a,**k:{'allowed':False}
+        self.c.call=lambda *a,**k:[{'id':'m','thread_id':'t','kind':'text','attempts':1,'body':'old automatic reply'}]
+        self.c.thread_by_id=lambda id:{'phone':'996555000000','opted_out':False}
+        self.c.tick();self.assertFalse(self.b.sent);self.assertTrue(any(p[2].get('state')=='cancelled' for p in self.patches))
 if __name__=='__main__':unittest.main()

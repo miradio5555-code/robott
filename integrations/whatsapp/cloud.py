@@ -91,6 +91,7 @@ class Cloud:
         cfg=self.settings()
         excluded=set(cfg.get('excluded_numbers') or [])
         rows=self.call('rpc/wa_claim',{'p_workspace':self.ws}) or []
+        eligible={}
         for m in rows:
             t=self.thread_by_id(m['thread_id'])
             if t and t['phone'] in excluded and not m.get('created_by'):
@@ -100,6 +101,10 @@ class Cloud:
             # Set provider ID before send: echoed events cannot pause the bot.
             provider=hashlib.sha256(m['id'].encode()).hexdigest()[:32]
             try:
+                if not m.get('created_by'):
+                    if t['phone'] not in eligible:eligible[t['phone']]=bool(self.audience(t['phone'],new=False).get('allowed'))
+                    if not eligible[t['phone']]:
+                        self.patch('wa_messages',{'id':'eq.'+m['id'],'workspace_id':'eq.'+self.ws},{'state':'cancelled','lease_until':None});continue
                 self.patch('wa_messages',{'id':'eq.'+m['id'],'workspace_id':'eq.'+self.ws},{'provider_id':provider})
                 self.b.send(t['phone'],m['body'],m['id'])
                 # Do not downgrade a receipt which arrived during the send call.
