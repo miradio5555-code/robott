@@ -30,6 +30,7 @@ jobs:
       SB_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
     steps:
+      - uses: actions/checkout@v4
       - name: Секреты заданы?
         id: on
         run: |
