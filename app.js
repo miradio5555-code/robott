@@ -104,7 +104,7 @@
   // ---------- Страны ----------
   // Страна байера (workspaces.country): по ней админ сортирует байеров; обмен сом → юань через ULA доступен только кабинетам из Кыргызстана.
   // ZZ — «другая страна». Названия стран браузер переводит сам (Intl).
-  var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ZZ"];
+  var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ID", "VN", "MY", "TH", "IN", "PK", "AF", "KR", "JP", "DE", "PL", "US", "ZZ"];
 
   function countryName(code) {
     if (!code) return "";
@@ -123,7 +123,7 @@
     sel.value = COUNTRIES.indexOf(value) === -1 ? "" : value;
   }
   // догадка по коду телефона; +7 (Казахстан и Россия) не угадываем
-  var PHONE_COUNTRY = { "996": "KG", "998": "UZ", "992": "TJ", "993": "TM", "994": "AZ", "995": "GE", "374": "AM", "375": "BY", "380": "UA", "976": "MN", "971": "AE", "86": "CN", "90": "TR" };
+  var PHONE_COUNTRY = { "996": "KG", "998": "UZ", "992": "TJ", "993": "TM", "994": "AZ", "995": "GE", "374": "AM", "375": "BY", "380": "UA", "976": "MN", "971": "AE", "86": "CN", "90": "TR", "62": "ID", "84": "VN", "60": "MY", "66": "TH", "91": "IN", "92": "PK", "93": "AF", "82": "KR", "81": "JP" };
   function countryByPhone(phone) {
     var d = String(phone || "").replace(/\D/g, "");
     for (var n = 3; n >= 2; n--) if (PHONE_COUNTRY[d.slice(0, n)]) return PHONE_COUNTRY[d.slice(0, n)];
