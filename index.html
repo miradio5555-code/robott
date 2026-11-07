@@ -496,6 +496,12 @@
             <label class="field"><span data-i18n="f_qty"></span>
               <input id="q-qty" type="text" inputmode="decimal" value="1"></label>
           </div>
+          <details class="q-more" id="q-extra-box">
+            <summary data-i18n="q_more_extra"></summary>
+            <label class="field"><span id="q-lbl-extra"></span>
+              <input id="q-extra" type="text" inputmode="decimal" placeholder="0"></label>
+            <p class="field-hint" data-i18n="q_extra_hint"></p>
+          </details>
           <details class="q-more">
             <summary data-i18n="q_more_item"></summary>
             <label class="field"><span data-i18n="q_name"></span>
@@ -509,16 +515,33 @@
           <div class="q-step-head"><span class="q-num"><i>2</i></span>
             <div class="q-step-t"><b data-i18n="q_s2"></b><small data-i18n="q_s2_sub"></small></div>
             <em id="q-s2-sum" class="q-step-sum"></em></div>
-          <div class="grid-2">
-            <div class="field"><label for="q-weight" id="q-lbl-weight"></label>
-              <input id="q-weight" type="text" inputmode="decimal" placeholder="0"></div>
-            <label class="field"><span id="q-lbl-tariff"></span>
-              <input id="q-tariff" type="text" inputmode="decimal" placeholder="0"></label>
+          <div id="q-dmodes" class="quote-modes" role="group">
+            <button type="button" class="notify-lang" data-dm="kg" aria-pressed="false" data-i18n="q_dm_kg"></button>
+            <button type="button" class="notify-lang" data-dm="m3" aria-pressed="false" data-i18n="q_dm_m3"></button>
           </div>
-          <div id="q-wmodes" class="quote-modes" role="group">
-            <button type="button" class="notify-lang" data-wm="total" aria-pressed="false" data-i18n="q_wm_total"></button>
-            <button type="button" class="notify-lang" data-wm="unit" aria-pressed="false" data-i18n="q_wm_unit"></button>
-            <button id="q-weight-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button>
+          <div id="q-kg-block">
+            <div class="grid-2">
+              <div class="field"><label for="q-weight" id="q-lbl-weight"></label>
+                <input id="q-weight" type="text" inputmode="decimal" placeholder="0"></div>
+              <label class="field"><span id="q-lbl-tariff"></span>
+                <input id="q-tariff" type="text" inputmode="decimal" placeholder="0"></label>
+            </div>
+            <div id="q-wmodes" class="quote-modes" role="group">
+              <button type="button" class="notify-lang" data-wm="total" aria-pressed="false" data-i18n="q_wm_total"></button>
+              <button type="button" class="notify-lang" data-wm="unit" aria-pressed="false" data-i18n="q_wm_unit"></button>
+              <button id="q-weight-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button>
+            </div>
+          </div>
+          <div id="q-m3-block" class="hidden">
+            <div class="grid-2">
+              <div class="field"><label for="q-volume" data-i18n="q_lbl_volume"></label>
+                <input id="q-volume" type="text" inputmode="decimal" placeholder="0"></div>
+              <label class="field"><span id="q-lbl-tariff-m3"></span>
+                <input id="q-tariff-m3" type="text" inputmode="decimal" placeholder="0"></label>
+            </div>
+            <div class="quote-modes" role="group">
+              <button id="q-volume-calc" type="button" class="mini-link" data-i18n="vol_by_size"></button>
+            </div>
           </div>
         </div>
 
@@ -571,8 +594,11 @@
         <div class="calc">
           <div class="calc-row"><span data-i18n="c_goods_som"></span><b id="q-r-goods">—</b></div>
           <div class="calc-row"><span data-i18n="c_delivery"></span><b id="q-r-delivery">—</b></div>
+          <div id="q-r-extra-row" class="calc-row hidden"><span data-i18n="c_extra"></span><b id="q-r-extra">—</b></div>
           <div class="calc-row calc-cost"><span data-i18n="c_cost"></span><b id="q-r-cost">—</b></div>
+          <div class="calc-row calc-cost"><span data-i18n="c_cost_unit"></span><b id="q-r-ucost">—</b></div>
           <div class="calc-row calc-profit"><span data-i18n="c_profit"></span><b id="q-r-profit">—</b></div>
+          <div class="calc-row calc-profit"><span data-i18n="c_profit_unit"></span><b id="q-r-uprofit">—</b></div>
         </div>
       </section>
 
@@ -1540,11 +1566,12 @@
           <label class="field"><span data-i18n="vol_w"></span><input id="vol-w" type="text" inputmode="decimal" placeholder="40"></label>
           <label class="field"><span data-i18n="vol_h"></span><input id="vol-h" type="text" inputmode="decimal" placeholder="40"></label>
         </div>
-        <div class="grid-3">
+        <div class="grid-2">
+          <label class="field"><span data-i18n="vol_per"></span><input id="vol-per" type="text" inputmode="numeric" placeholder="80"></label>
           <label class="field"><span data-i18n="vol_n"></span><input id="vol-n" type="text" inputmode="numeric" value="1"></label>
           <label class="field"><span data-i18n="vol_kg"></span><input id="vol-kg" type="text" inputmode="decimal" data-i18n-placeholder="vol_kg_ph"></label>
           <label class="field"><span data-i18n="vol_kg_mode"></span>
-            <select id="vol-kg-mode"><option value="total" data-i18n="vol_kg_total"></option><option value="box" data-i18n="vol_kg_box"></option></select></label>
+            <select id="vol-kg-mode"><option value="total" data-i18n="vol_kg_total"></option><option value="box" data-i18n="vol_kg_box"></option><option value="unit" data-i18n="vol_kg_unit"></option></select></label>
         </div>
         <h4 class="money-sub" data-i18n="vol_how"></h4>
         <div id="vol-divs" class="chips"></div>
@@ -1859,7 +1886,7 @@
        чтобы браузеры сразу брали новые файлы, а не старые из кэша. -->
   <script src="config.js?v=20261202r"></script>
   <script src="js/errors.js?v=20261202r"></script>
-  <script src="i18n.js?v=20261202r"></script>
+  <script src="i18n.js?v=20261208a"></script>
   <script src="supabase.js"></script>
   <script src="app.js?v=20261207a"></script>
   <!-- части сайта в отдельных файлах (после app.js) -->
@@ -1885,7 +1912,7 @@
   <script src="js/recovery.js?v=20261202r"></script>
   <script src="js/shop.js?v=20261202r"></script>
   <script src="js/broadcast.js?v=20261202r"></script>
-  <script src="js/tools.js?v=20261202r"></script>
+  <script src="js/tools.js?v=20261208a"></script>
   <script src="js/expenses.js?v=20261202r"></script>
   <script src="js/exchange.js?v=20261202r"></script>
   <script src="js/board.js?v=20261202r"></script>
@@ -1898,7 +1925,7 @@
   <script src="js/wallet.js?v=20261202r"></script>
   <script src="js/profile.js?v=20261202r"></script>
   <script src="js/formsteps.js?v=20261202r"></script>
-  <script src="js/quote.js?v=20261202r"></script>
+  <script src="js/quote.js?v=20261208a"></script>
   <script src="js/client.js?v=20261202r"></script>
   <script src="js/pwa.js?v=20261202r"></script>
 </body>
