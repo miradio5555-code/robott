@@ -23,6 +23,7 @@
     orderId: null,       // расчёт сделан для заявки клиента (кнопка «Применить к заказу»)
     wsId: null,          // для какого кабинета заполнены поля
     wmode: "total",      // вес указан «за всё» (total) или «за 1 шт» (unit)
+    dmode: "kg",         // карго берёт за вес (kg) или за объём (m3)
     lang: "ru",
     msgEdited: false,    // байер поправил текст вручную — не перезаписываем
     touched: { r: false, d: false },   // курс вписан вручную — не подменяем
@@ -63,7 +64,7 @@
   function savePrefs() {
     try {
       localStorage.setItem(PREF_KEY, JSON.stringify({
-        markup: $("#q-markup").value.trim(), round: $("#q-round").value, wmode: qs.wmode
+        markup: $("#q-markup").value.trim(), round: $("#q-round").value, wmode: qs.wmode, dmode: qs.dmode
       }));
     } catch (e) { /* ignore */ }
   }
@@ -104,22 +105,32 @@
     var w = parseNum($("#q-weight").value), tariff = parseNum($("#q-tariff").value), drate = parseNum($("#q-drate").value);
     var markup = parseNum($("#q-markup").value);
     var step = Number($("#q-round").value) || 0;
+    var byVol = qs.dmode === "m3";
+    var extra = parseNum($("#q-extra").value);                                 // расходы в Китае, всего, в валюте закупки
 
-    var wTotal = qs.wmode === "unit" ? w * qty : w;
-    var dAmount = tariff > 0 ? Math.round(wTotal * tariff * 100) / 100 : 0;   // в валюте доставки
+    var wTotal = byVol ? 0 : (qs.wmode === "unit" ? w * qty : w);
+    var vTotal = byVol ? parseNum($("#q-volume").value) : 0;
+    if (byVol) tariff = parseNum($("#q-tariff-m3").value);
+    var dAmount = tariff > 0 ? Math.round((byVol ? vTotal : wTotal) * tariff * 100) / 100 : 0;   // в валюте доставки
     var goods = qty * price * rate;                                            // в валюте клиента
+    var extraCl = extra * rate;                                                // расходы в Китае, в валюте клиента
     var delivery = dAmount * drate;
-    var cost = goods + delivery;
+    var cost = goods + extraCl + delivery;
+    // в заказе отдельной строки для расходов в Китае нет: они уходят в «стоимость доставки» (в валюте доставки),
+    // так себестоимость заказа совпадает с расчётом
+    var extraDc = extraCl > 0 ? (dc === b ? extraCl : (drate > 0 ? extraCl / drate : 0)) : 0;
+    var dOrder = Math.round((dAmount + extraDc) * 100) / 100;
     var raw = cost * (1 + markup / 100);
     var out = cost > 0
       ? (step > 0 ? Math.ceil(raw / step - 1e-9) * step : (raw >= 100 ? Math.round(raw) : Math.round(raw * 100) / 100))
       : 0;
     var valid = qty > 0 && price > 0 && rate > 0;
     return {
-      a: a, b: b, dc: dc, qty: qty, price: price, rate: rate, wTotal: wTotal, tariff: tariff, drate: drate,
+      a: a, b: b, dc: dc, qty: qty, price: price, rate: rate, wTotal: wTotal, vTotal: vTotal, byVol: byVol, tariff: tariff, drate: drate,
+      extra: extra, extraCl: extraCl, dOrder: dOrder,
       dAmount: dAmount, goods: goods, delivery: delivery, cost: cost, markup: markup, out: out,
       profit: out - cost, valid: valid && out > 0,
-      missingDeliveryRate: dAmount > 0 && !(drate > 0) && dc !== b
+      missingDeliveryRate: (dAmount > 0 || extra > 0) && !(drate > 0) && dc !== b
     };
   }
 
@@ -144,6 +155,15 @@
     $("#q-lbl-price").textContent = t("f_price_cur", { c: r.a });
     $("#q-lbl-rate").textContent = r.a === r.b ? t("f_rate_same") : t("f_rate_cur", { a: r.a, b: r.b });
     $("#q-lbl-tariff").textContent = t("f_tariff_cur", { c: r.dc });
+    $("#q-lbl-tariff-m3").textContent = t("f_tariff_m3_cur", { c: r.dc });
+    $("#q-lbl-extra").textContent = t("q_extra_cur", { c: r.a });
+    $("#q-kg-block").classList.toggle("hidden", r.byVol);
+    $("#q-m3-block").classList.toggle("hidden", !r.byVol);
+    $$("#q-dmodes [data-dm]").forEach(function (b) {
+      var on = b.getAttribute("data-dm") === qs.dmode;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", String(on));
+    });
     $("#q-lbl-drate").textContent = r.dc === r.b ? t("f_rate_same") : t("f_delivery_rate_cur", { a: r.dc, b: r.b });
     $("#q-lbl-weight").textContent = t(qs.wmode === "unit" ? "q_weight_unit" : "q_weight_total");
     $("#q-rate").readOnly = same("r");
@@ -176,7 +196,13 @@
     $("#q-r-goods").textContent = r.valid ? fmt(r.goods, r.b) : dash;
     $("#q-r-delivery").textContent = !r.valid ? dash
       : (r.dc === r.b ? fmt(r.delivery, r.b) : fmt(r.dAmount, r.dc) + " × " + money(r.drate) + " = " + fmt(r.delivery, r.b));
+    $("#q-r-extra-row").classList.toggle("hidden", !(r.extra > 0));
+    $("#q-r-extra").textContent = !r.valid ? dash
+      : (r.a === r.b ? fmt(r.extraCl, r.b) : fmt(r.extra, r.a) + " × " + money(r.rate) + " = " + fmt(r.extraCl, r.b));
     $("#q-r-cost").textContent = r.valid ? fmt(r.cost, r.b) : dash;
+    // себестоимость и прибыль с 1 шт — только для байера, в текст клиенту не попадают
+    $("#q-r-ucost").textContent = r.valid && r.qty > 0 ? fmt(r.cost / r.qty, r.b) : dash;
+    $("#q-r-uprofit").textContent = r.valid && r.qty > 0 ? fmt(r.profit / r.qty, r.b) : dash;
     $("#q-r-price").textContent = r.valid ? fmt(r.out, r.b) : dash;
     $("#q-r-unit").textContent = r.valid && r.qty > 0 ? fmt(r.out / r.qty, r.b) : dash;
     $("#q-r-profit").textContent = !r.valid ? dash
@@ -188,9 +214,9 @@
     // шаги: галочка у заполненного шага и его сумма справа
     var mkSet = $("#q-markup").value.trim() !== "";
     $("#q-step1").classList.toggle("done", r.qty > 0 && r.price > 0);
-    $("#q-step2").classList.toggle("done", r.wTotal > 0 && r.tariff > 0);
+    $("#q-step2").classList.toggle("done", (r.byVol ? r.vTotal : r.wTotal) > 0 && r.tariff > 0);
     $("#q-step3").classList.toggle("done", r.valid && mkSet);
-    $("#q-s1-sum").textContent = r.qty > 0 && r.price > 0 && r.rate > 0 ? fmt(r.goods, r.b) : "";
+    $("#q-s1-sum").textContent = r.qty > 0 && r.price > 0 && r.rate > 0 ? fmt(r.goods + r.extraCl, r.b) : "";
     $("#q-s2-sum").textContent = r.delivery > 0 ? fmt(r.delivery, r.b) : "";
     $("#q-s3-sum").textContent = r.valid && r.profit > 0 ? "+" + fmt(r.profit, r.b) : "";
     $$("#q-step3 [data-mk]").forEach(function (b) {
@@ -245,6 +271,7 @@
     var prefs = loadPrefs();
     qs.wsId = ws.id || "";
     qs.wmode = prefs.wmode === "unit" ? "unit" : "total";
+    qs.dmode = prefs.dmode === "m3" ? "m3" : "kg";
     qs.lang = msgLang();
     qs.msgEdited = false;
     qs.touched = { r: false, d: false };
@@ -252,6 +279,7 @@
     fillCurrencySelect($("#q-ccur"), ws.default_client_currency || "KGS");
     fillCurrencySelect($("#q-dcur"), ws.default_delivery_currency || "USD", c.deliveryCurrencies($("#q-ccur").value));
     $("#q-tariff").value = numStr(ws.default_delivery_tariff);
+    try { $("#q-tariff-m3").value = localStorage.getItem("cc_quote_tariff_m3_" + (ws.id || "")) || ""; } catch (e) { $("#q-tariff-m3").value = ""; }
     $("#q-markup").value = prefs.markup != null && prefs.markup !== "" ? prefs.markup : "15";
     $("#q-round").value = ROUND_STEPS.indexOf(Number(prefs.round)) !== -1 ? String(prefs.round) : "0";
     clearItem();
@@ -261,7 +289,7 @@
 
   // Очистить данные товара (валюты, тариф, наценку оставляем)
   function clearItem() {
-    ["q-name", "q-link", "q-price", "q-weight"].forEach(function (id) { $("#" + id).value = ""; });
+    ["q-name", "q-link", "q-price", "q-weight", "q-volume", "q-extra"].forEach(function (id) { $("#" + id).value = ""; });
     qs.orderId = null;
     $("#q-qty").value = "1";
     qs.msgEdited = false;
@@ -287,7 +315,7 @@
     c.openOrderPrefill({
       purchase_currency: r.a, client_currency: r.b, delivery_currency: r.dc,
       quantity: r.qty, unit_price: r.price, exchange_rate: r.rate,
-      weight: r.wTotal, tariff: r.tariff, delivery_cost: r.dAmount, delivery_rate: r.drate,
+      weight: r.wTotal, tariff: r.byVol ? "" : r.tariff, delivery_cost: r.dOrder, delivery_rate: r.drate,
       client_price: r.out,
       markup: r.cost > 0 ? Math.round((r.out / r.cost - 1) * 1000) / 10 : "",
       product_ru: $("#q-name").value.trim(), supplier_link: link
@@ -314,7 +342,7 @@
     c.openOrderApply(o, {
       purchase_currency: r.a, client_currency: r.b, delivery_currency: r.dc,
       quantity: r.qty, unit_price: r.price, exchange_rate: r.rate,
-      weight: r.wTotal, tariff: r.tariff, delivery_cost: r.dAmount, delivery_rate: r.drate,
+      weight: r.wTotal, tariff: r.byVol ? "" : r.tariff, delivery_cost: r.dOrder, delivery_rate: r.drate,
       client_price: r.out,
       markup: r.cost > 0 ? Math.round((r.out / r.cost - 1) * 1000) / 10 : ""
     });
@@ -323,9 +351,12 @@
 
   // ---------- События ----------
   function bind() {
-    ["q-qty", "q-price", "q-weight", "q-tariff", "q-markup", "q-name"].forEach(function (id) {
+    ["q-qty", "q-price", "q-weight", "q-tariff", "q-markup", "q-name", "q-volume", "q-tariff-m3", "q-extra"].forEach(function (id) {
       $("#" + id).addEventListener("input", function () {
         if (id === "q-markup") savePrefs();
+        if (id === "q-tariff-m3") {
+          try { localStorage.setItem("cc_quote_tariff_m3_" + (state.ws && state.ws.id || ""), $("#q-tariff-m3").value.trim()); } catch (e) { /* ignore */ }
+        }
         render();
       });
     });
@@ -337,6 +368,13 @@
     $("#q-dcur").addEventListener("change", function () { setRate("d", true); render(); });
     $("#q-round").addEventListener("change", function () { savePrefs(); render(); });
 
+    $$("#q-dmodes [data-dm]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        qs.dmode = b.getAttribute("data-dm");
+        savePrefs();
+        render();
+      });
+    });
     $$("#q-wmodes [data-wm]").forEach(function (b) {
       b.addEventListener("click", function () {
         qs.wmode = b.getAttribute("data-wm");

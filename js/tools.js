@@ -31,28 +31,45 @@
   var DIVISORS = ["6000", "5000", "cargo"];
   var vol = { target: null, div: store("ula_vol_div") || "6000" };
 
+  // Сколько всего штук в партии: берём из «Расчёта цены» или из формы заказа, откуда открыли окно
+  function volQty() {
+    var id = vol.target && vol.target.id;
+    var src = id === "q-weight" || id === "q-volume" ? "#q-qty" : id === "f-weight_kg" ? "#f-quantity" : null;
+    return src ? c.parseNum($(src).value) : 0;
+  }
+
   function volCalc() {
     var l = c.parseNum($("#vol-l").value), w = c.parseNum($("#vol-w").value), h = c.parseNum($("#vol-h").value);
-    var n = Math.max(1, Math.round(c.parseNum($("#vol-n").value)) || 1);
-    var kg = c.parseNum($("#vol-kg").value);
-    var weightTotal = $("#vol-kg-mode").value === "box" ? kg * n : kg;
+    var per = c.parseNum($("#vol-per").value), qty = volQty();
+    // штук в коробке известно и количество известно → число коробок считаем сами (неполная коробка — тоже коробка)
+    var auto = per > 0 && qty > 0 ? Math.ceil(qty / per - 1e-9) : 0;
+    var n = auto || Math.max(1, Math.round(c.parseNum($("#vol-n").value)) || 1);
+    var kg = c.parseNum($("#vol-kg").value), mode = $("#vol-kg-mode").value;
+    var weightTotal = mode === "box" ? (auto ? kg * qty / per : kg * n) : mode === "unit" ? kg * qty : kg;
     var cm3 = l * w * h * n;
     var m3 = cm3 / 1e6;
     var volKg = vol.div === "cargo" ? 0 : cm3 / Number(vol.div);
     var density = m3 > 0 && weightTotal > 0 ? weightTotal / m3 : 0;
     var pay = Math.max(volKg, weightTotal);
-    return { m3: m3, volKg: volKg, weight: weightTotal, density: density, pay: Math.round(pay * 100) / 100, ok: cm3 > 0 };
+    return { m3: m3, volKg: volKg, weight: weightTotal, density: density, pay: Math.round(pay * 100) / 100, ok: cm3 > 0,
+             boxes: n, auto: auto, qty: qty, per: per };
   }
 
   function round(x, d) { var k = Math.pow(10, d); return Math.round(x * k) / k; }
+
+  function m3Str(x) { return round(x, 3).toLocaleString(undefined, { maximumFractionDigits: 3 }); }
 
   function volRender() {
     $("#vol-divs").innerHTML = DIVISORS.map(function (d) {
       return '<button type="button" class="chip' + (d === vol.div ? " active" : "") + '" data-vol-div="' + d + '"><span>' + esc(t("vol_div_" + d)) + "</span></button>";
     }).join("");
     var r = volCalc(), rows = [];
+    // число коробок посчитано само — показываем его в поле и не даём править вручную
+    $("#vol-n").readOnly = !!r.auto;
+    if (r.auto) $("#vol-n").value = String(r.boxes);
     if (r.ok) {
-      rows.push(["vol_r_m3", money(round(r.m3, 3)) + " м³"]);
+      if (r.auto) rows.push(["vol_boxes", money(r.boxes) + " (" + money(r.qty) + " ÷ " + money(r.per) + ")"]);
+      rows.push(["vol_r_m3", m3Str(r.m3) + " м³"]);
       if (vol.div !== "cargo") rows.push(["vol_r_vol", money(round(r.volKg, 2)) + " " + t("kg")]);
       if (r.weight > 0) rows.push(["vol_r_weight", money(round(r.weight, 2)) + " " + t("kg")]);
       if (r.density > 0 && vol.div !== "cargo") rows.push(["vol_r_density", money(Math.round(r.density)) + " " + t("vol_kgm3")]);
@@ -63,20 +80,27 @@
         esc(t(r.volKg > r.weight ? "vol_by_volume" : "vol_by_weight")) + "</small></div>";
     var note = "";
     if (r.ok && r.density > 0) note = t(r.density < 200 ? "vol_light" : "vol_heavy");
+    if (r.per > 0 && !(r.qty > 0)) note = (note ? note + " " : "") + t("vol_need_qty");
     $("#vol-out").innerHTML = big + (rows.length ? '<dl class="vol-rows">' + rows.map(function (x) {
       return "<div><dt>" + esc(t(x[0])) + "</dt><dd>" + esc(x[1]) + "</dd></div>";
     }).join("") + "</dl>" : '<p class="muted">' + esc(t("vol_empty")) + "</p>") +
       (note ? '<p class="fine-print">' + esc(note) + "</p>" : "");
     var useKg = vol.div === "cargo" ? r.weight : r.pay;
+    var forVol = !!vol.target && vol.target.id === "q-volume";   // в «Расчёт цены» вставляем объём (м³), а не вес
     $("#vol-apply").classList.toggle("hidden", !vol.target);
-    $("#vol-apply").disabled = !(useKg > 0);
-    $("#vol-apply").textContent = t("vol_apply", { n: money(useKg > 0 ? round(useKg, 2) : 0) });
+    if (forVol) {
+      $("#vol-apply").disabled = !r.ok;
+      $("#vol-apply").textContent = t("vol_apply_m3", { n: r.ok ? m3Str(r.m3) : "0" });
+    } else {
+      $("#vol-apply").disabled = !(useKg > 0);
+      $("#vol-apply").textContent = t("vol_apply", { n: money(useKg > 0 ? round(useKg, 2) : 0) });
+    }
   }
 
   // target — поле веса, куда вставить результат (необязательно)
   function openVolume(target) {
     vol.target = target || null;
-    ["vol-l", "vol-w", "vol-h", "vol-kg"].forEach(function (id) { $("#" + id).value = ""; });
+    ["vol-l", "vol-w", "vol-h", "vol-kg", "vol-per"].forEach(function (id) { $("#" + id).value = ""; });
     $("#vol-n").value = "1";
     volRender();
     c.openModal("modal-volume");
@@ -85,6 +109,14 @@
 
   function applyVolume() {
     var r = volCalc(), kg = vol.div === "cargo" ? r.weight : r.pay;
+    if (vol.target && vol.target.id === "q-volume") {
+      if (!r.ok) return;
+      vol.target.value = String(round(r.m3, 3));
+      vol.target.dispatchEvent(new Event("input", { bubbles: true }));
+      c.closeModal("modal-volume");
+      toast(t("vol_applied_m3"), "ok");
+      return;
+    }
     if (!vol.target || !(kg > 0)) return;
     // в «Расчёте цены» результат — вес всей партии, поэтому переключаем на «вес за всё»
     var total = vol.target.id === "q-weight" && document.querySelector('#q-wmodes [data-wm="total"]');
@@ -368,6 +400,7 @@
     $("#vol-apply").addEventListener("click", applyVolume);
     $("#f-weight-calc").addEventListener("click", function () { openVolume($("#f-weight_kg")); });
     $("#q-weight-calc").addEventListener("click", function () { openVolume($("#q-weight")); });
+    $("#q-volume-calc").addEventListener("click", function () { openVolume($("#q-volume")); });
     $("#vol-menu").addEventListener("click", function () { openVolume(null); });
 
     // счёт
