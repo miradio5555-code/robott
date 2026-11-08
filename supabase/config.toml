@@ -1,0 +1,3 @@
+[functions.whatsapp-ai]
+# Keep gateway verification and private service-key authorization.
+verify_jwt = true

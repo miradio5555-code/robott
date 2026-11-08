@@ -2189,3 +2189,131 @@ begin
 end $$;
 reset role;
 \echo '✅ 51. Бизнес-обзор: права, валюты, точные суммы и отсутствующие данные'
+
+-- 52. WhatsApp: tenant isolation, write RPCs, quote ownership and safe retries.
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+insert into public.wa_settings(workspace_id,enabled) select public.my_workspace_id(),true on conflict do nothing;
+insert into t select 'wa_ws',public.my_workspace_id()::text;
+update public.orders set client_phone='+996555000111' where id=(select v::uuid from t where k='b_order');
+insert into t select 'wa_thread',(public.wa_ingest(public.my_workspace_id(),'996555000111','incoming-test','hello')->>'id');
+-- Duplicate delivery does not increase unread count.
+select public.wa_ingest(public.my_workspace_id(),'996555000111','incoming-test','hello') \gset
+set role authenticated;
+insert into t select 'wa_message',public.wa_send((select v::uuid from t where k='wa_thread'),'Ответ менеджера')::text;
+do $$ begin
+ if not exists(select 1 from public.wa_thread_orders where thread_id=(select v::uuid from t where k='wa_thread') and order_id=(select v::uuid from t where k='b_order')) then raise exception 'ПРОВАЛ: полный номер не связал заказ'; end if;
+ if (select unread from public.wa_threads where id=(select v::uuid from t where k='wa_thread'))<>1 then raise exception 'ПРОВАЛ: webhook дублирует непрочитанные'; end if;
+ begin perform public.wa_claim((select v::uuid from t where k='wa_ws'));raise exception 'ПРОВАЛ: browser получил service RPC';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_threads) or exists(select 1 from public.wa_messages) then raise exception 'ПРОВАЛ: чужие диалоги видны'; end if;
+ begin perform public.wa_send((select v::uuid from t where k='wa_thread'),'Чужой ответ');raise exception 'ПРОВАЛ: отправка в чужой диалог';exception when insufficient_privilege then null;end;
+ begin perform public.wa_thread_action((select v::uuid from t where k='wa_thread'),'take');raise exception 'ПРОВАЛ: захват чужого диалога';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid = '00000000-0000-0000-0000-0000000000b1';
+select public.wa_link_order((select v::uuid from t where k='wa_ws'),(select v::uuid from t where k='wa_thread'),(select v::uuid from t where k='b_order'));
+set role authenticated;
+insert into t select 'wa_quote',public.wa_publish_quote((select v::uuid from t where k='wa_thread'),(select v::uuid from t where k='b_order'))::text;
+reset role;
+do $$ declare code text; result text; begin
+ select q.code into code from public.wa_quotes q where id=(select v::uuid from t where k='wa_quote');
+ result=public.wa_decide_quote((select v::uuid from t where k='wa_ws'),'996555999999',code,true);
+ if result<>'not_found' then raise exception 'ПРОВАЛ: чужой телефон подтвердил расчёт'; end if;
+ result=public.wa_decide_quote((select v::uuid from t where k='wa_ws'),'996555000111',code,true);
+ if result<>'accepted' then raise exception 'ПРОВАЛ: подтверждение расчёта'; end if;
+end $$;
+set role anon;
+do $$ begin
+ begin perform public.wa_ingest((select v::uuid from t where k='wa_ws'),'996555000111','fake','fake');raise exception 'ПРОВАЛ: аноним подделал webhook';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 52. WhatsApp: изоляция диалогов, сервисные функции, повтор событий и подтверждение расчётов'
+
+-- 53: only workspace owners may request/retrieve QR; no browser API tokens.
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+select public.wa_request_connection((select v::uuid from t where k='wa_ws'),'connect');
+do $$ begin
+ if not exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws') and state='queued') then raise exception 'ПРОВАЛ: владелец не может начать подключение'; end if;
+ begin perform * from public.wa_connections;raise exception 'ПРОВАЛ: browser видит ключи WhatsApp';exception when insufficient_privilege then null;end;
+ begin perform public.wa_pairing_claim();raise exception 'ПРОВАЛ: browser получил очередь подключений';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000c1';set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws')) then raise exception 'ПРОВАЛ: чужой QR доступен'; end if;
+ begin perform public.wa_request_connection((select v::uuid from t where k='wa_ws'),'disconnect');raise exception 'ПРОВАЛ: чужой WhatsApp отключён';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 53. QR доступен владельцу, чужое подключение и серверные токены закрыты'
+-- A staff member can read messages but cannot see or replace the owner's QR.
+insert into public.workspace_members(workspace_id,user_id,role) values((select v::uuid from t where k='wa_ws'),'00000000-0000-0000-0000-0000000000a5','staff') on conflict do nothing;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ if exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws')) then raise exception 'ПРОВАЛ: помощник видит QR владельца'; end if;
+ begin perform public.wa_request_connection((select v::uuid from t where k='wa_ws'),'connect');raise exception 'ПРОВАЛ: помощник подключил другой номер';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+-- 54: phone pairing uses the same owner-only isolation and validates input server-side.
+reset role;
+update public.wa_pairing set requested_at=now()-interval '2 minutes' where workspace_id=(select v::uuid from t where k='wa_ws');
+set request.uid='00000000-0000-0000-0000-0000000000b1';set role authenticated;
+do $$ begin
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'abc');raise exception 'ПРОВАЛ: invalid phone allowed';exception when raise_exception then if sqlerrm<>'invalid_phone' then raise;end if;end;
+ perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'+996 (555) 000-111');
+ if not exists(select 1 from public.wa_pairing where workspace_id=(select v::uuid from t where k='wa_ws') and method='phone' and action='phone' and phone='996555000111' and pairing_code is null) then raise exception 'ПРОВАЛ: phone pairing not queued';end if;
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'996555000111');raise exception 'ПРОВАЛ: rate limit missing';exception when raise_exception then if sqlerrm<>'rate_limit' then raise;end if;end;
+end $$;
+reset role;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ begin perform public.wa_request_phone((select v::uuid from t where k='wa_ws'),'996555000111');raise exception 'ПРОВАЛ: staff phone pairing allowed';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 54. Phone pairing: owner only, international number validation and rate limit'
+-- 55: customer targeting, exclusion priority and owner-only personal lists.
+reset role;
+update public.wa_settings set enabled=true,bot_enabled=true,new_contact_policy='first',client_numbers='{}',excluded_numbers='{}' where workspace_id=(select v::uuid from t where k='wa_ws');
+do $$ declare r jsonb; w uuid=(select v::uuid from t where k='wa_ws'); begin
+ r=public.wa_incoming_policy(w,'996799550001',false,true);
+ if not (r->>'allowed')::boolean or not (r->>'first_message')::boolean then raise exception 'ПРОВАЛ: first new number not allowed';end if;
+ if not exists(select 1 from public.wa_settings where workspace_id=w and '996799550001'=any(client_numbers)) then raise exception 'ПРОВАЛ: new customer not retained';end if;
+ insert into public.wa_threads(workspace_id,phone) values(w,'996799550002');
+ if (public.wa_incoming_policy(w,'996799550002',false,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: old personal thread treated as customer';end if;
+ if (public.wa_incoming_policy(w,'996799550006',false,false)->>'allowed')::boolean then raise exception 'ПРОВАЛ: personal outgoing enrolled';end if;
+ update public.wa_settings set client_numbers=array_append(client_numbers,'996799550003'),excluded_numbers=array['996799550003'] where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550003',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: exclusion did not override customer';end if;
+ update public.wa_settings set new_contact_policy='command' where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550004',false,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: command policy admitted ordinary greeting';end if;
+ if not (public.wa_incoming_policy(w,'996799550004',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: purchase request rejected';end if;
+ update public.wa_settings set new_contact_policy='none' where workspace_id=w;
+ if (public.wa_incoming_policy(w,'996799550005',true,true)->>'allowed')::boolean then raise exception 'ПРОВАЛ: existing-only policy admitted stranger';end if;
+end $$;
+set request.uid='00000000-0000-0000-0000-0000000000b1';set role authenticated;
+select public.wa_settings_save((select v::uuid from t where k='wa_ws'),'{"client_numbers_add":["+996 799 550 005"],"welcome_message":"Здравствуйте, {business}!"}');
+do $$ declare r jsonb; begin
+ r=public.wa_settings_owner((select v::uuid from t where k='wa_ws'));
+ if r->>'welcome_message'<>'Здравствуйте, {business}!' or not (r->'client_numbers' ? '996799550005') or not (r->'client_numbers' ? '996799550001') then raise exception 'ПРОВАЛ: owner config lost concurrent auto-enrolment';end if;
+end $$;
+reset role;
+do $$ declare w uuid=(select v::uuid from t where k='wa_ws'); th uuid; begin
+ insert into public.wa_threads(workspace_id,phone) values(w,'996799550007') returning id into th;
+ insert into public.wa_messages(thread_id,workspace_id,direction,body,state) values(th,w,'out','automatic','queued');
+ update public.wa_settings set excluded_numbers=array_append(excluded_numbers,'996799550007') where workspace_id=w;
+ if exists(select 1 from public.wa_messages where thread_id=th and state='queued') then raise exception 'ПРОВАЛ: excluded number still queued';end if;
+ if public.wa_queue_reply(w,'996799550007','new-event','ignored',false) is not null then raise exception 'ПРОВАЛ: new auto reply queued for excluded number';end if;
+end $$;
+set request.uid='00000000-0000-0000-0000-0000000000a5';set role authenticated;
+do $$ begin
+ begin perform excluded_numbers from public.wa_settings;raise exception 'ПРОВАЛ: staff reads personal exclusions';exception when insufficient_privilege then null;end;
+ begin perform public.wa_settings_owner((select v::uuid from t where k='wa_ws'));raise exception 'ПРОВАЛ: staff reads owner settings';exception when insufficient_privilege then null;end;
+ begin perform public.wa_incoming_policy((select v::uuid from t where k='wa_ws'),'996799550001');raise exception 'ПРОВАЛ: browser invokes service policy';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+\echo '✅ 55. Audience: new vs personal contacts, exclusions, private lists and queued-message cancellation'

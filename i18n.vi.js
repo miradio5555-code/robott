@@ -781,6 +781,22 @@ I18N.vi = {
   vol_apply: "Đưa cân nặng vào đơn hàng: {n} kg",
   vol_applied: "Đã thêm cân nặng",
   vol_by_size: "Tính theo kích thước",
+  q_more_extra: "+ Chi phí tại Trung Quốc (về kho, hoa hồng, đóng gói)",
+  q_extra_cur: "Chi phí tại Trung Quốc, tổng, {c}",
+  q_extra_hint: "Mọi khoản bạn trả ở Trung Quốc ngoài giá hàng: vận chuyển từ nhà cung cấp về kho, hoa hồng trung gian, đóng gói, phí ngân hàng. Được tính vào giá vốn và giá cho khách, không hiện thành dòng riêng cho khách.",
+  q_dm_kg: "Cước tính theo cân nặng (kg)",
+  q_dm_m3: "Cước tính theo khối (m³)",
+  q_lbl_volume: "Tổng thể tích, m³",
+  f_tariff_m3_cur: "Cước cho 1 m³, {c}",
+  c_extra: "Chi phí tại Trung Quốc",
+  c_cost_unit: "Giá vốn mỗi cái",
+  c_profit_unit: "Lợi nhuận mỗi cái",
+  vol_per: "Số cái mỗi thùng",
+  vol_kg_unit: "mỗi cái",
+  vol_boxes: "Tổng số thùng",
+  vol_need_qty: "Nhập tổng số lượng để số thùng tự được tính.",
+  vol_apply_m3: "Đưa thể tích vào: {n} m³",
+  vol_applied_m3: "Đã đưa thể tích vào",
   pr_print: "In / Lưu thành PDF",
   pr_how: "Một tab mới sẽ mở ra. Để có file PDF, hãy chọn “Lưu thành PDF” trong cửa sổ in.",
   inv_none: "Chỉ những đơn chưa bị hủy mới đưa vào hóa đơn được",
@@ -2086,3 +2102,9 @@ I18N.vi = {
   tk_e_order: "“Từ” không được lớn hơn “đến”.",
   tk_e_date: "Kiểm tra ngày gửi: không được là ngày trong tương lai.",
 };
+
+I18N.vi.wa_title = "Tin nhắn";
+
+I18N.vi.wa_connect_title = "WhatsApp cho khách hàng của bạn";
+I18N.vi.wa_connect_hint = "Quét mã QR để kết nối số của bạn: tin nhắn, đơn hàng và thông báo trong không gian làm việc.";
+I18N.vi.wa_connect_button = "Kết nối WhatsApp";

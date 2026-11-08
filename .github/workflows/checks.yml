@@ -21,6 +21,7 @@ jobs:
           node-version: 20
       - run: node tests/check_web.js
       - run: node tests/tracking_test.mjs
+      - run: python3 -m unittest discover -s integrations/whatsapp -p "test_*.py"
       - run: node --check scripts/backup_supabase_storage.mjs
       - run: node --check scripts/restore_supabase_storage.mjs
       - run: bash -n scripts/make_backup.sh

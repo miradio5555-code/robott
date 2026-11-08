@@ -105,7 +105,7 @@
   // ---------- Страны ----------
   // Страна байера (workspaces.country): по ней админ сортирует байеров; обмен сом → юань через ULA доступен только кабинетам из Кыргызстана.
   // ZZ — «другая страна». Названия стран браузер переводит сам (Intl).
-  var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ZZ"];
+  var COUNTRIES = ["KG", "KZ", "UZ", "TJ", "RU", "CN", "TR", "AE", "AZ", "GE", "AM", "BY", "MN", "TM", "UA", "ID", "VN", "MY", "TH", "IN", "PK", "AF", "KR", "JP", "DE", "PL", "US", "ZZ"];
 
   function countryName(code) {
     if (!code) return "";
@@ -124,7 +124,7 @@
     sel.value = COUNTRIES.indexOf(value) === -1 ? "" : value;
   }
   // догадка по коду телефона; +7 (Казахстан и Россия) не угадываем
-  var PHONE_COUNTRY = { "996": "KG", "998": "UZ", "992": "TJ", "993": "TM", "994": "AZ", "995": "GE", "374": "AM", "375": "BY", "380": "UA", "976": "MN", "971": "AE", "86": "CN", "90": "TR" };
+  var PHONE_COUNTRY = { "996": "KG", "998": "UZ", "992": "TJ", "993": "TM", "994": "AZ", "995": "GE", "374": "AM", "375": "BY", "380": "UA", "976": "MN", "971": "AE", "86": "CN", "90": "TR", "62": "ID", "84": "VN", "60": "MY", "66": "TH", "91": "IN", "92": "PK", "93": "AF", "82": "KR", "81": "JP" };
   function countryByPhone(phone) {
     var d = String(phone || "").replace(/\D/g, "");
     for (var n = 3; n >= 2; n--) if (PHONE_COUNTRY[d.slice(0, n)]) return PHONE_COUNTRY[d.slice(0, n)];
@@ -350,7 +350,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261208a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261208b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -746,6 +746,7 @@
     }
     db.auth.onAuthStateChange(function (event, session) {
       if (event === "SIGNED_OUT" && mode === "admin") {
+        if (ULA.inbox) ULA.inbox.clear();
         adminEntryUserId = "";
         adminEntryPromise = null;
         state.orders = [];
@@ -1103,6 +1104,7 @@
     ULA.report.bind();
     ULA.analytics.bind();
     ULA.business.bind();
+    ULA.inbox.bind();
     ULA.bulk.bind();
     ULA.onboarding.bind();
     ULA.tgws.bind();
@@ -2088,7 +2090,7 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "home" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
+    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
@@ -2105,6 +2107,7 @@
     $("#tab-quote").classList.toggle("hidden", state.tab !== "quote");
     $("#tab-exchange").classList.toggle("hidden", state.tab !== "exchange");
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
+    $("#tab-inbox").classList.toggle("hidden", state.tab !== "inbox");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
@@ -2147,6 +2150,8 @@
     if (state.tab === "report") ULA.report.open();
     if (state.tab === "analytics") ULA.analytics.open();
     if (state.tab === "business") ULA.business.open();
+    if (state.tab === "inbox") ULA.inbox.open().catch(handleError);
+    if (state.tab === "home") ULA.inbox.welcome().catch(handleError);
     if (state.tab === "expenses" && db && state.ws) ULA.expenses.open();
     if (state.tab === "support" && db) ULA.support.loadThreads();
     updateSectionMenuLabel();
@@ -2163,7 +2168,7 @@
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
       var ICONS = { home: "home", exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", support: "message", profile: "id" };
+        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", inbox: "message", support: "message", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
@@ -2729,6 +2734,7 @@
       if (state.tab === "quote") { await ULA.fx.load(true); ULA.quote.open(); }
       else if (state.tab === "shipments") { await loadOrders(); await ULA.shipments.load(false); }
       else if (state.tab === "support") { await ULA.support.loadThreads(); await ULA.support.checkUnread(); }
+      else if (state.tab === "inbox") await ULA.inbox.load();
       else if (state.tab === "clients") await loadClients();
       else if (state.tab === "buyers") await loadBuyers();
       else if (state.tab === "expenses") { await loadOrders(); await ULA.expenses.reload(); }

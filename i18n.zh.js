@@ -802,6 +802,22 @@ I18N.zh = {
   vol_apply: "把重量填入订单：{n} 公斤",
   vol_applied: "重量已填入",
   vol_by_size: "按尺寸计算",
+  q_more_extra: "+ 中国境内费用（到仓库、佣金、包装）",
+  q_extra_cur: "中国境内费用合计（{c}）",
+  q_extra_hint: "您在中国支付的、商品价格之外的所有费用：供应商送到仓库的运费、代理佣金、包装、银行手续费。计入成本和客户价格，不会作为单独一行显示给客户。",
+  q_dm_kg: "物流按重量（公斤）收费",
+  q_dm_m3: "物流按体积（立方米）收费",
+  q_lbl_volume: "总体积（立方米）",
+  f_tariff_m3_cur: "每立方米运价（{c}）",
+  c_extra: "中国境内费用",
+  c_cost_unit: "单件成本",
+  c_profit_unit: "单件利润",
+  vol_per: "每箱件数",
+  vol_kg_unit: "每件",
+  vol_boxes: "总箱数",
+  vol_need_qty: "请填写总件数，箱数将自动计算。",
+  vol_apply_m3: "填入体积：{n} 立方米",
+  vol_applied_m3: "已填入体积",
   pr_print: "打印 / 保存为 PDF",
   pr_how: "将打开新标签页。要得到 PDF，请在打印窗口选择“另存为 PDF”。",
   inv_none: "只有未取消的订单可以开账单",
@@ -2114,3 +2130,9 @@ I18N.zh = {
   tk_e_order: "最短天数不能大于最长天数。",
   tk_e_date: "请检查发货日期：不能是未来的日期。",
 };
+
+I18N.zh.wa_title = "消息";
+
+I18N.zh.wa_connect_title = "为客户连接 WhatsApp";
+I18N.zh.wa_connect_hint = "扫描二维码连接您的号码，在工作区管理消息、订单和通知。";
+I18N.zh.wa_connect_button = "连接 WhatsApp";

@@ -1,0 +1,15 @@
+services:
+  whatsapp-bridge:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./config.local.json:/app/config.local.json:ro
+      - ./data:/app/data
+    environment:
+      STATE_DIR: /app/data
+    networks:
+      - evolution
+networks:
+  evolution:
+    external: true
+    name: evolution-go_default
