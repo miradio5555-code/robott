@@ -319,9 +319,13 @@
       '<fieldset class="tk-b-ship"><legend>' + esc(t("tk_b_ship")) + "</legend>" +
         '<label class="field"><span>' + esc(t("tk_b_shipped")) + '</span><input type="date" data-tk-shipped value="' + v(o.shipped_at && String(o.shipped_at).slice(0, 10)) + '"></label>' +
         '<div class="tk-b-grid">' +
-          '<label class="field"><span>' + esc(t("tk_b_min")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + DEF_MIN + '" data-tk-min value="' + v(o.transit_days_min) + '"></label>' +
-          '<label class="field"><span>' + esc(t("tk_b_max")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + DEF_MAX + '" data-tk-max value="' + v(o.transit_days_max) + '"></label>' +
+          '<label class="field"><span>' + esc(t("tk_b_min")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + (wsDef.min || DEF_MIN) + '" data-tk-min value="' + v(o.transit_days_min) + '"></label>' +
+          '<label class="field"><span>' + esc(t("tk_b_max")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + (wsDef.max || DEF_MAX) + '" data-tk-max value="' + v(o.transit_days_max) + '"></label>' +
         "</div>" +
+        // продлить срок одним нажатием (при задержке карго): сдвигает «до», сразу сохраняется
+        '<div class="tk-ext"><span>' + esc(t("tk_ext_label")) + "</span>" + [3, 5, 7].map(function (n) {
+          return '<button type="button" class="btn btn-light" data-tk-ext="' + n + '" data-write>' + esc(t("tk_ext_btn", { n: n })) + "</button>";
+        }).join("") + "</div>" +
         '<label class="field"><span>' + esc(t("tk_b_track")) + ' <span class="opt">(' + esc(t("cd_optional")) + ')</span></span><input type="text" maxlength="100" autocomplete="off" spellcheck="false" data-tk-track value="' + v(o.tracking_number) + '"></label>' +
       "</fieldset>" +
       '<label class="field"><span>' + esc(t("tk_b_comment")) + '</span><textarea rows="2" maxlength="500" data-tk-comment>' + v(o.client_comment) + "</textarea></label>" +
@@ -377,8 +381,69 @@
       saving = false;
       if (r && r.error) { c.handleError(r.error); return; }
       c.toast(t("tk_b_saved"), "ok");
-      return Promise.resolve(c.reloadOrders ? c.reloadOrders(true) : null).then(function () { if (c.renderAll) c.renderAll(); });
+      return afterSave(id);
     }).catch(function (e) { saving = false; c.handleError(e); });
+  }
+
+  // после сохранения: свежие заказы, списки и открытая карточка этого заказа (иначе в ней остались бы старые значения)
+  function afterSave(id) {
+    return Promise.resolve(c.reloadOrders ? c.reloadOrders(true) : null).then(function () {
+      if (c.renderAll) c.renderAll();
+      var m = document.getElementById("modal-detail");
+      if (m && m.classList.contains("open") && c.openDetail) c.openDetail(id);
+    });
+  }
+
+  // ---------- продление срока ----------
+  function extend(box, n) {
+    var id = box.getAttribute("data-tk-order"), o = orderById(id);
+    if (!o || saving) return;
+    if (o.delivery_eta_to) { c.toast(t("tk_ext_eta"), "error"); return; }   // срок задан датами в блоке «Сроки» (файл 58) — он главнее
+    var q = function (sel) { var x = Number(box.querySelector(sel).value); return x > 0 ? x : 0; };
+    var mn = q("[data-tk-min]") || wsDef.min || DEF_MIN, mx = q("[data-tk-max]") || wsDef.max || DEF_MAX;
+    var next = Math.min(180, mx + n);
+    if (next === mx) return;
+    saving = true;
+    Promise.resolve(c.db().from("orders").update({ transit_days_min: Math.min(mn, next), transit_days_max: next }).eq("id", id)).then(function (r) {
+      saving = false;
+      if (r && r.error) { c.handleError(r.error); return; }
+      c.toast(t("tk_ext_done", { n: next }), "ok");
+      return afterSave(id);
+    }).catch(function (e) { saving = false; c.handleError(e); });
+  }
+
+  // ---------- обычный срок кабинета (Настройки, файл 65) ----------
+  // Без файла 65 столбцов нет — запрос вернёт ошибку, и блок в Настройках остаётся скрытым.
+  var wsDef = { ws: null, ok: false, min: null, max: null };
+  function loadDefaults() {
+    var db = c.db(), ws = c.state.ws && c.state.ws.id;
+    if (!db || !ws) return Promise.resolve();
+    return Promise.resolve(db.from("workspaces").select("default_transit_min, default_transit_max").eq("id", ws).maybeSingle()).then(function (r) {
+      var ok = !!r && !r.error && !!r.data;
+      wsDef = { ws: ws, ok: ok, min: ok ? r.data.default_transit_min : null, max: ok ? r.data.default_transit_max : null };
+    }).catch(function () { wsDef = { ws: ws, ok: false, min: null, max: null }; });
+  }
+  function refreshSettings() {
+    var sec = document.getElementById("tk-def-section");
+    if (!sec) return Promise.resolve();
+    return loadDefaults().then(function () {
+      var show = wsDef.ok && c.state.myRole === "owner";
+      sec.classList.toggle("hidden", !show);
+      if (!show) return;
+      document.getElementById("tk-def-min").value = wsDef.min || "";
+      document.getElementById("tk-def-max").value = wsDef.max || "";
+    });
+  }
+  function saveDefaults() {
+    var ws = c.state.ws && c.state.ws.id;
+    var num = function (id) { var x = document.getElementById(id).value.trim(); return x ? Number(x) : 0; };
+    var v = { min: num("tk-def-min"), max: num("tk-def-max") }, bad = validate(v);
+    if (bad) { c.toast(t(bad), "error"); return; }
+    Promise.resolve(c.db().from("workspaces").update({ default_transit_min: v.min || null, default_transit_max: v.max || null }).eq("id", ws)).then(function (r) {
+      if (r && r.error) { c.handleError(r.error); return; }
+      wsDef.min = v.min || null; wsDef.max = v.max || null;
+      c.toast(t("tk_def_saved"), "ok");
+    }).catch(c.handleError);
   }
 
   function loadHistory(id, det) {
@@ -397,8 +462,11 @@
     if (s) statusNote(s.closest("[data-tk-order]"));
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-tk-save]");
-    if (b) save(b.closest("[data-tk-order]"));
+    var b = e.target.closest && e.target.closest("[data-tk-save],[data-tk-ext],#tk-def-save");
+    if (!b) return;
+    if (b.id === "tk-def-save") saveDefaults();
+    else if (b.hasAttribute("data-tk-ext")) extend(b.closest("[data-tk-order]"), Number(b.getAttribute("data-tk-ext")));
+    else save(b.closest("[data-tk-order]"));
   });
   document.addEventListener("toggle", function (e) {
     var det = e.target;
@@ -407,7 +475,7 @@
 
   U.tracking = {
     STAGES: STAGES, stageIndex: stageIndex, statusFor: statusFor, transit: transit, validate: validate,
-    clientHtml: clientHtml, routeHtml: routeHtml, historyHtml: historyHtml, buyerHtml: buyerHtml, historyText: historyText,
+    clientHtml: clientHtml, routeHtml: routeHtml, loadDefaults: loadDefaults, refreshSettings: refreshSettings, historyHtml: historyHtml, buyerHtml: buyerHtml, historyText: historyText,
     _now: null
   };
 })(window.ULA);

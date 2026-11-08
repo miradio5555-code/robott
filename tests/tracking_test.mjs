@@ -135,7 +135,8 @@ assert.equal(TK.buyerHtml({ id: "x", status: "new" }), "", "без полей ф
 assert.ok(TK.buyerHtml({ id: "x", status: "new", track_stage: null }).includes("data-tk-save"));
 assert.equal(TK.buyerHtml({ id: "x", status: "cancelled", track_stage: null }), "");
 assert.ok(!TK.buyerHtml({ id: "x", status: "new", track_stage: null, ship_to: XSS, client_comment: XSS }).includes("<img"));
-pass("блок байера: только с файлом 64, значения экранированы");
+assert.deepEqual([...TK.buyerHtml({ id: "x", status: "in_transit", track_stage: null }).matchAll(/data-tk-ext="(\d+)"/g)].map((m) => m[1]), ["3", "5", "7"], "кнопки продления +3/+5/+7");
+pass("блок байера: только с файлом 64, значения экранированы, кнопки продления");
 
 // 12. все фразы tk_* есть во всех словарях, во всех языках текст разный и заполненный
 const used = new Set((read("js/tracking.js") + read("js/client.js")).match(/"tk_[a-z_]+"/g).map((s) => s.slice(1, -1)));

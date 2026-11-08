@@ -223,3 +223,9 @@ Supabase → Authentication → Users → ваш пользователь → в
 **Порядок выпуска.** После файла 63 запустить `migration_64_tracking_stages.sql` одним запросом, затем публиковать сайт.
 
 Проверка на временной базе: `bash tests/tracking_db_test.sh` (входит в `bash tests/run_db_tests.sh`; прогнан 08.11.2026 — пройден). Логика сайта без базы: `node tests/tracking_test.mjs`. Стенд: клиент «Дина Трекова» (`?c=5555…`, заказы CAB-10…CAB-20 — `?order=f000…0010` и далее), байер — `?scn=track`.
+
+
+## Обычный срок доставки кабинета (файл 65)
+Файл `migration_65_transit_defaults.sql` (после 64, повторный запуск безопасен, данные не меняются): `workspaces.default_transit_min / default_transit_max` (1–180, от ≤ до), право менять — только владелец (`grant update` на два столбца + прежняя политика «workspaces: owner updates»). `get_client_order` и `client_order_json` отдают срок заказа, если у заказа заданы оба поля, иначе — срок кабинета. Сайт без файла 65: блок в Настройках скрыт, кнопки «+3 / +5 / +7 дн.» в заказе работают (им нужен только файл 64).
+
+Проверка на временной базе: `bash tests/tracking_db_test.sh` (входит в `bash tests/run_db_tests.sh`).

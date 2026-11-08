@@ -350,7 +350,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261208b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261208c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -951,6 +951,7 @@
     applySimpleMode();
     if (ULA.daily) { ULA.daily.applyModules(); ULA.daily.render(); }
     if (ULA.notifyq) ULA.notifyq.refresh();   // ошибки уведомлений клиентам — строкой в «Сегодня» (только владелец, файл 57)
+    if (ULA.tracking) ULA.tracking.loadDefaults();   // обычный срок доставки кабинета (файл 65)
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
     ULA.live.watch(ws.id);      // новое в кабинете появляется само (файл 49)
   }
@@ -1525,7 +1526,7 @@
     setSettingsError("");
     ULA.mfa.refresh();
     ULA.passkey.refresh();
-    if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); if (ULA.notifyq) ULA.notifyq.refresh(); if (ULA.deadlines) ULA.deadlines.refreshSettings(); if (ULA.daily) ULA.daily.refreshSettings(); }
+    if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); if (ULA.notifyq) ULA.notifyq.refresh(); if (ULA.deadlines) ULA.deadlines.refreshSettings(); if (ULA.daily) ULA.daily.refreshSettings(); if (ULA.tracking) ULA.tracking.refreshSettings(); }
     openModal("modal-settings");
     var body = $("#settings-form .modal-body");
     var target = scrollTo && document.getElementById(scrollTo);

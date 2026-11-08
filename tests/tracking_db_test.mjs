@@ -95,10 +95,31 @@ assert.equal(await sql(`select coalesce(track_stage, '-') from public.orders whe
 assert.equal(await asUser(B, `select count(*) from public.order_status_history where order_id = '${O2}'`), "0", "байер Б не читает историю чужого заказа");
 pass("права: история только через триггер, изоляция кабинетов, помощник работает");
 
+// 7. Файл 65: обычный срок кабинета — меняет только владелец; публичный ответ подставляет его, если у заказа своего срока нет
+const WSB = await sql(`select workspace_id from public.orders where id = '${O1}'`);
+await asUser(B, `update public.orders set transit_days_min = null, transit_days_max = null where id = '${O1}'`);
+p = await pub();
+assert.equal(p.transit_days_min, null); assert.equal(p.transit_days_max, null);
+await asUser(B, `update public.workspaces set default_transit_min = 12, default_transit_max = 18 where id = '${WSB}'`);
+p = await pub();
+assert.equal(p.transit_days_min, 12); assert.equal(p.transit_days_max, 18, "срок кабинета подставляется");
+await asUser(B, `update public.orders set transit_days_min = 15, transit_days_max = 25 where id = '${O1}'`);
+p = await pub();
+assert.equal(p.transit_days_min, 15); assert.equal(p.transit_days_max, 25, "свой срок заказа главнее");
+const cj = JSON.parse(await sql(`select public.client_order_json('${O1}')`));
+assert.equal(cj.transit_days_max, 25);
+await asUser(D, `update public.workspaces set default_transit_min = 1, default_transit_max = 2 where id = '${WSB}'`);
+assert.equal(await sql(`select default_transit_max from public.workspaces where id = '${WSB}'`), "18", "помощник не меняет срок кабинета");
+await asUser(C, `update public.workspaces set default_transit_min = 1, default_transit_max = 2 where id = '${WSB}'`);
+assert.equal(await sql(`select default_transit_max from public.workspaces where id = '${WSB}'`), "18", "чужой кабинет не меняет срок");
+await failsWith(() => asUser(B, `update public.workspaces set default_transit_min = 20, default_transit_max = 10 where id = '${WSB}'`), /workspaces_default_transit_chk/, "от > до");
+await failsWith(() => asUser(B, `update public.workspaces set default_transit_max = 0 where id = '${WSB}'`), /workspaces_default_transit_chk/, "0 дней");
+pass("файл 65: срок кабинета подставляется клиенту, свой срок заказа главнее, менять может только владелец");
+
 // 6. Защита от старых файлов
 const { stdout: out63 } = await sh("bash", ["-c", `docker exec -i ${NAME} psql -U postgres -q -X < migration_63_restore_45_46.sql 2>&1 || true`]);
-assert.match(out63, /СТОП: файл 63 старше/, "файл 63 не запускается поверх 64");
-assert.equal(await sql("select count(*) from public.schema_migrations where version = 64"), "1");
+assert.match(out63, /СТОП: файл 63 старше/, "файл 63 не запускается поверх 64/65");
+assert.equal(await sql("select count(*) from public.schema_migrations where version in (64, 65)"), "2");
 pass("файл 63 поверх 64 останавливается, отметка 64 на месте");
 
-console.log(`🎉 Файл 64: ${n} групп проверок пройдено`);
+console.log(`🎉 Файлы 64 и 65: ${n} групп проверок пройдено`);
