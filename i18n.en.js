@@ -2095,7 +2095,6 @@ I18N.en = {
   tk_route_local: "Local delivery",
   tk_route_aria: "Route diagram: {a} → {b}",
   tk_from_cn: "China",
-  tk_dest_you: "Your city",
   tk_to_door: "Address or pickup point",
   tk_days_label: "In transit",
   tk_days_one: "{n} day",
@@ -2117,8 +2116,6 @@ I18N.en = {
   tk_b_shipped: "Shipped from China on",
   tk_b_min: "From, days",
   tk_b_max: "To, days",
-  tk_b_dest: "Destination city / country",
-  tk_b_dest_ph: "e.g. Bishkek, Kyrgyzstan",
   tk_b_track: "Tracking number",
   tk_b_comment: "Public note for the client",
   tk_b_comment_hint: "The client sees it, and it is saved in the order history. Do not put internal notes here.",
@@ -2129,18 +2126,12 @@ I18N.en = {
   tk_e_both: "Fill in both “from” and “to”, or leave both empty.",
   tk_e_order: "“From” cannot be more than “to”.",
   tk_e_date: "Check the shipping date: it cannot be in the future.",
-  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  // карта маршрута Китай → Бишкек (js/tracking.js)
   tk_g_wh: "Warehouse in China",
   tk_g_kg: "Kyrgyzstan",
   tk_g_kz: "Kazakhstan",
   tk_c_bishkek: "Bishkek",
-  tk_c_osh: "Osh",
-  tk_c_almaty: "Almaty",
-  tk_c_tashkent: "Tashkent",
-  tk_c_dushanbe: "Dushanbe",
-  tk_bd_torugart: "Border: Torugart",
-  tk_bd_irkeshtam: "Border: Irkeshtam",
-  tk_bd_khorgos: "Border: Khorgos",
+  tk_bd_kg: "Border",
 };
 
 I18N.en.wa_title = "Messages";

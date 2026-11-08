@@ -147,25 +147,28 @@ for (const l of ["en", "zh", "vi"]) { lang = l; assert.ok(!/[а-яё]/i.test(TK.
 lang = "ru";
 pass("фразы во всех четырёх словарях, без русского текста в других языках");
 
-// 13. карта Китай → Центральная Азия: только для знакомого города, иначе — простая схема
+// 13. карта Китай → Бишкек (доставляем только в Бишкек): всегда один маршрут, грузовик смотрит в сторону Бишкека
 win.matchMedia = () => ({ matches: false });
 const ship = (to, extra) => ({ status: "in_transit", shipped_at: "2026-11-01", transit_days_min: 10, transit_days_max: 20, ship_to: to, ...extra });
 const route = (o, dest) => TK.routeHtml(o, dest);
 const pins = (h) => [...h.matchAll(/class="g-pin [^"]*"[^>]*>(.*?)<\/span>/g)].map((m) => m[1].replace(/<[^>]+>/g, ""));
-assert.deepEqual(pins(route(ship("Бишкек, Кыргызстан"))), ["Склад в Китае", "Граница: Торугарт", "Бишкек, Кыргызстан"]);
-assert.ok(pins(route(ship("Ош"))).includes("Граница: Иркештам"));
-assert.ok(pins(route(ship("г. Алматы"))).includes("Граница: Хоргос"));
-assert.ok(pins(route(ship(null), "Ташкент")).includes("Ташкент"), "город из адреса клиента, если байер не указал");
-assert.ok(route(ship("Кошой")).includes('class="tk-map'), "«ош» внутри слова — не Ош");
-assert.ok(route(ship("Москва")).includes('class="tk-map') && !route(ship("Москва")).includes("tk-geo"), "незнакомый город — без карты");
-assert.ok(!route(ship("Бишкек <img src=x onerror=alert(1)>")).includes("<img"), "подпись города экранируется");
+for (const to of ["Бишкек, Кыргызстан", "Ош", "Москва", null, "<img src=x onerror=alert(1)>"]) {
+  const h = route(ship(to), "Алматы");
+  assert.deepEqual(pins(h), ["Склад в Китае", "Граница", "Бишкек"], "всегда Бишкек: " + to);
+  assert.ok(h.includes("tk-geo") && !h.includes("<img"));
+}
 assert.ok(route(ship("Бишкек")).includes("<animateMotion"), "грузовик едет по маршруту");
+assert.ok(route(ship("Бишкек")).includes('scale(-0.84 0.84)'), "грузовик развёрнут к Бишкеку (путь идёт справа налево)");
+{ // путь идёт с востока (склад) на запад (Бишкек)
+  const d = route(ship("Бишкек")).match(/class="g-route" d="M([\d.]+) [\d.]+.*L([\d.]+) [\d.]+"/);
+  assert.ok(Number(d[1]) > Number(d[2]), "начало маршрута правее конца");
+}
 win.matchMedia = () => ({ matches: true });
 const still = route(ship("Бишкек"));
 assert.ok(!still.includes("<animateMotion") && /g-truck" transform="translate\(/.test(still), "«уменьшить движение» — грузовик стоит на месте");
 win.matchMedia = () => ({ matches: false });
 assert.ok(route({ status: "arrived", ship_to: "Бишкек" }).includes("tk-geo is-arrived"));
 assert.ok(route({ status: "arrived", track_stage: "local", ship_to: "Бишкек" }).includes('class="tk-map'), "по городу — простая схема");
-pass("карта: маршруты Бишкек / Ош / Алматы / Ташкент, без карты для незнакомого города, экранирование, без анимации по просьбе");
+pass("карта: всегда Китай → граница → Бишкек, грузовик по направлению, без анимации по просьбе");
 
 console.log(`🎉 Путь заказа: ${n} групп проверок пройдено`);

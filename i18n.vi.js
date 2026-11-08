@@ -2067,7 +2067,6 @@ I18N.vi = {
   tk_route_local: "Giao nội thành",
   tk_route_aria: "Sơ đồ lộ trình: {a} → {b}",
   tk_from_cn: "Trung Quốc",
-  tk_dest_you: "Thành phố của bạn",
   tk_to_door: "Địa chỉ hoặc điểm nhận",
   tk_days_label: "Đang vận chuyển",
   tk_days_one: "{n} ngày",
@@ -2089,8 +2088,6 @@ I18N.vi = {
   tk_b_shipped: "Ngày gửi từ Trung Quốc",
   tk_b_min: "Từ, ngày",
   tk_b_max: "Đến, ngày",
-  tk_b_dest: "Thành phố / quốc gia nhận",
-  tk_b_dest_ph: "Ví dụ: Bishkek, Kyrgyzstan",
   tk_b_track: "Mã vận đơn",
   tk_b_comment: "Ghi chú công khai cho khách",
   tk_b_comment_hint: "Khách nhìn thấy và ghi chú được lưu vào lịch sử đơn. Đừng viết ghi chú nội bộ ở đây.",
@@ -2101,18 +2098,12 @@ I18N.vi = {
   tk_e_both: "Điền cả “từ” và “đến”, hoặc để trống cả hai.",
   tk_e_order: "“Từ” không được lớn hơn “đến”.",
   tk_e_date: "Kiểm tra ngày gửi: không được là ngày trong tương lai.",
-  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  // карта маршрута Китай → Бишкек (js/tracking.js)
   tk_g_wh: "Kho ở Trung Quốc",
   tk_g_kg: "Kyrgyzstan",
   tk_g_kz: "Kazakhstan",
   tk_c_bishkek: "Bishkek",
-  tk_c_osh: "Osh",
-  tk_c_almaty: "Almaty",
-  tk_c_tashkent: "Tashkent",
-  tk_c_dushanbe: "Dushanbe",
-  tk_bd_torugart: "Cửa khẩu: Torugart",
-  tk_bd_irkeshtam: "Cửa khẩu: Irkeshtam",
-  tk_bd_khorgos: "Cửa khẩu: Khorgos",
+  tk_bd_kg: "Biên giới",
 };
 
 I18N.vi.wa_title = "Tin nhắn";

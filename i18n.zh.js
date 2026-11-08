@@ -2095,7 +2095,6 @@ I18N.zh = {
   tk_route_local: "同城配送",
   tk_route_aria: "路线示意：{a} → {b}",
   tk_from_cn: "中国",
-  tk_dest_you: "您的城市",
   tk_to_door: "地址或取货点",
   tk_days_label: "运输中",
   tk_days_one: "{n} 天",
@@ -2117,8 +2116,6 @@ I18N.zh = {
   tk_b_shipped: "从中国发货日期",
   tk_b_min: "最短天数",
   tk_b_max: "最长天数",
-  tk_b_dest: "目的城市 / 国家",
-  tk_b_dest_ph: "例如：比什凯克，吉尔吉斯斯坦",
   tk_b_track: "运单号",
   tk_b_comment: "给客户的公开备注",
   tk_b_comment_hint: "客户可以看到，并会记录在订单历史中。请勿填写内部备注。",
@@ -2129,18 +2126,12 @@ I18N.zh = {
   tk_e_both: "请同时填写最短和最长天数，或都留空。",
   tk_e_order: "最短天数不能大于最长天数。",
   tk_e_date: "请检查发货日期：不能是未来的日期。",
-  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  // карта маршрута Китай → Бишкек (js/tracking.js)
   tk_g_wh: "中国仓库",
   tk_g_kg: "吉尔吉斯斯坦",
   tk_g_kz: "哈萨克斯坦",
   tk_c_bishkek: "比什凯克",
-  tk_c_osh: "奥什",
-  tk_c_almaty: "阿拉木图",
-  tk_c_tashkent: "塔什干",
-  tk_c_dushanbe: "杜尚别",
-  tk_bd_torugart: "口岸：吐尔尕特",
-  tk_bd_irkeshtam: "口岸：伊尔克什坦",
-  tk_bd_khorgos: "口岸：霍尔果斯",
+  tk_bd_kg: "边境口岸",
 };
 
 I18N.zh.wa_title = "消息";

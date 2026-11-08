@@ -175,13 +175,8 @@
   };
   // Маршрут — схема, а не дорога: от склада в Китае одной плавной дугой к погранпереходу и прямо в город.
   var WH = [100, 37];   // условная точка «Склад в Китае»
-  var DEST = {
-    bishkek:  { k: "tk_c_bishkek",  b: "tk_bd_torugart",  bp: [75.4, 40.53], end: [74.6, 42.87] },
-    osh:      { k: "tk_c_osh",      b: "tk_bd_irkeshtam", bp: [73.95, 39.7], end: [72.8, 40.53] },
-    tashkent: { k: "tk_c_tashkent", b: "tk_bd_irkeshtam", bp: [73.95, 39.7], end: [69.24, 41.3] },
-    dushanbe: { k: "tk_c_dushanbe", b: "tk_bd_irkeshtam", bp: [73.95, 39.7], end: [68.78, 38.56] },
-    almaty:   { k: "tk_c_almaty",   b: "tk_bd_khorgos",   bp: [80.4, 44.2], end: [76.9, 43.25] }
-  };
+  // Доставляем только в Бишкек: один маршрут, граница Китай — Кыргызстан
+  var BISHKEK = { bp: [75.4, 40.53], end: [74.6, 42.87] };
   // точки дуги (квадратичная кривая, выгнута на север) + прямой отрезок граница → город
   function routePts(d) {
     var a = WH, b = d.bp, cp = [(a[0] + b[0]) / 2, Math.max(a[1], b[1]) + 3.2], out = [];
@@ -191,16 +186,6 @@
     }
     for (var j = 1; j <= 4; j++) out.push([b[0] + (d.end[0] - b[0]) * j / 4, b[1] + (d.end[1] - b[1]) * j / 4]);
     return out;
-  }
-  // город назначения по тексту байера или адресу клиента; не узнали — карту не рисуем (не выдумываем маршрут)
-  function destKey(s) {
-    s = String(s || "").toLowerCase();
-    if (/(^|[^а-яёa-z])(ош|osh)([^а-яёa-z]|$)/.test(s)) return "osh";
-    if (/алмат|almaty|алма-ата|казахстан|kazakh/.test(s)) return "almaty";
-    if (/ташкент|tashkent|узбек|uzbek/.test(s)) return "tashkent";
-    if (/душанбе|dushanbe|таджик|tajik/.test(s)) return "dushanbe";
-    if (/бишкек|bishkek|кыргыз|киргиз|kyrgyz/.test(s)) return "bishkek";
-    return "";
   }
   // часть ломаной от начала до доли f её длины
   function subLine(pts, f) {
@@ -223,8 +208,8 @@
     return '<span class="g-pin ' + cls + '" style="left:' + x.toFixed(2) + "%;top:" + y.toFixed(2) + "%;transform:translate(" + ax + "%," + (below ? "40%" : "-135%") + ')">' + inner + "</span>";
   }
 
-  function geoMapHtml(key, endLabel, p, arrived, aria) {
-    var d = DEST[key], pts = routePts(d), all = pts.map(gp), done = subLine(all, p), at = done[done.length - 1];
+  function geoMapHtml(p, arrived, aria) {
+    var d = BISHKEK, pts = routePts(d), all = pts.map(gp), done = subLine(all, p), at = done[done.length - 1];
     var still = reducedMotion();
     var lbl = function (lon, lat, txt, cls) { var xy = gp([lon, lat]); return '<text x="' + xy[0] + '" y="' + xy[1] + '" class="g-lbl ' + (cls || "") + '">' + esc(txt) + "</text>"; };
     return '<div class="tk-geo' + (arrived ? " is-arrived" : "") + '" role="img" aria-label="' + esc(aria) + '">' +
@@ -238,12 +223,12 @@
         '<g class="g-truck"' + (still ? ' transform="translate(' + at[0] + " " + at[1] + ')"' : "") + ">" +
           (still ? "" : '<animateMotion dur="1.8s" begin="0.2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 0.7 0.2 1" path="' + gLine(done) + '"/>') +
           '<circle class="g-truck-bg" r="15"/>' +
-          '<g transform="translate(-10 -10) scale(0.84)" class="g-truck-ico">' + P.truck + "</g>" +
+          '<g transform="translate(10 -10) scale(-0.84 0.84)" class="g-truck-ico">' + P.truck + "</g>" +
         "</g>" +
       "</svg>" +
       gPin(WH, "g-pin-start", "<i>" + svg("house", 13) + "</i><b>" + esc(t("tk_g_wh")) + "</b>", true) +
-      gPin(d.bp, "g-pin-border", "<b>" + esc(t(d.b)) + "</b>", true) +
-      gPin(d.end, "g-pin-end", "<i>" + svg(arrived ? "check" : "flag", 13) + "</i><b>" + esc(endLabel) + "</b>", false) +
+      gPin(d.bp, "g-pin-border", "<b>" + esc(t("tk_bd_kg")) + "</b>", true) +
+      gPin(d.end, "g-pin-end", "<i>" + svg(arrived ? "check" : "flag", 13) + "</i><b>" + esc(t("tk_c_bishkek")) + "</b>", false) +
     "</div>";
   }
 
@@ -251,7 +236,7 @@
   function routeHtml(o, dest) {
     var tr = transit(o), idx = tr.idx;
     if (idx < SHIPPED || idx > 7) return "";
-    var local = idx === 7, to = String(o.ship_to || dest || "").trim() || t("tk_dest_you");
+    var local = idx === 7, to = t("tk_c_bishkek");   // доставляем только в Бишкек
     var from = local ? to : t("tk_from_cn"), end = local ? t("tk_to_door") : to;
     var p = local ? 0.6 : tr.p;
     var rows = "";
@@ -261,10 +246,9 @@
       if (tr.eta && idx === SHIPPED) rows += "<div><dt>" + esc(t("tk_eta_label")) + "</dt><dd>" + esc(tr.eta[0] === tr.eta[1] ? c.fmtDate(tr.eta[0]) : c.fmtDate(tr.eta[0]) + " – " + c.fmtDate(tr.eta[1])) + "</dd></div>";
       if (tr.ship) rows += "<div><dt>" + esc(t("tk_shipped_label")) + "</dt><dd>" + esc(c.fmtDate(tr.ship)) + "</dd></div>";
     }
-    // знакомый город назначения — карта Китай → Центральная Азия; иначе — простая схема (маршрут не выдумываем)
-    var gk = local ? "" : destKey(o.ship_to || dest);
-    var picture = gk
-      ? geoMapHtml(gk, String(o.ship_to || "").trim() || t(DEST[gk].k), idx === SHIPPED ? p : 1, idx === 6, t("tk_route_aria", { a: from, b: end }))
+    // путь Китай → Бишкек — карта; доставка по городу — простая схема «Бишкек → адрес»
+    var picture = !local
+      ? geoMapHtml(idx === SHIPPED ? p : 1, idx === 6, t("tk_route_aria", { a: from, b: end }))
       : '<div class="tk-map' + (idx === 6 ? " is-arrived" : "") + (local ? " is-local" : "") + '" style="--p:' + p.toFixed(3) + '" role="img" aria-label="' +
           esc(t("tk_route_aria", { a: from, b: end })) + '">' +
           '<span class="tk-end tk-end-a">' + svg(local ? "house" : "pin", 18) + "</span>" +
@@ -338,7 +322,6 @@
           '<label class="field"><span>' + esc(t("tk_b_min")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + DEF_MIN + '" data-tk-min value="' + v(o.transit_days_min) + '"></label>' +
           '<label class="field"><span>' + esc(t("tk_b_max")) + '</span><input type="number" inputmode="numeric" min="1" max="180" step="1" placeholder="' + DEF_MAX + '" data-tk-max value="' + v(o.transit_days_max) + '"></label>' +
         "</div>" +
-        '<label class="field"><span>' + esc(t("tk_b_dest")) + '</span><input type="text" maxlength="120" autocomplete="off" placeholder="' + esc(t("tk_b_dest_ph")) + '" data-tk-dest value="' + v(o.ship_to) + '"></label>' +
         '<label class="field"><span>' + esc(t("tk_b_track")) + ' <span class="opt">(' + esc(t("cd_optional")) + ')</span></span><input type="text" maxlength="100" autocomplete="off" spellcheck="false" data-tk-track value="' + v(o.tracking_number) + '"></label>' +
       "</fieldset>" +
       '<label class="field"><span>' + esc(t("tk_b_comment")) + '</span><textarea rows="2" maxlength="500" data-tk-comment>' + v(o.client_comment) + "</textarea></label>" +
@@ -384,7 +367,6 @@
       shipped_at: v.shipped || null,
       transit_days_min: v.min || null,
       transit_days_max: v.max || null,
-      ship_to: q("[data-tk-dest]").slice(0, 120) || null,
       tracking_number: q("[data-tk-track]").replace(/\s+/g, " ").slice(0, 100) || null,
       client_comment: q("[data-tk-comment]").slice(0, 500) || null
     };
