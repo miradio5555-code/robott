@@ -13,6 +13,10 @@
   try {
     var th = localStorage.getItem("cc_theme");
     if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
+    // цвет строки состояния телефона сразу как у темы (иначе сначала белая)
+    var dk = th === "dark" || (th !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    var mt = document.querySelector('meta[name="theme-color"]');
+    if (mt) mt.setAttribute("content", dk ? "#1C1C1E" : "#FFFFFF");
     // внешний вид из «Профиля»: цвет кнопок, размер текста, стиль углов
     [["ula_accent", "data-accent", "ula"], ["ula_tsize", "data-tsize", "m"], ["ula_ui", "data-ui", "rounded"]].forEach(function (x) {
       var v = localStorage.getItem(x[0]);

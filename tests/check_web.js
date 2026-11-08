@@ -9,6 +9,7 @@
 //   3. Версия везде одна: все ?v= в index.html и APP_VERSION в app.js.
 //      Иначе у части людей останется старый файл из памяти телефона.
 //   4. Каждый скрипт и стиль, подключённый в index.html, есть в папке.
+//   5. Номера миграций без повторов и пропусков, отметка в schema_migrations совпадает с файлом.
 // =====================================================
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm");
@@ -57,8 +58,26 @@ while ((m = re.exec(html))) {
   if (!fs.existsSync(path.join(root, u))) fail("index.html подключает " + u + ", а файла нет");
 }
 
+// 5. нумерация миграций (без Docker): номера не повторяются и идут без пропусков,
+//    каждый файл в конце ставит отметку о себе в schema_migrations со своим номером и именем.
+//    Так ловится переименование вроде истории с файлами 52–55 ещё до запуска SQL.
+var migs = fs.readdirSync(root).filter(function (f) { return /^migration_\d+_.+\.sql$/.test(f); });
+var seen = {};
+migs.forEach(function (f) {
+  var n = parseInt(/^migration_(\d+)_/.exec(f)[1], 10);
+  if (seen[n]) fail("Два файла с номером " + n + ": " + seen[n] + " и " + f);
+  seen[n] = f;
+  var sql = read(f).replace(/\s+/g, "");
+  if (sql.indexOf("schema_migrations(version,name)values(" + n + ",'" + f + "')") < 0)
+    fail(f + ": нет отметки в schema_migrations с номером " + n + " и этим именем файла");
+});
+var nums = Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+for (var i = 1; i <= nums[nums.length - 1]; i++) if (!seen[i]) fail("Пропущен номер миграции " + i);
+if (read("supabase_schema.sql").replace(/\s+/g, "").indexOf("schema_migrations(version,name)values(0,'supabase_schema.sql')") < 0)
+  fail("supabase_schema.sql: нет отметки с номером 0");
+
 if (fails.length) {
   console.error("❌ Найдены ошибки:\n  • " + fails.join("\n  • "));
   process.exit(1);
 }
-console.log("✅ Сайт: " + scripts.length + " скриптов, " + base.length + " фраз × " + LANGS.length + " языка, версия " + app[1]);
+console.log("✅ Сайт: " + scripts.length + " скриптов, " + base.length + " фраз × " + LANGS.length + " языка, версия " + app[1] + ", миграций " + migs.length + " (0–" + nums[nums.length - 1] + ")");

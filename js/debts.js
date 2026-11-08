@@ -57,8 +57,9 @@
   }
 
   function clientKey(o) {
-    var phone = String((o.client && o.client.phone) || o.client_phone || "").replace(/\D/g, "");
-    return phone.length >= 9 ? "p" + phone.slice(-9) : "n" + String(o.client_name || "").trim().toLowerCase();
+    // клиент = постоянный номер из карточки клиента (client_id), а не «последние 9 цифр или имя»;
+    // заказ без client_id (база ещё без файла 56) ни с кем не объединяется
+    return o.client_id ? "c" + o.client_id : "o" + o.id;
   }
 
   function collect() {
@@ -67,7 +68,7 @@
       if (o.status === "cancelled" || o.profit_som == null || num(o.balance_som) <= 0.5) return;
       var k = clientKey(o);
       var g = map[k] || (map[k] = {
-        key: k, name: (o.client && o.client.name) || o.client_name || "—",
+        key: k, clientId: o.client_id || "", name: (o.client && o.client.name) || o.client_name || "—",
         phone: String((o.client && o.client.phone) || o.client_phone || "").replace(/[\s().-]/g, ""),
         telegram: String((o.client && o.client.telegram) || "").replace(/^@/, ""),
         orders: [], totals: {}, maxAge: 0, atClient: false
@@ -154,7 +155,7 @@
       '<div class="debt-head"><div><h3>' + esc(g.name) + "</h3>" +
         '<div class="debt-meta muted">' + (g.phone ? esc(fmtPhone(g.phone)) + " · " : "") + esc(t("d_orders", { n: g.orders.length })) + "</div></div>" +
         '<div class="debt-sum">' + totalsText(g.totals) + "</div></div>" +
-      (U.wallet ? U.wallet.chip(g.key, g.name) : "") +
+      (U.wallet ? U.wallet.chip(g.clientId, g.name) : "") +
       '<div class="debt-flags">' +
         (g.overdue ? '<span class="debt-flag late">' + esc(t("d_overdue", { n: g.maxAge })) + "</span>" : '<span class="debt-flag">' + esc(t("d_days", { n: g.maxAge })) + "</span>") +
         (g.atClient ? '<span class="debt-flag late">' + esc(t("d_at_client")) + "</span>" : "") +

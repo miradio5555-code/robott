@@ -6,10 +6,11 @@
 // «Вернуть оплату на баланс». Выписка: каждое движение отдельной строкой, владелец может
 // отменить ошибочную. Клиент видит баланс и выписку по своей общей ссылке (js/client.js).
 //
-// Клиент — как в «Долгах»: последние 9 цифр телефона, иначе имя (одинаково с базой: client_key).
-// Пока файл 50 не запущен, кнопок баланса нет — сайт работает как раньше.
+// Баланс принадлежит клиенту по его постоянному номеру (clients.id = orders.client_id, файл 56), а не по
+// «последним 9 цифрам телефона или имени». Заказ без клиента баланса не имеет.
+// Пока файлы 50 и 56 не запущены, кнопок баланса нет — сайт работает как раньше.
 //
-// ULA.wallet: load(), chip(key, name), orderHtml(o), debtsNote(), keyOf(phone, name)
+// ULA.wallet: load(), chip(clientId, name), orderHtml(o), debtsNote(), keyOf(clientId)
 // =====================================================
 (function (U) {
   "use strict";
@@ -17,16 +18,12 @@
   var $ = c.$, esc = c.esc, num = c.num, cur = c.cur, state = c.state, toast = c.toast;
 
   var ready = false;            // файл 50 запущен
+  var recon = [];               // сверка кабинета по валютам (файл 56): всего / у клиентов / неразобрано
   var totals = {};              // ключ клиента → { name, sums: { KGS: 10500 } }
   var ui = { key: "", name: "", rows: [], mode: "", busy: false, loaded: false };
 
-  function keyOf(phone, name) {
-    var p = String(phone || "").replace(/\D/g, "");
-    return p.length >= 9 ? "p" + p.slice(-9) : "n" + String(name || "").trim().toLowerCase();
-  }
-  function orderKey(o) {
-    return keyOf((o.client && o.client.phone) || o.client_phone, (o.client && o.client.name) || o.client_name);
-  }
+  function keyOf(clientId) { return clientId ? String(clientId) : ""; }
+  function orderKey(o) { return keyOf(o && o.client_id); }
   function sums(key) { return (totals[key] && totals[key].sums) || {}; }
   function signed(n, code) { return (n > 0 ? "+" : n < 0 ? "−" : "") + cur(Math.abs(n), code); }
   function sumsText(s) {
@@ -50,12 +47,14 @@
     var db = c.db();
     if (!state.ws || !db) { totals = {}; return Promise.resolve(); }
     var ws = state.ws.id;
-    return db.rpc("wallet_totals", { p_ws: ws }).then(function (r) {
+    return Promise.all([db.rpc("wallet_totals", { p_ws: ws }), db.rpc("wallet_reconcile", { p_ws: ws })]).then(function (rr) {
+      var r = rr[0];
       if (!state.ws || state.ws.id !== ws) return;
       ready = !r.error;
+      recon = rr[1].error ? [] : (rr[1].data || []);
       totals = {};
       (r.data || []).forEach(function (x) {
-        var t0 = totals[x.ckey] || (totals[x.ckey] = { name: x.client_name, sums: {} });
+        var t0 = totals[x.client_id] || (totals[x.client_id] = { name: x.client_name, sums: {} });
         t0.sums[x.currency] = num(x.amount);
       });
       if (isOpen()) render();
@@ -80,12 +79,18 @@
       Object.keys(s).forEach(function (x) { if (s[x] > 0) all[x] = (all[x] || 0) + s[x]; });
     });
     var txt = Object.keys(all).map(function (x) { return cur(all[x], x); }).join(" + ");
-    return txt ? '<p class="wallet-note">' + U.icon("wallet", 15) + esc(t("wl_prepaid")) + ": <b>" + txt + "</b></p>" : "";
+    var out = txt ? '<p class="wallet-note">' + U.icon("wallet", 15) + esc(t("wl_prepaid")) + ": <b>" + txt + "</b></p>" : "";
+    // неразобранные деньги не должны тихо пропадать из обзора: показываем их отдельной строкой со ссылкой на разбор
+    var un = recon.filter(function (x) { return x.unassigned_rows > 0 || Math.abs(num(x.unassigned)) > 0.004; })
+      .map(function (x) { return cur(x.unassigned, x.currency); }).join(" + ");
+    if (un) out += '<p class="wallet-note warn">' + U.icon("wallet", 15) + esc(t("cl_links_unres_note", { s: un })) +
+      ' <button type="button" class="btn btn-light" data-cll-open>' + esc(t("cl_links_open")) + "</button></p>";
+    return out;
   }
 
   // ---------- В карточке заказа ----------
   function orderHtml(o) {
-    if (!ready || !o) return "";
+    if (!ready || !o || !o.client_id) return "";
     var key = orderKey(o), code = o.client_currency, have = num(sums(key)[code]);
     var due = o.status !== "cancelled" ? Math.max(0, num(o.balance_som)) : 0;
     var name = (o.client && o.client.name) || o.client_name || "";
@@ -134,7 +139,7 @@
   function history() {
     var key = ui.key;
     return c.db().from("client_wallet").select("id, kind, amount, currency, order_id, order_number, note, created_at")
-      .eq("workspace_id", state.ws.id).eq("ckey", key).order("created_at", { ascending: false }).limit(100)
+      .eq("workspace_id", state.ws.id).eq("client_id", key).order("created_at", { ascending: false }).limit(100)
       .then(function (r) {
         if (key !== ui.key) return;
         if (r.error) { c.handleError(r.error); return; }
@@ -244,7 +249,7 @@
     var dep = ui.mode === "deposit";
     ui.busy = true; ui.cur = code;
     $("#wl-save").disabled = true;
-    c.db().rpc("wallet_add", { p_ws: state.ws.id, p_key: ui.key, p_name: ui.name, p_currency: code, p_amount: amount,
+    c.db().rpc("wallet_add", { p_client: ui.key, p_currency: code, p_amount: amount,
       p_kind: dep ? "deposit" : "withdraw", p_note: $("#wl-note").value, p_apply: apply })
       .then(function (r) {
         ui.busy = false;

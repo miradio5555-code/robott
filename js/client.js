@@ -22,7 +22,7 @@
   };
 
   // Общая ссылка клиента (?c=токен): список всех его заказов, по нажатию — страница заказа
-  var cab = { token: "", data: null, open: false, busy: false };
+  var cab = { token: "", data: null, open: false, busy: false, lastOpened: null };
 
   // Telegram-уведомления клиенту по этому заказу
   var tgc = { loaded: false, bot: null, subscribed: false, opened: false, busy: false, error: "" };
@@ -47,7 +47,7 @@
       state.client = res.data || null;
       state.clientState = res.data ? "ok" : "notfound";
       // данных ещё нет — сразу показываем форму
-      cd.editing = !!(state.client && !state.client.client && !isClosed());
+      cd.editing = !!(state.client && !dlv(state.client) && !isClosed());
     } catch (err) {
       console.error(err);
       state.clientState = "error";
@@ -81,25 +81,117 @@
     try {
       var res = await c.db().rpc("get_cabinet_order", { p_token: cab.token, p_order_number: number });
       if (res.error) throw res.error;
-      if (!res.data) { toast(t("error_generic"), "error"); cab.busy = false; return; }
+      if (!res.data) { cabLost(); cab.busy = false; return; }   // ссылка отключена или заказ больше не принадлежит клиенту
       state.client = res.data;
       cab.open = true;
+      cab.lastOpened = number;
       cd.editing = false;
+      cd.draft = null; cd.errors = {};
       renderClient();
       window.scrollTo(0, 0);
+      focusHeading();
     } catch (err) {
       console.error(err);
-      toast(t("error_generic"), "error");
+      toast(t("cab_net_err"), "error");
     }
     cab.busy = false;
   }
 
+  // Сервер больше не подтверждает доступ: показываем «ссылка не работает», данные на экране не оставляем
+  function cabLost() {
+    cab.data = null; cab.open = false; state.client = null;
+    state.clientState = "notfound";
+    renderClient();
+  }
+
+  function focusHeading() {
+    var h = $("#client-content h1");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  }
+
+  // ---------- общие помощники для списка и страницы заказа ----------
+  // цена известна? Сервер с файлом 61 отдаёт price_set; без него (старая база) — по старому признаку.
+  // Неизвестная цена — «пока не назначена», а не 0; закупочная стоимость сервером не отдаётся.
+  function priced(o) { return typeof o.price_set === "boolean" ? o.price_set : (num(o.total_som) > 0 || num(o.paid_amount) > 0); }
+  // адрес этого заказа: предложение клиента / принятый байером (файл 61) или старая карточка клиента
+  function dlv(o) { return (o && (o.delivery || o.client)) || null; }
+  function dlvState(o) { return o && o.delivery ? o.delivery.state : ""; }
+  function dlvNew(o) { return !!o && o.delivery !== undefined; }   // сервер с файлом 61
+  function isLive(o) { return CLOSED.indexOf(o.status) === -1; }
+
+  // «12.12.2026» или «12.12.2026 – 15.12.2026»; пусто, если срок не задан
+  function etaText(o) {
+    var a = o.delivery_eta_from, b = o.delivery_eta_to;
+    if (!a || !b) return "";
+    return a === b ? fmtDate(a) : fmtDate(a) + " – " + fmtDate(b);
+  }
+  // база без файла 60 срок и контакт не отдаёт: тогда ничего не обещаем и не пишем «срока нет»
+  function hasEta(o) { return Object.prototype.hasOwnProperty.call(o, "delivery_eta_from"); }
+  function etaLine(o) {
+    if (!isLive(o) || !hasEta(o)) return "";
+    var e = etaText(o);
+    return '<span class="cab-meta">' + esc(t("cab_eta")) + ": " + (e ? esc(e) : esc(t("cab_eta_none"))) + "</span>";
+  }
+
+  // способы связи, которые байер указал сам (секретные ссылки никуда не передаются)
+  function contactLinks(ct) {
+    var out = [];
+    if (!ct) return out;
+    if (ct.telegram) out.push({ k: "tg", label: t("cab_contact_tg"), href: "https://t.me/" + encodeURIComponent(ct.telegram), ext: true });
+    if (ct.phone) {
+      out.push({ k: "wa", label: t("cab_contact_wa"), href: "https://wa.me/" + String(ct.phone).replace(/\D/g, ""), ext: true });
+      out.push({ k: "tel", label: t("cab_contact_call"), href: "tel:" + ct.phone, ext: false });
+    }
+    return out;
+  }
+  function linkAttrs(l) { return ' href="' + esc(l.href) + '"' + (l.ext ? ' target="_blank" rel="noopener"' : ""); }
+  function contactBlockHtml(ct, known) {
+    if (known === false) return "";
+    var ls = contactLinks(ct);
+    return '<section class="client-block cab-contact" aria-labelledby="cab-contact-t"><h2 id="cab-contact-t">' + esc(t("cab_contact_title")) + "</h2>" +
+      (ls.length ? '<div class="track-actions">' + ls.map(function (l) { return '<a class="btn"' + linkAttrs(l) + ">" + esc(l.label) + "</a>"; }).join("") + "</div>"
+                 : '<p class="muted">' + esc(t("cab_contact_none")) + "</p>") +
+      "</section>";
+  }
+
+  // Следующий шаг: текст и (если есть реально работающее действие) одна главная кнопка
+  // в списке карточка общая на всего клиента; сервер без файла 60 про карточку не сообщает — тогда про адрес не спрашиваем
+  function hasCard(o) {
+    if (o.delivery !== undefined) return !!(o.delivery || o.client);   // файл 61: адрес хранится на заказе
+    if (Object.prototype.hasOwnProperty.call(o, "delivery_state")) return !!(o.delivery_state || (cab.data && cab.data.card));
+    if (cab.token && !(cab.data && typeof cab.data.card === "boolean")) return true;
+    return o.client !== undefined ? !!o.client : !(cab.data && cab.data.card === false);
+  }
+  function nextStep(o) {
+    var bal = num(o.balance_som), ls = contactLinks(o.contact), cc = o.client_currency || "KGS";
+    if (o.status === "cancelled") return { text: t("ns_cancelled") };
+    if (o.status === "delivered") return { text: t("ns_done") };
+    if (!priced(o)) return { text: t("ns_unpriced") };
+    if (!hasCard(o)) return { text: t("ns_addr") };   // действие — сама форма адреса ниже
+    var contact = ls.length ? { label: t("cab_contact_btn"), link: ls[0] } : null;
+    if (bal > 0) return { text: t("ns_pay", { sum: cur(bal, cc) }), btn: contact };
+    if (o.status === "arrived") return { text: t("ns_arrived"), btn: contact };
+    if (o.status === "in_transit") {
+      var n = String(o.tracking_number || "").trim();
+      return n ? { text: t("ns_transit"), btn: { label: t("trk_where"), link: { href: trackUrl(n), ext: true } } } : { text: t("ns_transit_notrack"), btn: contact };
+    }
+    return { text: t("ns_progress") };
+  }
+  function trackUrl(n) {
+    var lang = { ru: "ru", en: "en", zh: "zh-cn" }[typeof getLang === "function" ? getLang() : "ru"] || "ru";
+    return "https://t.17track.net/" + lang + "#nums=" + encodeURIComponent(n);
+  }
+  function nextStepHtml(o) {
+    var ns = nextStep(o);
+    return '<section class="client-block next-step" aria-labelledby="ns-t"><h2 id="ns-t">' + esc(t("cab_next")) + "</h2><p>" + esc(ns.text) + "</p>" +
+      (ns.btn ? '<a class="btn btn-primary"' + linkAttrs(ns.btn.link) + ">" + esc(ns.btn.label) + "</a>" : "") + "</section>";
+  }
+
   function cabCardHtml(o) {
-    var cc = o.client_currency || "KGS";
-    var bal = num(o.balance_som);
-    var priced = num(o.total_som) > 0 || num(o.paid_amount) > 0;
-    var money_line = !priced ? "" : bal > 0
-      ? '<span class="cab-owe">' + esc(t("cl_left")) + ": " + cur(bal, cc) + "</span>"
+    var cc = o.client_currency || "KGS", bal = num(o.balance_som), ns = nextStep(o);
+    var money_line = o.status === "cancelled" ? ""
+      : !priced(o) ? '<span class="cab-meta">' + esc(t("cab_unpriced")) + (num(o.paid_amount) > 0 ? " · " + esc(t("l_paid")) + ": " + cur(o.paid_amount, cc) : "") + "</span>"
+      : bal > 0 ? '<span class="cab-owe">' + esc(t("cl_left")) + ": " + cur(bal, cc) + "</span>"
       : '<span class="cab-paid">' + esc(t("cl_paid_full")) + "</span>";
     return '<button type="button" class="cab-card" data-cab-open="' + esc(o.order_number) + '">' +
       (o.photo ? '<img class="cab-thumb" src="' + esc(c.thumbUrl(o.photo)) + '" loading="lazy" alt="">'
@@ -108,8 +200,9 @@
         '<span class="cab-product">' + esc(o.product_ru) + "</span>" +
         '<span class="cab-meta">№ ' + esc(o.order_number) + " · " + esc(fmtDate(o.order_date)) + "</span>" +
         '<span class="cab-status s-' + esc(o.status) + '">' + esc(t("status_" + o.status)) + "</span>" +
+        '<span class="cab-meta cab-next">' + esc(ns.text) + "</span>" +
+        money_line + etaLine(o) +
         (o.tracking_number ? '<span class="cab-meta">' + esc(t("trk_title")) + ": " + esc(o.tracking_number) + "</span>" : "") +
-        money_line +
       "</span></button>";
   }
 
@@ -118,6 +211,7 @@
     var live = orders.filter(function (o) { return CLOSED.indexOf(o.status) === -1; });
     var done = orders.filter(function (o) { return CLOSED.indexOf(o.status) !== -1; });
     var debt = d.debt || [];
+    var unpriced = live.filter(function (o) { return !priced(o); }).length;
     box.innerHTML =
       '<section class="client-hero cab-hero"><h1>' + esc(t("cab_title")) + "</h1>" +
         (d.name ? '<p class="client-hero-date">' + esc(d.name) + "</p>" : "") +
@@ -127,13 +221,20 @@
           ? "<h2>" + esc(t("cab_debt")) + "</h2>" + debt.map(function (x) { return '<p class="cab-debt-sum">' + cur(x.amount, x.currency) + "</p>"; }).join("")
           : "<h2>" + esc(t("cab_no_debt")) + "</h2>") +
       "</section>" +
+      (unpriced ? '<p class="muted cab-unpriced">' + esc(t("cab_unpriced_note", { n: unpriced })) + "</p>" : "") +
       walletHtml(d) +
       (orders.length ? "" : '<section class="client-block"><p class="muted">' + esc(t("cab_empty")) + "</p></section>") +
       (live.length ? '<section class="client-block"><h2>' + esc(t("cab_active")) + " · " + live.length + '</h2><div class="cab-list">' + live.map(cabCardHtml).join("") + "</div></section>" : "") +
       (done.length ? '<section class="client-block"><details class="cab-done"><summary><h2>' + esc(t("cab_done")) + " · " + done.length +
         '</h2></summary><div class="cab-list">' + done.map(cabCardHtml).join("") + "</div></details></section>" : "") +
+      contactBlockHtml(d.contact, "contact" in d) +
       '<div id="fx-pub-slot"></div>';
     mountFx(d.brand);
+    if (cab.lastOpened) {
+      var back = box.querySelector('[data-cab-open="' + String(cab.lastOpened).replace(/"/g, "") + '"]');
+      cab.lastOpened = null;
+      if (back) back.focus({ preventScroll: true });
+    }
   }
 
   // Баланс (предоплата, файл 50): сколько денег клиента лежит у байера, и выписка
@@ -180,29 +281,54 @@
         res = await c.db().rpc("get_client_cabinet", { p_token: cab.token });
         if (res.error) throw res.error;
         if (res.data) { cab.data = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+        else cabLost();
       } else {
         res = cab.token
           ? await c.db().rpc("get_cabinet_order", { p_token: cab.token, p_order_number: state.client.order_number })
           : await c.db().rpc("get_client_order", { p_token: cd.token });
         if (res.error) throw res.error;
         if (res.data) { state.client = res.data; state.clientState = "ok"; renderClient(); toast(t("refreshed"), "ok"); }
+        else if (cab.token) cabLost();
+        else { state.clientState = "notfound"; renderClient(); }
       }
     } catch (err) {
       console.error(err);
-      toast(t("error_generic"), "error");
+      toast(t("cab_net_err"), "error");
     }
     btn.classList.remove("spinning");
     btn.disabled = false;
   }
 
+  // «Повторить» после ошибки сети: загружаем ту же страницу заново
+  function retryLoad() {
+    state.clientState = "loading";
+    renderClient();
+    if (cab.token) {
+      c.db().rpc("get_client_cabinet", { p_token: cab.token }).then(function (res) {
+        if (res.error) throw res.error;
+        cab.data = res.data || null; state.clientState = res.data ? "ok" : "notfound"; renderClient();
+      }).catch(function (e) { console.error(e); state.clientState = "error"; renderClient(); });
+    } else {
+      c.db().rpc("get_client_order", { p_token: cd.token }).then(function (res) {
+        if (res.error) throw res.error;
+        state.client = res.data || null; state.clientState = res.data ? "ok" : "notfound"; renderClient();
+        if (res.data) tgLoad();
+      }).catch(function (e) { console.error(e); state.clientState = "error"; renderClient(); });
+    }
+  }
+
+  var bound = false;
   function bindClientUI() {
+    if (bound) return;
+    bound = true;
     var box = $("#client-content");
     $("#client-refresh").addEventListener("click", refreshClient);
 
     box.addEventListener("click", function (e) {
+      if (e.target.closest("[data-cab-retry]")) { retryLoad(); return; }
       var co = e.target.closest("[data-cab-open]");
       if (co) { openCabOrder(co.getAttribute("data-cab-open")); return; }
-      if (e.target.closest("[data-cab-back]")) { cab.open = false; renderClient(); window.scrollTo(0, 0); return; }
+      if (e.target.closest("[data-cab-back]")) { cab.open = false; cd.editing = false; renderClient(); window.scrollTo(0, 0); return; }
       var ph = e.target.closest("[data-photo]");
       if (ph && state.client) {
         openLightbox(clientPhotoUrls(), Number(ph.getAttribute("data-photo")) || 0);
@@ -269,7 +395,7 @@
   // Черновик формы. Если его нет — берём уже сохранённые данные клиента.
   function getDraft() {
     if (!cd.draft) {
-      var c = (state.client && state.client.client) || {};
+      var c = dlv(state.client) || {};
       cd.draft = {
         name: c.name || "",
         phone: c.phone ? fmtPhone(c.phone) : "",
@@ -325,7 +451,7 @@
     cd.saving = true;
     renderClient();
     try {
-      var res = await c.db().rpc("save_client_info", {
+      var args = {
         p_token: cd.token,
         p_name: d.name.trim(),
         p_phone: cleanPhone(d.phone),
@@ -333,9 +459,17 @@
         p_city: d.city.trim(),
         p_address: d.method === "address" ? d.place.trim() : null,
         p_pickup_point: d.method === "pickup" ? d.place.trim() : null
-      });
+      };
+      if (cab.token) { args.p_token = cab.token; args.p_order_number = state.client.order_number; }   // общая ссылка: отдельная серверная проверка
+      var res = await c.db().rpc(cab.token ? "save_cabinet_client_info" : "save_client_info", args);
       if (res.error) throw res.error;
-      state.client.client = res.data;
+      if (res.data && res.data.state) {   // файл 61: предложение в этот заказ; клиент и заказ не меняются
+        state.client.delivery = res.data;
+        if (cab.data) (cab.data.orders || []).forEach(function (x) { if (x.order_number === state.client.order_number) x.delivery_state = res.data.state; });
+      } else {
+        state.client.client = res.data;
+        if (cab.data) cab.data.card = true;
+      }
       cd.editing = false;
       cd.draft = null;
       cd.errors = {};
@@ -349,6 +483,16 @@
         var key = m[1];
         cd.errors[key] = key === "place" ? (d.method === "pickup" ? "e_pickup" : "e_address") : "e_" + key;
         toast(t("e_form"), "error");
+      } else if (/delivery_confirmed/.test(msg)) {
+        cd.editing = false; cd.draft = null;
+        toast(t("dl_confirmed_err"), "error");
+        cab.busy = false; await reloadOrderNow();
+      } else if (/card_exists/.test(msg)) {
+        cd.editing = false; cd.draft = null;
+        toast(t("cab_card_exists_err"), "error");
+        cab.busy = false; await reloadCabOrder();
+      } else if (/order_not_found/.test(msg) && cab.token) {
+        cabLost();
       } else if (/order_locked/.test(msg)) {
         state.client.status = "delivered";
         cd.editing = false;
@@ -359,6 +503,23 @@
     }
     cd.saving = false;
     renderClient();
+  }
+
+  // свежий заказ после отказа сервера (для ссылки заказа и для общей ссылки)
+  async function reloadOrderNow() {
+    if (cab.token) { await reloadCabOrder(); return; }
+    try {
+      var r = await c.db().rpc("get_client_order", { p_token: cd.token });
+      if (!r.error && r.data) state.client = r.data;
+    } catch (e) { console.error(e); }
+  }
+
+  async function reloadCabOrder() {
+    try {
+      var r = await c.db().rpc("get_cabinet_order", { p_token: cab.token, p_order_number: state.client.order_number });
+      if (r.error) throw r.error;
+      if (r.data) state.client = r.data; else cabLost();
+    } catch (e) { console.error(e); }
   }
 
   // ---------- Отрисовка блока «Данные для доставки» ----------
@@ -389,13 +550,15 @@
 
   function deliveryBlockHtml() {
     var o = state.client;
-    var c = o.client;
+    var c = dlv(o);
+    var st = dlvState(o);
+    var canEdit = !isClosed() && (dlvNew(o) ? st !== "confirmed" : !cab.token);
 
     // 1) Данные уже есть — показываем их
     if (c && !cd.editing) {
       return '<section class="client-block delivery-block filled" aria-labelledby="cd-title">' +
         '<div class="delivery-head"><h2 id="cd-title">' + esc(t("cd_title")) + "</h2>" +
-          (isClosed() || cab.token ? "" : '<button type="button" class="btn" data-cd="edit">' + esc(t("cd_edit")) + "</button>") +
+          (canEdit ? '<button type="button" class="btn" data-cd="edit">' + esc(t("cd_edit")) + "</button>" : "") +
         "</div>" +
         '<dl class="delivery-view">' +
           "<div><dt>" + esc(t("l_name")) + "</dt><dd>" + esc(c.name) + "</dd></div>" +
@@ -406,11 +569,18 @@
           (c.pickup_point ? "<div><dt>" + esc(t("cd_m_pickup")) + "</dt><dd>" + esc(c.pickup_point) + "</dd></div>" : "") +
         "</dl>" +
         (isClosed() ? '<p class="delivery-note">' + esc(t("cd_locked")) + "</p>" : "") +
+        (st === "proposed" ? '<p class="delivery-note delivery-proposed">' + esc(t("dl_proposed")) + "</p>" : "") +
+        (st === "confirmed" ? '<p class="delivery-note delivery-confirmed">' + esc(t("dl_confirmed")) + "</p>" : "") +
+        (cab.token && !isClosed() && !dlvNew(o) ? '<p class="delivery-note">' + esc(t("cab_addr_ro")) + "</p>" : "") +
       "</section>";
     }
 
-    // 2) Заказ завершён, а данных нет — форму не показываем (в общем списке данные не вводят — только по ссылке заказа)
-    if (isClosed() || cab.token) return "";
+    // 2) Заказ завершён, а данных нет — форму не показываем, но говорим об этом прямо
+    if (isClosed()) return '<section class="client-block delivery-block"><h2 id="cd-title">' + esc(t("cd_title")) + '</h2><p class="muted">' + esc(t("cab_addr_none")) + "</p></section>";
+
+    if (cab.token && !(cab.data && typeof cab.data.card === "boolean")) {   // сервер без файла 60: формы адреса в общей ссылке нет
+      return '<section class="client-block delivery-block"><h2 id="cd-title">' + esc(t("cd_title")) + '</h2><p class="muted">' + esc(t("cab_addr_none")) + " " + esc(t("cab_addr_ro")) + "</p></section>";
+    }
 
     // 3) Форма
     var d = getDraft();
@@ -418,6 +588,7 @@
     return '<section class="client-block delivery-block" aria-labelledby="cd-title">' +
       '<h2 id="cd-title">' + esc(t("cd_title")) + "</h2>" +
       '<p class="delivery-intro">' + esc(t("cd_intro")) + "</p>" +
+      (dlvNew(o) ? '<p class="delivery-note">' + esc(t("dl_form_note")) + "</p>" : "") +
       '<form id="cd-form" class="delivery-form" novalidate>' +
         cdField("name", t("cd_name"), { attrs: ' type="text" autocomplete="name" maxlength="120"' }) +
         '<div class="grid-2">' +
@@ -459,7 +630,7 @@
     return '<section class="client-block track-block"><h2>' + esc(t("trk_title")) + "</h2>" +
       '<p class="track-num">' + esc(n) + "</p>" +
       '<div class="track-actions"><button type="button" class="btn" data-track-copy>' + esc(t("copy")) + "</button>" +
-      '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://t.17track.net/' + lang + "#nums=" + encodeURIComponent(n) + '">' +
+      '<a class="btn" target="_blank" rel="noopener" href="https://t.17track.net/' + lang + "#nums=" + encodeURIComponent(n) + '">' +
       esc(t("trk_where")) + "</a></div>" +
       '<p class="fine-print">' + esc(t("trk_hint")) + "</p></section>";
   }
@@ -500,6 +671,7 @@
     var body;
     if (tgc.subscribed) {
       body = '<p class="tgc-on">' + U.icon("check", 16) + esc(t("tgc_on")) + "</p>" +
+        '<p class="fine-print">' + esc(t("tgc_scope", { n: state.client.order_number })) + "</p>" +
         '<button type="button" class="mini-link" data-tgc="off"' + (tgc.busy ? " disabled" : "") + ">" + esc(t("tgc_off")) + "</button>";
     } else {
       var link = "https://t.me/" + encodeURIComponent(tgc.bot) + "?start=o" + encodeURIComponent(cd.token);
@@ -512,6 +684,45 @@
         (tgc.error ? '<p class="im-error">' + esc(t(tgc.error)) + "</p>" : "");
     }
     return '<section class="client-block tgc-block"><h2>' + U.icon("bell", 18) + esc(t("tgc_title")) + "</h2>" + body + "</section>";
+  }
+
+  // Оплата: стоимость, оплачено, остаток — в валюте заказа, валюты не складываются. Неизвестная цена — словами, а не «0».
+  function paymentHtml(o) {
+    var cc = o.client_currency || "KGS", bal = num(o.balance_som);
+    if (o.status === "cancelled") {
+      return num(o.paid_amount) > 0 ? '<p class="muted">' + esc(t("cab_cancel_paid", { sum: cur(o.paid_amount, cc) })) + "</p>" : '<p class="muted">' + esc(t("ns_cancelled")) + "</p>";
+    }
+    if (!priced(o)) {
+      return '<p class="muted">' + esc(t("cl_price_pending")) + "</p>" +
+        (num(o.paid_amount) > 0 ? '<dl class="money"><div><dt>' + esc(t("l_paid")) + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div></dl>" : "");
+    }
+    var pre = 0;
+    if (cab.token && cab.data) (cab.data.wallet || []).forEach(function (w) { if (w.currency === cc && num(w.amount) > 0) pre = num(w.amount); });
+    return '<dl class="money">' +
+      '<div class="money-total"><dt>' + esc(t("cab_cost")) + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
+      "<div><dt>" + esc(t("l_paid")) + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
+      '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + esc(t("cl_left")) + "</dt><dd>" +
+        (bal > 0 ? cur(bal, cc) : esc(t("cl_paid_full"))) + "</dd></div>" +
+      "</dl>" +
+      (pre > 0 && bal > 0 && isLive(o) ? '<p class="muted">' + esc(t("cab_pre_have", { sum: cur(pre, cc) })) + "</p>" : "");
+  }
+
+  // Доставка: этап, ожидаемый срок (только если байер его назвал)
+  function etaBlockHtml(o) {
+    if (o.status === "cancelled") return "";
+    var e = etaText(o);
+    return '<section class="client-block cab-eta-block"><h2>' + esc(t("cl_delivery_info")) + "</h2>" +
+      '<dl class="specs specs-2"><div><dt>' + esc(t("cl_status")) + "</dt><dd>" + esc(t("status_" + o.status)) + "</dd></div>" +
+      (isLive(o) && hasEta(o) ? "<div><dt>" + esc(t("cab_eta")) + "</dt><dd>" + (e ? esc(e) : '<span class="muted">' + esc(t("cab_eta_none")) + "</span>") + "</dd></div>" : "") +
+      "</dl></section>";
+  }
+
+  // Общая ссылка: показываем состояние подписки именно на ЭТОТ заказ (подключается по ссылке самого заказа)
+  function cabTgHtml(o) {
+    if (!isLive(o) || typeof o.tg_on !== "boolean") return "";
+    return '<section class="client-block tgc-block"><h2>' + U.icon("bell", 18) + esc(t("tgc_title")) + "</h2>" +
+      (o.tg_on ? '<p class="tgc-on">' + U.icon("check", 16) + esc(t("cab_tg_on", { n: o.order_number })) + "</p>"
+               : '<p class="muted">' + esc(t("cab_tg_off", { n: o.order_number })) + "</p>") + "</section>";
   }
 
   function clientPhotoUrls() {
@@ -548,12 +759,12 @@
       return;
     }
     if (state.clientState === "error") {
-      box.innerHTML = '<div class="state-box">' + esc(t("error_generic")) + "</div>";
+      box.innerHTML = '<div class="state-box" role="alert"><p>' + esc(t("cab_net_err")) + '</p><button type="button" class="btn btn-primary" data-cab-retry>' + esc(t("cab_retry")) + "</button></div>";
       return;
     }
     if (state.clientState !== "ok") {
-      box.innerHTML = '<section class="client-block notfound"><h1>' + esc(t("cl_not_found_title")) +
-        "</h1><p>" + esc(t("cl_not_found_text")) + "</p></section>";
+      box.innerHTML = '<section class="client-block notfound"><h1>' + esc(t(cab.token ? "cab_nf_title" : "cl_not_found_title")) +
+        "</h1><p>" + esc(t(cab.token ? "cab_nf_text" : "cl_not_found_text")) + "</p></section>";
       return;
     }
 
@@ -562,7 +773,6 @@
     var o = state.client;
     var urls = clientPhotoUrls();
     var bal = num(o.balance_som);
-    var priceKnown = num(o.total_som) > 0 || num(o.paid_amount) > 0;   // цена уже рассчитана?
     var cc = o.client_currency || "KGS"; // валюта клиента
     var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
     var idx = flow.indexOf(o.status);
@@ -579,7 +789,7 @@
     // Пока данных нет — форма стоит сразу после статуса (это главное действие).
     // Когда данные есть — уходит вниз, под оплату.
     var delivery = deliveryBlockHtml();
-    var deliveryFirst = !o.client || cd.editing;
+    var deliveryFirst = !dlv(o) || cd.editing;
 
     // Сохраняем, где стоял курсор, чтобы смена языка не сбивала ввод
     var active = document.activeElement;
@@ -595,9 +805,11 @@
         steps + clientHistory +
       "</section>" +
 
-      trackHtml(o) +
-      tgHtml(o) +
+      nextStepHtml(o) +
       (deliveryFirst ? delivery : "") +
+      etaBlockHtml(o) +
+      trackHtml(o) +
+      (cab.token ? cabTgHtml(o) : tgHtml(o)) +
 
       '<section class="client-block">' +
         "<h2>" + esc(t("cl_product")) + "</h2>" +
@@ -608,19 +820,12 @@
         }).join("") + "</div>" : "") +
         '<dl class="specs specs-2">' +
           "<div><dt>" + t("l_qty") + "</dt><dd>" + money(o.quantity) + " " + t("pcs") + "</dd></div>" +
-          "<div><dt>" + t("l_weight") + "</dt><dd>" + money(o.weight_kg) + " " + t("kg") + "</dd></div>" +
+          "<div><dt>" + t("l_weight") + "</dt><dd>" + (num(o.weight_kg) > 0 ? money(o.weight_kg) + " " + t("kg") : "—") + "</dd></div>" +
         "</dl>" +
       "</section>" +
 
       '<section class="client-block">' +
-        "<h2>" + esc(t("cl_payment")) + "</h2>" +
-        // цена ещё не рассчитана (например, новая заявка): вместо «к оплате 0» — пояснение
-        (priceKnown ? '<dl class="money">' +
-          '<div class="money-total"><dt>' + t("cl_due") + "</dt><dd>" + cur(o.total_som, cc) + "</dd></div>" +
-          "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, cc) + "</dd></div>" +
-          '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("cl_left") + "</dt><dd>" +
-            (bal > 0 ? cur(bal, cc) : esc(t("cl_paid_full"))) + "</dd></div>" +
-        "</dl>" : '<p class="muted">' + esc(t("cl_price_pending")) + "</p>") +
+        "<h2>" + esc(t("cl_payment")) + "</h2>" + paymentHtml(o) +
       "</section>" +
 
       (deliveryFirst ? "" : delivery) +
@@ -628,9 +833,10 @@
       (o.delivery_info ? '<section class="client-block"><h2>' + esc(t("cl_delivery_info")) + '</h2><p class="pre">' + esc(o.delivery_info) + "</p></section>" : "") +
       (o.client_comment ? '<section class="client-block"><h2>' + esc(t("cl_comment")) + '</h2><p class="pre">' + esc(o.client_comment) + "</p></section>" : "") +
 
+      contactBlockHtml(o.contact, "contact" in o) +
       '<div id="fx-pub-slot"></div>' +
 
-      promoHtml() +
+      (cab.token ? "" : promoHtml()) +
 
       '<p class="fine-print">' + esc(t("cl_updated")) + ": " +
         esc(new Date(o.updated_at).toLocaleDateString(locale())) + "</p>";

@@ -136,8 +136,9 @@
     "@media print{.pbar{display:none}}";
 
   function clientKey(o) {
-    var p = String((o.client && o.client.phone) || o.client_phone || "").replace(/\D/g, "");
-    return p.length >= 9 ? "p" + p.slice(-9) : "n" + String(o.client_name || "").trim().toLowerCase();
+    // клиент = постоянный номер из карточки клиента (client_id), а не «последние 9 цифр или имя»;
+    // заказ без client_id (база ещё без файла 56) ни с кем не объединяется
+    return o.client_id ? "c" + o.client_id : "o" + o.id;
   }
   function clientName(o) { return (o.client && o.client.name) || o.client_name || "—"; }
   function clientPhone(o) { var p = (o.client && o.client.phone) || o.client_phone; return p ? c.fmtPhone(p) : ""; }
