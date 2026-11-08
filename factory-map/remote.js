@@ -6,6 +6,7 @@
   const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
   let version=null;
 
+  const BUTTON='display:block;padding:12px 16px;border-radius:12px;background:#151417;color:#fff;font-weight:600;text-align:center;text-decoration:none;border:0;cursor:pointer;font:inherit';
   const never=()=>new Promise(()=>{});
   const backHome={label:'Открыть ULA Factory',href:HOME};
   const reload={label:'Обновить страницу',onClick:()=>location.reload()};
@@ -34,7 +35,7 @@
     const el=document.createElement(a.href?'a':'button');
     el.textContent=a.label;
     el.className='primary';
-    el.style.cssText='display:block;text-align:center;text-decoration:none';
+    el.style.cssText=BUTTON;
     if(a.href)el.href=a.href;
     else{el.type='button';el.addEventListener('click',a.onClick)}
     return el;
@@ -60,7 +61,7 @@
     const label=document.createElement('label');
     label.textContent='Выбрать файл main.json';
     label.className='primary';
-    label.style.cssText='display:block;text-align:center;cursor:pointer';
+    label.style.cssText=BUTTON;
     const input=document.createElement('input');
     input.type='file';
     input.id='remoteImportFile';
