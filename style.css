@@ -4333,9 +4333,9 @@ html[data-theme="dark"] .tk-b-note { color: #E8B04A; }
 
 /* ---------- Карта маршрута Китай → Центральная Азия (js/tracking.js): упрощённая схема, не GPS ---------- */
 .tk-geo {
-  --g-bg: #F4F5F8; --g-sea: #DCE8F7; --g-land: #FBFBFD; --g-cn: #F1F2F6; --g-kg: #FFE9DC; --g-line: #C9CDD6;
+  --g-bg: #FBFBFD; --g-sea: #DCE8F7; --g-land: #FBFBFD; --g-cn: #EDEFF3; --g-kg: #FFE3D2; --g-line: #C3C8D2;
   --g-route: #F0702D; --g-txt: #8A8F99; --g-pin: #FFFFFF; --g-pin-ink: #1D1D1F;
-  position: relative; margin: 0 -4px 6px; border-radius: 14px; overflow: hidden; aspect-ratio: 464 / 232;
+  position: relative; margin: 0 -4px 6px; border-radius: 14px; overflow: hidden; aspect-ratio: 460 / 207;
 }
 html[data-theme="dark"] .tk-geo { --g-bg: #222226; --g-sea: #18263A; --g-land: #2A2A2F; --g-cn: #2C2C31; --g-kg: #4A2E22; --g-line: #46464D; --g-txt: #8E8E96; --g-pin: #2C2C2E; --g-pin-ink: #F5F5F7; }
 @media (prefers-color-scheme: dark) {
