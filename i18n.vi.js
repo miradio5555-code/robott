@@ -2101,6 +2101,18 @@ I18N.vi = {
   tk_e_both: "Điền cả “từ” và “đến”, hoặc để trống cả hai.",
   tk_e_order: "“Từ” không được lớn hơn “đến”.",
   tk_e_date: "Kiểm tra ngày gửi: không được là ngày trong tương lai.",
+  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  tk_g_wh: "Kho ở Trung Quốc",
+  tk_g_kg: "Kyrgyzstan",
+  tk_g_kz: "Kazakhstan",
+  tk_c_bishkek: "Bishkek",
+  tk_c_osh: "Osh",
+  tk_c_almaty: "Almaty",
+  tk_c_tashkent: "Tashkent",
+  tk_c_dushanbe: "Dushanbe",
+  tk_bd_torugart: "Cửa khẩu: Torugart",
+  tk_bd_irkeshtam: "Cửa khẩu: Irkeshtam",
+  tk_bd_khorgos: "Cửa khẩu: Khorgos",
 };
 
 I18N.vi.wa_title = "Tin nhắn";

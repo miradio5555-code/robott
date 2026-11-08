@@ -161,6 +161,93 @@
     return s === k ? t("tk_days_other", { n: n }) : s;
   }
 
+  // ---------- карта Китай → Центральная Азия (стилизованная SVG-схема, без внешних карт) ----------
+  // Координаты — [долгота, широта], упрощённые границы. Проекция простая: 8 точек на градус.
+  var G = { lon0: 66, lon1: 124, lat0: 20, lat1: 49, k: 8 };
+  var GW = (G.lon1 - G.lon0) * G.k, GH = (G.lat1 - G.lat0) * G.k;
+  function gp(p) { return [Math.round((p[0] - G.lon0) * G.k * 10) / 10, Math.round((G.lat1 - p[1]) * G.k * 10) / 10]; }
+  function gPoly(pts) { return "M" + pts.map(function (p) { return gp(p).join(" "); }).join("L") + "Z"; }
+  function gLine(pts) { return "M" + pts.map(function (p) { return p.join(" "); }).join("L"); }
+  var GEO = {
+    cn: [[73.7,39.5],[74.6,37.2],[75.5,36],[78,35.5],[79.5,33],[78.8,31.5],[81,30.2],[85,28.3],[88,27.9],[92,27.8],[96,28.4],[97.5,28.2],[98.6,25],[97.6,24],[99.5,22.2],[101.6,21.2],[103,22.5],[106.5,22.3],[108,21.6],[110,20.3],[111,21.5],[113.5,22.2],[116,22.9],[117.5,23.8],[119.5,25.5],[120.5,27.5],[122,29.9],[121,31],[121.8,31.8],[120.5,33.5],[119.3,35],[122.5,37],[121,37.6],[118.8,37.5],[117.8,38.9],[119.5,39.8],[121.5,40.8],[124,40],[124,49],[117,49],[116,47.5],[119.5,46.6],[116.5,46.3],[113,44.8],[111.8,43.7],[110,42.6],[107,42.4],[105,41.6],[100,42.6],[96.4,42.7],[95.5,44.3],[93.5,45],[90.9,45.2],[90.7,46.9],[88,48.4],[87.3,49],[86,48.5],[85.5,47],[83,47.2],[82.3,45.5],[80.2,45],[80.5,44],[80.8,43.2],[80.2,42.1],[78,41.1],[76.8,40.9],[75.6,40.6],[74.8,40.4]],
+    kg: [[73.7,39.5],[73,39.4],[71.5,39.5],[70.2,39.6],[69.4,39.7],[69.6,40.1],[70.6,40.1],[71.7,40.3],[72.6,40.6],[73.1,40.9],[72.2,41.1],[71.3,41.2],[70.4,41.5],[71,42.1],[71.8,42.3],[73.4,42.5],[74.4,43],[75.6,42.9],[77,42.9],[78.5,42.9],[79.6,42.6],[80.2,42.1],[78,41.1],[76.8,40.9],[75.6,40.6],[74.8,40.4]],
+    kz: [[66,49],[87.3,49],[86,48.5],[85.5,47],[83,47.2],[82.3,45.5],[80.2,45],[80.5,44],[80.8,43.2],[80.2,42.1],[79.6,42.6],[78.5,42.9],[77,42.9],[75.6,42.9],[74.4,43],[73.4,42.5],[71.8,42.3],[71,42.1],[70.4,41.5],[69,41.4],[68.4,40.6],[67.5,41.2],[66,42.5]],
+    ca: [[66,42.5],[67.5,41.2],[68.4,40.6],[69,41.4],[70.4,41.5],[71.3,41.2],[72.2,41.1],[73.1,40.9],[72.6,40.6],[71.7,40.3],[70.6,40.1],[69.6,40.1],[69.4,39.7],[70.2,39.6],[71.5,39.5],[73,39.4],[73.7,39.5],[74.6,37.2],[71.5,36.7],[70,37.5],[68.3,37.1],[67,37.3],[66,37.5]],
+    mn: [[87.3,49],[88,48.4],[90.7,46.9],[90.9,45.2],[93.5,45],[95.5,44.3],[96.4,42.7],[100,42.6],[105,41.6],[107,42.4],[110,42.6],[111.8,43.7],[113,44.8],[116.5,46.3],[119.5,46.6],[116,47.5],[117,49]],
+    sea: [[108,21.6],[110,20.3],[111,21.5],[113.5,22.2],[116,22.9],[117.5,23.8],[119.5,25.5],[120.5,27.5],[122,29.9],[121,31],[121.8,31.8],[120.5,33.5],[119.3,35],[122.5,37],[121,37.6],[118.8,37.5],[117.8,38.9],[119.5,39.8],[121.5,40.8],[124,40],[124,20],[107,20]],
+    tw: [[121,25.2],[121.9,25],[121.5,22],[120.2,22.8]]
+  };
+  // путь по Китаю (склад → Урумчи) и ветки до границы и города назначения
+  var CN_LEG = [[120.07,29.31],[117,30.5],[114.3,30.6],[111.5,32.5],[108.9,34.3],[106,35],[103.8,36.1],[101.8,37.6],[98.5,39.7],[95.8,40.5],[93.5,42.8],[89.2,42.9],[87.6,43.8]];
+  var TO_KASHGAR = [[86.1,41.7],[83,41.7],[80.3,41.2],[77.5,40],[75.99,39.47]];
+  var VIA_OSH = [[73.95,39.7],[73.25,39.73],[72.8,40.53]];
+  var DEST = {
+    bishkek:  { k: "tk_c_bishkek",  b: "tk_bd_torugart",  pts: CN_LEG.concat(TO_KASHGAR, [[75.4,40.53],[75.99,41.43],[75.75,42.2],[75.2,42.75],[74.6,42.87]]), bp: [75.4,40.53] },
+    osh:      { k: "tk_c_osh",      b: "tk_bd_irkeshtam", pts: CN_LEG.concat(TO_KASHGAR, VIA_OSH), bp: [73.95,39.7] },
+    tashkent: { k: "tk_c_tashkent", b: "tk_bd_irkeshtam", pts: CN_LEG.concat(TO_KASHGAR, VIA_OSH, [[72.34,40.78],[70.94,40.53],[69.6,41],[69.24,41.3]]), bp: [73.95,39.7] },
+    dushanbe: { k: "tk_c_dushanbe", b: "tk_bd_irkeshtam", pts: CN_LEG.concat(TO_KASHGAR, [[73.95,39.7],[73.25,39.73],[71.6,39.45],[70.4,39],[68.78,38.56]]), bp: [73.95,39.7] },
+    almaty:   { k: "tk_c_almaty",   b: "tk_bd_khorgos",   pts: CN_LEG.concat([[86,44.3],[84,44.4],[80.4,44.2],[78,43.9],[76.9,43.25]]), bp: [80.4,44.2] }
+  };
+  // город назначения по тексту байера или адресу клиента; не узнали — карту не рисуем (не выдумываем маршрут)
+  function destKey(s) {
+    s = String(s || "").toLowerCase();
+    if (/(^|[^а-яёa-z])(ош|osh)([^а-яёa-z]|$)/.test(s)) return "osh";
+    if (/алмат|almaty|алма-ата|казахстан|kazakh/.test(s)) return "almaty";
+    if (/ташкент|tashkent|узбек|uzbek/.test(s)) return "tashkent";
+    if (/душанбе|dushanbe|таджик|tajik/.test(s)) return "dushanbe";
+    if (/бишкек|bishkek|кыргыз|киргиз|kyrgyz/.test(s)) return "bishkek";
+    return "";
+  }
+  // часть ломаной от начала до доли f её длины
+  function subLine(pts, f) {
+    var seg = [], total = 0, i;
+    for (i = 1; i < pts.length; i++) { var d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); total += d; }
+    var left = total * Math.max(0, Math.min(1, f)), out = [pts[0]];
+    for (i = 1; i < pts.length; i++) {
+      if (left >= seg[i - 1]) { out.push(pts[i]); left -= seg[i - 1]; continue; }
+      var r = seg[i - 1] ? left / seg[i - 1] : 0;
+      out.push([pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * r, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * r]);
+      break;
+    }
+    return out.map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; });
+  }
+  function reducedMotion() { try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; } }
+  // подпись-«пузырь» у точки: у краёв карты прижимается внутрь, чтобы не обрезаться; below — под точкой
+  function gPin(pt, cls, inner, below) {
+    var xy = gp(pt), x = xy[0] / GW * 100, y = xy[1] / GH * 100;
+    var ax = x < 30 ? -8 : x > 70 ? -92 : -50;
+    return '<span class="g-pin ' + cls + '" style="left:' + x.toFixed(2) + "%;top:" + y.toFixed(2) + "%;transform:translate(" + ax + "%," + (below ? "40%" : "-135%") + ')">' + inner + "</span>";
+  }
+
+  function geoMapHtml(key, endLabel, p, arrived, aria) {
+    var d = DEST[key], all = d.pts.map(gp), done = subLine(all, p), at = done[done.length - 1];
+    var still = reducedMotion();
+    var lbl = function (lon, lat, txt, cls) { var xy = gp([lon, lat]); return '<text x="' + xy[0] + '" y="' + xy[1] + '" class="g-lbl ' + (cls || "") + '">' + esc(txt) + "</text>"; };
+    var dot = function (pt) { var xy = gp(pt); return '<circle class="g-dot" cx="' + xy[0] + '" cy="' + xy[1] + '" r="2.6"/>'; };
+    return '<div class="tk-geo' + (arrived ? " is-arrived" : "") + '" role="img" aria-label="' + esc(aria) + '">' +
+      '<svg viewBox="0 0 ' + GW + " " + GH + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">' +
+        '<rect class="g-bg" width="' + GW + '" height="' + GH + '"/>' +
+        '<path class="g-sea" d="' + gPoly(GEO.sea) + '"/>' +
+        '<path class="g-land" d="' + gPoly(GEO.tw) + '"/>' +
+        '<path class="g-other" d="' + gPoly(GEO.kz) + gPoly(GEO.ca) + gPoly(GEO.mn) + '"/>' +
+        '<path class="g-cn" d="' + gPoly(GEO.cn) + '"/>' +
+        '<path class="g-kg" d="' + gPoly(GEO.kg) + '"/>' +
+        lbl(106, 27.3, t("tk_from_cn"), "g-big") + lbl(75.6, 41.75, t("tk_g_kg"), "g-kgl") + lbl(66.8, 44.6, t("tk_g_kz"), "g-left") +
+        dot([87.6, 43.8]) + dot([75.99, 39.47]) +
+        '<path class="g-route" d="' + gLine(all) + '"/>' +
+        '<path class="g-done" pathLength="1" d="' + gLine(done) + '"/>' +
+        '<g class="g-truck"' + (still ? ' transform="translate(' + at[0] + " " + at[1] + ')"' : "") + ">" +
+          (still ? "" : '<animateMotion dur="1.8s" begin="0.2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 0.7 0.2 1" path="' + gLine(done) + '"/>') +
+          '<circle class="g-truck-bg" r="15"/>' +
+          '<g transform="translate(-10 -10) scale(0.84)" class="g-truck-ico">' + P.truck + "</g>" +
+        "</g>" +
+      "</svg>" +
+      gPin(d.pts[0], "g-pin-start", "<i>" + svg("house", 13) + "</i><b>" + esc(t("tk_g_wh")) + "</b>", true) +
+      gPin(d.bp, "g-pin-border", "<b>" + esc(t(d.b)) + "</b>", true) +
+      gPin(d.pts[d.pts.length - 1], "g-pin-end", "<i>" + svg(arrived ? "check" : "flag", 13) + "</i><b>" + esc(endLabel) + "</b>", false) +
+    "</div>";
+  }
+
   // ---------- клиент: маршрут Китай → город (только этапы «отправлен», «прибыл», «по городу») ----------
   function routeHtml(o, dest) {
     var tr = transit(o), idx = tr.idx;
@@ -175,16 +262,21 @@
       if (tr.eta && idx === SHIPPED) rows += "<div><dt>" + esc(t("tk_eta_label")) + "</dt><dd>" + esc(tr.eta[0] === tr.eta[1] ? c.fmtDate(tr.eta[0]) : c.fmtDate(tr.eta[0]) + " – " + c.fmtDate(tr.eta[1])) + "</dd></div>";
       if (tr.ship) rows += "<div><dt>" + esc(t("tk_shipped_label")) + "</dt><dd>" + esc(c.fmtDate(tr.ship)) + "</dd></div>";
     }
+    // знакомый город назначения — карта Китай → Центральная Азия; иначе — простая схема (маршрут не выдумываем)
+    var gk = local ? "" : destKey(o.ship_to || dest);
+    var picture = gk
+      ? geoMapHtml(gk, String(o.ship_to || "").trim() || t(DEST[gk].k), idx === SHIPPED ? p : 1, idx === 6, t("tk_route_aria", { a: from, b: end }))
+      : '<div class="tk-map' + (idx === 6 ? " is-arrived" : "") + (local ? " is-local" : "") + '" style="--p:' + p.toFixed(3) + '" role="img" aria-label="' +
+          esc(t("tk_route_aria", { a: from, b: end })) + '">' +
+          '<span class="tk-end tk-end-a">' + svg(local ? "house" : "pin", 18) + "</span>" +
+          '<span class="tk-line"><span class="tk-fill"></span></span>' +
+          '<span class="tk-vehicle">' + svg(local ? "car" : "truck", 26) + "</span>" +
+          '<span class="tk-end tk-end-b">' + svg(local ? "home" : "flag", 18) + "</span>" +
+        "</div>" +
+        '<div class="tk-ends"><span>' + esc(from) + "</span><span>" + esc(end) + "</span></div>";
     return '<section class="client-block tk-route" aria-labelledby="tk-route-t"><h2 id="tk-route-t">' + esc(t(local ? "tk_route_local" : "tk_route")) + "</h2>" +
-      '<div class="tk-map' + (idx === 6 ? " is-arrived" : "") + (local ? " is-local" : "") + '" style="--p:' + p.toFixed(3) + '" role="img" aria-label="' +
-        esc(t("tk_route_aria", { a: from, b: end })) + '">' +
-        '<span class="tk-end tk-end-a">' + svg(local ? "house" : "pin", 18) + "</span>" +
-        '<span class="tk-line"><span class="tk-fill"></span></span>' +
-        '<span class="tk-vehicle">' + svg(local ? "car" : "truck", 26) + "</span>" +
-        '<span class="tk-end tk-end-b">' + svg(local ? "home" : "flag", 18) + "</span>" +
-      "</div>" +
-      '<div class="tk-ends"><span>' + esc(from) + "</span><span>" + esc(end) + "</span></div>" +
-      (rows ? '<dl class="tk-facts">' + rows + "</dl>" : "") +
+      picture +
+      (rows ?'<dl class="tk-facts">' + rows + "</dl>" : "") +
       (tr.late ? '<p class="tk-late" role="status">' + esc(t("tk_late")) + "</p>" : "") +
       '<p class="fine-print">' + esc(t("tk_approx")) + "</p></section>";
   }

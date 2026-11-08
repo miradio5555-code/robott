@@ -2129,6 +2129,18 @@ I18N.zh = {
   tk_e_both: "请同时填写最短和最长天数，或都留空。",
   tk_e_order: "最短天数不能大于最长天数。",
   tk_e_date: "请检查发货日期：不能是未来的日期。",
+  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  tk_g_wh: "中国仓库",
+  tk_g_kg: "吉尔吉斯斯坦",
+  tk_g_kz: "哈萨克斯坦",
+  tk_c_bishkek: "比什凯克",
+  tk_c_osh: "奥什",
+  tk_c_almaty: "阿拉木图",
+  tk_c_tashkent: "塔什干",
+  tk_c_dushanbe: "杜尚别",
+  tk_bd_torugart: "口岸：吐尔尕特",
+  tk_bd_irkeshtam: "口岸：伊尔克什坦",
+  tk_bd_khorgos: "口岸：霍尔果斯",
 };
 
 I18N.zh.wa_title = "消息";

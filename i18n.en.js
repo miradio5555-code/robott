@@ -2129,6 +2129,18 @@ I18N.en = {
   tk_e_both: "Fill in both “from” and “to”, or leave both empty.",
   tk_e_order: "“From” cannot be more than “to”.",
   tk_e_date: "Check the shipping date: it cannot be in the future.",
+  // карта маршрута Китай → Центральная Азия (js/tracking.js)
+  tk_g_wh: "Warehouse in China",
+  tk_g_kg: "Kyrgyzstan",
+  tk_g_kz: "Kazakhstan",
+  tk_c_bishkek: "Bishkek",
+  tk_c_osh: "Osh",
+  tk_c_almaty: "Almaty",
+  tk_c_tashkent: "Tashkent",
+  tk_c_dushanbe: "Dushanbe",
+  tk_bd_torugart: "Border: Torugart",
+  tk_bd_irkeshtam: "Border: Irkeshtam",
+  tk_bd_khorgos: "Border: Khorgos",
 };
 
 I18N.en.wa_title = "Messages";
