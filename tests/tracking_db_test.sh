@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================
-# ПРОВЕРКА ФАЙЛА 64 (путь заказа для клиента): bash tests/tracking_db_test.sh
+# ПРОВЕРКА ФАЙЛОВ 64 и 65 (путь заказа для клиента, обычный срок кабинета): bash tests/tracking_db_test.sh
 # Поля этапа и срока, ограничения, событие «этап» в истории, смена этапа без уведомлений, публичные ответы
 # без закрытых данных, изоляция кабинетов, повторный запуск и защита от старых файлов.
 # Нужен Docker Desktop и Node. Временная база; настоящая не затрагивается.
@@ -26,6 +26,9 @@ done
 echo "▶ Файл 64 и его повторный запуск…"
 run < migration_64_tracking_stages.sql >/dev/null || { echo "❌ файл 64 не запустился"; exit 1; }
 run < migration_64_tracking_stages.sql >/dev/null || { echo "❌ повторный запуск файла 64 упал"; exit 1; }
+echo "▶ Файл 65 (обычный срок кабинета) и его повторный запуск…"
+run < migration_65_transit_defaults.sql >/dev/null || { echo "❌ файл 65 не запустился"; exit 1; }
+run < migration_65_transit_defaults.sql >/dev/null || { echo "❌ повторный запуск файла 65 упал"; exit 1; }
 echo "▶ Сценарии…"
 ULA_PG_CONTAINER="$NAME" node tests/tracking_db_test.mjs
-echo "🎉 Путь заказа (файл 64) проверен"
+echo "🎉 Путь заказа (файлы 64 и 65) проверен"

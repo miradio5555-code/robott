@@ -2104,6 +2104,15 @@ I18N.vi = {
   tk_g_kz: "Kazakhstan",
   tk_c_bishkek: "Bishkek",
   tk_bd_kg: "Biên giới",
+  // срок доставки: Настройки и продление (js/tracking.js, файл 65)
+  tk_def_title: "Thời gian giao hàng cho khách",
+  tk_def_hint: "Khách thấy thời gian này ở mọi đơn chưa đặt thời gian riêng. Để trống là “10–20 ngày”.",
+  tk_def_save: "Lưu thời gian giao",
+  tk_def_saved: "Đã lưu thời gian giao",
+  tk_ext_label: "Gia hạn:",
+  tk_ext_btn: "+{n} ngày",
+  tk_ext_done: "Đã gia hạn: tối đa {n} ngày",
+  tk_ext_eta: "Thời gian được đặt bằng ngày trong mục “Thời hạn” — hãy đổi ngày ở đó.",
 };
 
 I18N.vi.wa_title = "Tin nhắn";

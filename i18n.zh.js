@@ -2132,6 +2132,15 @@ I18N.zh = {
   tk_g_kz: "哈萨克斯坦",
   tk_c_bishkek: "比什凯克",
   tk_bd_kg: "边境口岸",
+  // срок доставки: Настройки и продление (js/tracking.js, файл 65)
+  tk_def_title: "客户可见的运输时间",
+  tk_def_hint: "所有未单独设置时间的订单，客户都会看到这个时间。留空则显示“10–20 天”。",
+  tk_def_save: "保存运输时间",
+  tk_def_saved: "运输时间已保存",
+  tk_ext_label: "延长：",
+  tk_ext_btn: "+{n} 天",
+  tk_ext_done: "运输时间已延长：最多 {n} 天",
+  tk_ext_eta: "时间由“期限”中的日期设置，请在那里修改。",
 };
 
 I18N.zh.wa_title = "消息";

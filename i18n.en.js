@@ -2132,6 +2132,15 @@ I18N.en = {
   tk_g_kz: "Kazakhstan",
   tk_c_bishkek: "Bishkek",
   tk_bd_kg: "Border",
+  // срок доставки: Настройки и продление (js/tracking.js, файл 65)
+  tk_def_title: "Delivery time for clients",
+  tk_def_hint: "Clients see this time on every order without its own time. Empty means “10–20 days”.",
+  tk_def_save: "Save delivery time",
+  tk_def_saved: "Delivery time saved",
+  tk_ext_label: "Extend:",
+  tk_ext_btn: "+{n} d",
+  tk_ext_done: "Delivery time extended: up to {n} days",
+  tk_ext_eta: "The time is set by dates in the “Deadlines” block — change the dates there.",
 };
 
 I18N.en.wa_title = "Messages";
