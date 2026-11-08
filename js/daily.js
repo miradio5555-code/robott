@@ -117,6 +117,9 @@
       var d = k.details || {};
       if (k.kind === "payment_overdue") add("bad", "td_r_payment_overdue", { s: c.cur(d.balance, d.currency).replace(/&amp;/g, "&") }, o, "open", "td_btn_open");
     });
+    // 2а. уведомления клиентам, которые не ушли (очередь файла 57, видит только владелец): клиент не знает о смене статуса
+    var nqFailed = U.notifyq && U.notifyq.failed ? U.notifyq.failed() : 0;
+    if (nqFailed) items.push({ key: "nq", level: "bad", reason: t("td_r_nq_failed", { n: nqFailed }), o: null, act: "nq", label: t("td_btn_nq") });
     (serverTasks || []).forEach(function (k) {
       var o = orderById(k.order_id);
       if (!o) return;
@@ -146,7 +149,7 @@
     var o = it.o;
     return '<article class="td-item ' + it.level + '" data-td="' + i + '">' +
       '<div class="td-body"><p class="td-reason">' + esc(it.reason) + "</p>" +
-      '<p class="td-order"><b>№ ' + esc(o.order_number) + "</b> · " + esc(o.product_ru) + (who(o) ? " · " + esc(who(o)) : "") + "</p></div>" +
+      (o ? '<p class="td-order"><b>№ ' + esc(o.order_number) + "</b> · " + esc(o.product_ru) + (who(o) ? " · " + esc(who(o)) : "") + "</p>" : "") + "</div>" +
       '<button type="button" class="btn btn-primary td-btn" data-td-act="' + i + '"' + (state.readOnly && it.act !== "open" ? " disabled" : "") + ">" + esc(it.label) + "</button></article>";
   }
 
@@ -174,7 +177,8 @@
     var b = e.target.closest("[data-td-act]");
     if (!b) return;
     var it = current[Number(b.getAttribute("data-td-act"))];
-    if (it) c.runAction(it.act, it.o);
+    if (it && it.act === "nq") U.notifyq.open();
+    else if (it) c.runAction(it.act, it.o);
   }
 
   // ---------- часовой пояс ----------

@@ -646,6 +646,9 @@ input[type="file"] { min-height: 0; padding: 0; border: 0; }
 }
 .client-row-name { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
 .client-row-date { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.client-row-sum { margin-top: 4px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.client-row-sum .cl-debt { color: var(--ink); font-weight: 700; }
+.client-row-sum .cl-debt-bad { color: var(--red); font-weight: 700; }
 .client-row-contacts { display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
 .client-row-contacts a { font-weight: 700; text-decoration: none; }
 .client-row-contacts a:hover { text-decoration: underline; }

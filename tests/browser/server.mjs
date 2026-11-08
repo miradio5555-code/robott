@@ -2,7 +2,7 @@
 // СТЕНД ДЛЯ ПРОВЕРКИ САЙТА В БРАУЗЕРЕ (ничего не отправляет наружу, настоящая база не нужна).
 //   node tests/browser/server.mjs [порт]      → http://127.0.0.1:8765/index.html?scn=veteran
 // Настоящий index.html, app.js и стили, но вместо Supabase — поддельный клиент (tests/browser/fake_supabase.js),
-// который обращается к этому серверу. Данные — в памяти, по сценариям: empty, new1, veteran, staff, fxoff, fxoff0, clients, no55, no54.
+// который обращается к этому серверу. Данные — в памяти, по сценариям: empty, new1, veteran, staff, fxoff, fxoff0, clients, no55, no54, nqfail.
 // Правила сервера повторяют файлы 56–59 в нужных местах (клиент заказа, пояс, модули, профиль), но это МОДЕЛЬ, а не база:
 // настоящие правила проверяет tests/run_db_tests.sh.
 // =====================================================
@@ -64,6 +64,7 @@ function build(scn) {
     // 5 новых заявок
     for (let k = 0; k < 5; k++) mkOrder({ client_name: `Заявка ${k + 1}`, source: "request", status: "new", product_ru: `Заявка-товар ${k + 1}` });
   }
+  if (scn === "nqfail") db.orders[3].supplier_link = "https://detail.1688.com/offer/777123.html";   // поиск по ссылке на товар
   if (scn === "new1") {
     mkOrder({ client_name: "Айбек", product_ru: "Кроссовки", source: "request", status: "new" });
   }
@@ -270,7 +271,11 @@ function rpc(db, name, a) {
       return ok(out.slice(0, 20)); }
     case "client_wallet_review": case "wallet_reconcile": return ok([]);
     case "wallet_totals": return ok([]);
-    case "notify_queue_list": return ok({ counts: { pending: 0, failed: 0, sent_7d: 0, skipped_7d: 0 }, items: [] });
+    case "notify_queue_list": {   // сценарий nqfail: два сообщения клиентам не ушли
+      if (db.scn !== "nqfail") return ok({ counts: { pending: 0, failed: 0, sent_7d: 0, skipped_7d: 0 }, items: [] });
+      const it = (id, n) => ({ id, status: "failed", to_status: "arrived", order_number: n, attempts: 5, max_attempts: 5, last_error: "telegram_403", created_at: iso(NOW()), history: [] });
+      return ok({ counts: { pending: 0, failed: 2, sent_7d: 7, skipped_7d: 0 }, items: [it("nq1", "CN-0001"), it("nq2", "CN-0002")] });
+    }
   }
   return err(`Could not find the function public.${name}`, "PGRST202");
 }

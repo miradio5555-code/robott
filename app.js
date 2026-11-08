@@ -949,6 +949,7 @@
     decideSimple();
     applySimpleMode();
     if (ULA.daily) { ULA.daily.applyModules(); ULA.daily.render(); }
+    if (ULA.notifyq) ULA.notifyq.refresh();   // ошибки уведомлений клиентам — строкой в «Сегодня» (только владелец, файл 57)
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
     ULA.live.watch(ws.id);      // новое в кабинете появляется само (файл 49)
   }
@@ -1798,7 +1799,7 @@
       if (state.to && o.order_date > state.to) return false;
       if (!q) return true;
       var c = o.client || {};
-      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat, o.tracking_number,
+      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat, o.supplier_link, o.tracking_number,
         c.name, c.phone, c.telegram, c.city]
         .filter(Boolean).join(" ").toLowerCase();
       if (hay.indexOf(q) !== -1) return true;
@@ -2362,6 +2363,9 @@
       return;
     }
     empty.classList.add("hidden");
+    // долг клиента — тем же расчётом, что раздел «Долги» (только заказы с ценой для клиента, по валютам)
+    clientDebts = {};
+    if (ULA.debts && ULA.debts._collect) ULA.debts._collect().forEach(function (g) { if (g.clientId) clientDebts[g.clientId] = g; });
     box.innerHTML = list.map(clientRowHtml).join("");
   }
 
@@ -2488,6 +2492,17 @@
     }
   }
 
+  var clientDebts = {};
+  // сводка клиента: заказов всего и в работе, долг (красным — если просрочен, как в «Долгах»)
+  function clientSummaryHtml(c, orders) {
+    if (!orders.length) return "";
+    var active = orders.filter(function (o) { return CLOSED.indexOf(o.status) === -1; }).length;
+    var g = clientDebts[c.id];
+    var debt = g ? Object.keys(g.totals).map(function (code) { return cur(g.totals[code], code); }).join(" + ") : "";
+    return '<div class="client-row-sum">' + esc(t("cl_sum", { n: orders.length, a: active })) +
+      (debt ? ' · <span class="' + (g.overdue ? "cl-debt-bad" : "cl-debt") + '">' + esc(t("wl_debt")) + ": " + debt + "</span>" : "") + "</div>";
+  }
+
   function clientRowHtml(c) {
     var orders = (c.orders || []).slice().sort(function (a, b) {
       return String(b.order_date).localeCompare(String(a.order_date));
@@ -2501,6 +2516,7 @@
         "<div>" +
           '<div class="client-row-name">' + esc(c.name) + "</div>" +
           '<div class="client-row-date">' + esc(t("l_added")) + ": " + fmtDate(c.created_at) + "</div>" +
+          clientSummaryHtml(c, orders) +
         "</div>" +
         '<div class="client-row-contacts">' + (c.phone ? phoneLink(c.phone) : "") + (c.telegram ? telegramLink(c.telegram) : "") +
           (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.id), c.name) : "") + "</div>" +

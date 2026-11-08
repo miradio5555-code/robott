@@ -6,7 +6,7 @@
 // (строка возвращается в ту же очередь, действие остаётся в истории). Другим ролям раздел не показывается.
 // Без файла 57 раздела нет.
 //
-// ULA.notifyq: refresh()
+// ULA.notifyq: refresh(), failed() — сколько с ошибкой (для «Сегодня»), open()
 // =====================================================
 (function (U) {
   "use strict";
@@ -39,13 +39,18 @@
     }).catch(function (e) { return { error: e }; });
   }
 
+  // сколько сообщений не ушло — для «Сегодня» (0, пока список не загружен или раздела нет)
+  function failed() { return (data && data._ws === wsId() && data.counts && data.counts.failed) || 0; }
+
   function refresh() {
     var sec = $("#nq-section");
     if (!sec) return Promise.resolve();
+    var before = failed(), ws = wsId();
     return fetchList().then(function (r) {
-      if (!r) { sec.classList.add("hidden"); return; }
-      if (r.error) { sec.classList.add("hidden"); return; }   // файл 57 не запущен
-      data = r.data;
+      if (!r || r.error) { data = null; sec.classList.add("hidden"); }   // не владелец или файл 57 не запущен
+      else { data = r.data || {}; data._ws = ws; }
+      if (failed() !== before && U.daily) U.daily.render();
+      if (!data) return;
       sec.classList.remove("hidden");
       var k = data.counts || {};
       $("#nq-summary").innerHTML = esc(t("nq_pending", { n: k.pending || 0 })) + " · " + esc(t("nq_sent", { n: k.sent_7d || 0 })) + " · " +
@@ -122,5 +127,5 @@
     else refresh();
   });
 
-  U.notifyq = { refresh: refresh };
+  U.notifyq = { refresh: refresh, failed: failed, open: open };
 })(window.ULA);
