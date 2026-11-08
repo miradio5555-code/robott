@@ -20,13 +20,23 @@ jobs:
         with:
           node-version: 20
       - run: node tests/check_web.js
+      - run: node tests/tracking_test.mjs
       - run: python3 -m unittest discover -s integrations/whatsapp -p "test_*.py"
       - run: node --check scripts/backup_supabase_storage.mjs
+      - run: node --check scripts/restore_supabase_storage.mjs
+      - run: bash -n scripts/make_backup.sh
+      - run: node --check supabase/functions/_shared/order_notify.js
 
   db:
     name: База
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || contains(join(github.event.commits.*.modified, ','), '.sql') || contains(join(github.event.commits.*.added, ','), '.sql')
+    if: github.event_name == 'pull_request' || contains(join(github.event.commits.*.modified, ','), '.sql') || contains(join(github.event.commits.*.added, ','), '.sql') || contains(join(github.event.commits.*.modified, ','), 'supabase/') || contains(join(github.event.commits.*.modified, ','), 'tests/')
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: bash tests/run_db_tests.sh

@@ -22,7 +22,8 @@ self.addEventListener("install", function (e) {
       return fetch(PAGE, { cache: "no-cache" }).then(function (r) {
         if (!r.ok) return;
         return r.clone().text().then(function (html) {
-          return c.put(PAGE, r).then(function () { return c.addAll(assetsOf(html)).catch(function () {}); });
+          // Страницу сохраняем только вместе с её файлами, иначе офлайн она будет без оформления.
+          return c.addAll(assetsOf(html)).then(function () { return c.put(PAGE, r); }).catch(function () {});
         });
       });
     }).then(function () { return self.skipWaiting(); })
@@ -33,7 +34,7 @@ self.addEventListener("install", function (e) {
 self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+      return Promise.all(keys.filter(function (k) { return k.indexOf("ula-") === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
@@ -47,17 +48,6 @@ function assetsOf(html) {
     if (/\?v=|^fonts\/|^img\/|^supabase\.js$|^manifest\.webmanifest$/.test(u)) out[u] = 1;
   }
   return Object.keys(out);
-}
-
-// Файлы прошлых версий (?v=старая) больше не нужны — удалить, чтобы не занимали место
-function dropOld(c, html) {
-  var v = versionOf(html);
-  return c.keys().then(function (reqs) {
-    return Promise.all(reqs.filter(function (r) {
-      var m = /[?&]v=([0-9a-zA-Z]+)/.exec(r.url);
-      return m && m[1] !== v;
-    }).map(function (r) { return c.delete(r); }));
-  });
 }
 
 function versionOf(html) {
@@ -116,32 +106,33 @@ self.addEventListener("fetch", function (e) {
 
 // Страница: сразу из памяти; в фоне — свежая. Вышла новая версия — сообщить вкладке.
 function openPage(e) {
-  return caches.open(CACHE).then(function (c) {
-    return c.match(PAGE).then(function (hit) {
-      var old = hit ? hit.clone() : null; // копия: сам hit уйдёт на экран
-      var fresh = fetch(PAGE, { cache: "no-cache" }).then(function (r) {
-        if (!r.ok) return r;
-        var copy = r.clone();
-        return Promise.all([copy.text(), old ? old.text() : ""]).then(function (t) {
-          var nv = versionOf(t[0]);
-          return c.put(PAGE, r.clone()).then(function () {
-            if (hit && nv && nv !== versionOf(t[1])) {
-              // заранее скачать файлы новой версии, потом предложить обновить
-              var keep = assetsOf(t[0]);
-              return c.addAll(keep).catch(function () {}).then(function () { return dropOld(c, t[0]); }).then(function () {
-                return self.clients.get(e.resultingClientId || e.clientId);
-              }).then(function (cl) {
-                if (cl) cl.postMessage({ type: "ula-update", version: nv });
-              });
-            }
-          }).then(function () { return r; });
+  var cache = caches.open(CACHE);
+  var hit = cache.then(function (c) { return c.match(PAGE); }).then(function (r) {
+    // Отдельная копия нужна, пока открытая вкладка читает прежнюю страницу.
+    return r ? { response: r, copy: r.clone() } : null;
+  });
+  var fresh = fetch(PAGE, { cache: "no-cache" }).then(function (r) {
+    return { response: r, page: r.clone(), html: r.clone() };
+  });
+  // Обновление кеша идёт в фоне; старые файлы остаются для уже открытых вкладок.
+  var update = Promise.all([cache, hit, fresh]).then(function (items) {
+    var c = items[0], old = items[1], f = items[2];
+    if (!f.response.ok) return;
+    return Promise.all([f.html.text(), old ? old.copy.text() : ""]).then(function (texts) {
+      var nv = versionOf(texts[0]), ov = versionOf(texts[1]);
+      if (old && nv === ov) return c.put(PAGE, f.page);
+      // Сначала скачиваем все файлы, только потом меняем сохранённую страницу.
+      return c.addAll(assetsOf(texts[0])).then(function () { return c.put(PAGE, f.page); }).then(function () {
+        if (!old || !nv || nv === ov) return;
+        return self.clients.get(e.resultingClientId || e.clientId).then(function (cl) {
+          if (cl) cl.postMessage({ type: "ula-update", version: nv });
         });
       });
-      if (hit) {
-        e.waitUntil(fresh.catch(function () {}));
-        return hit;
-      }
-      return fresh.catch(function () { return new Response("Offline", { status: 503 }); });
     });
+  });
+  e.waitUntil(update.catch(function () {}));
+  return hit.then(function (old) {
+    if (old) return old.response;
+    return fresh.then(function (f) { return f.response; }).catch(function () { return new Response("Offline", { status: 503 }); });
   });
 }

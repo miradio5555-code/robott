@@ -1,76 +1,74 @@
 # Ночная копия базы и всех файлов Supabase Storage (03:00 по Бишкеку).
 # Копия зашифрована; GitHub хранит её 30 дней в Actions → «Копия базы» → Artifacts.
 #
+# Три результата запуска:
+#   ✅ зелёная галочка  — копия создана, расшифрована и проверена; в сводке запуска указан размер;
+#   🔴 «КОПИРОВАНИЕ НЕ НАСТРОЕНО» — не заданы секреты, копии нет (запуск красный намеренно);
+#   🔴 «ОШИБКА КОПИРОВАНИЯ»       — секреты есть, но что-то сломалось, копии нет.
+#
 # Включить (один раз): GitHub → репозиторий → Settings → Secrets and variables → Actions → New repository secret:
 #   SUPABASE_DB_URL  — Supabase → Connect → «Session pooler» (порт 5432), строка с вашим паролем базы
 #   SUPABASE_URL     — адрес проекта, заканчивается на .supabase.co
 #   SUPABASE_SERVICE_ROLE_KEY — старый секретный service_role JWT из Supabase → Settings → API Keys (начинается на eyJ)
 #   BACKUP_PASSWORD  — придумайте длинный пароль и сохраните отдельно: без него копию не открыть
 # Важно: service_role даёт полный доступ. Вставляйте его только в GitHub Secrets, не в код и не в чат.
-# Пока все четыре секрета не заданы, копия пропускается.
 #
-# Внутри архива: дамп базы, все файлы из Storage и manifest.json с перечнем хранилищ и файлов.
+# Внутри архива: database.dump (схемы public и auth), storage-buckets.sql, storage-policies.sql,
+# папка storage/ со всеми файлами и manifest.json. Как восстановить — в BACKUP.md.
 name: Копия базы
 
 permissions:
   contents: read
-  actions: write
 
 on:
   schedule:
     - cron: "0 21 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
 jobs:
   backup:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      SB_URL: ${{ secrets.SUPABASE_URL }}
-      SB_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - name: Секреты заданы?
-        id: on
-        run: |
-          missing=()
-          [ -n "$DB_URL" ] || missing+=(SUPABASE_DB_URL)
-          [ -n "$SB_URL" ] || missing+=(SUPABASE_URL)
-          [ -n "$SB_SERVICE_ROLE_KEY" ] || missing+=(SUPABASE_SERVICE_ROLE_KEY)
-          [ -n "$BACKUP_PASSWORD" ] || missing+=(BACKUP_PASSWORD)
-          if [ "${#missing[@]}" -eq 0 ]; then
-            echo "ok=1" >> "$GITHUB_OUTPUT"
-          else
-            echo "Не заданы Secrets: ${missing[*]}. Копию пока не делаю."
-          fi
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
-        if: steps.on.outputs.ok == '1'
         with:
           node-version: 20
-      - name: Скачать базу, фото и файлы
-        if: steps.on.outputs.ok == '1'
+      - name: Сделать и проверить копию
+        id: backup
+        shell: bash
         run: |
-          set -euo pipefail
-          TMP_DIR="$RUNNER_TEMP/ula-backup"
-          DAY="$(date -u +%F)"
-          ARCHIVE="ula-${DAY}.tar.gz"
-          trap 'rm -rf "$TMP_DIR" "$GITHUB_WORKSPACE/$ARCHIVE"' EXIT
-          mkdir -p "$TMP_DIR"
-          docker run --rm -e DB_URL -v "$TMP_DIR:/out" postgres:17 \
-            sh -ec 'pg_dump "$DB_URL" -Fc --no-owner --no-privileges -n public -n auth -f /out/database.dump'
-          test -s "$TMP_DIR/database.dump"
-          SUPABASE_URL="$SB_URL" SUPABASE_SERVICE_ROLE_KEY="$SB_SERVICE_ROLE_KEY" \
-            node scripts/backup_supabase_storage.mjs "$TMP_DIR/storage"
-          tar -C "$TMP_DIR" -czf "$GITHUB_WORKSPACE/$ARCHIVE" database.dump storage
-          printf '%s\n' "$BACKUP_PASSWORD" | gpg --batch --yes --pinentry-mode loopback \
-            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
-            --output "$GITHUB_WORKSPACE/${ARCHIVE}.gpg" "$GITHUB_WORKSPACE/$ARCHIVE"
-          rm -f "$GITHUB_WORKSPACE/$ARCHIVE"
-          ls -lh "$GITHUB_WORKSPACE/${ARCHIVE}.gpg"
+          set +e
+          bash scripts/make_backup.sh "$RUNNER_TEMP/out"
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "Копия создана и проверена." >> "$GITHUB_STEP_SUMMARY"
+            ls -lh "$RUNNER_TEMP/out" | tail -n +2 >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$code" -eq 78 ]; then
+            echo "::error title=Копирование не настроено::Не заданы секреты Supabase/BACKUP_PASSWORD. Копия НЕ создана. Инструкция: BACKUP.md."
+            echo "### 🔴 КОПИРОВАНИЕ НЕ НАСТРОЕНО — копия не создана" >> "$GITHUB_STEP_SUMMARY"
+            echo "Добавьте четыре секрета (см. BACKUP.md) и запустите задачу вручную." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          else
+            echo "::error title=Ошибка копирования::Копия НЕ создана (код $code). Смотрите журнал шага."
+            echo "### 🔴 ОШИБКА КОПИРОВАНИЯ — копия не создана" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
-        if: steps.on.outputs.ok == '1'
         with:
           name: ula-db-${{ github.run_id }}
-          path: "ula-*.tar.gz.gpg"
+          path: ${{ runner.temp }}/out/ula-*.tar.gz.gpg
           retention-days: 30
+          if-no-files-found: error

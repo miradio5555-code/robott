@@ -2,7 +2,7 @@
 (function (U) {
   "use strict";
   var c = U.core, $ = c.$, esc = c.esc, state = c.state;
-  var requestNumber = 0;
+  var requestNumber = 0, workspaceRequest = 0, selectedWorkspace = "", retryWorkspaces = false;
 
   function iso(d) {
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -50,14 +50,14 @@
       card(t("bi_delayed"), esc(t("bi_insufficient")), t("bi_missing_deadline")) + '</div>';
     body += '<p class="bi-note">' + esc(t("bi_currency_note")) + '</p>';
     body += data.currencies && data.currencies.length ? data.currencies.map(financial).join("") : '<p class="state-box">' + esc(t("bi_empty")) + '</p>';
-    body += '<h2 class="bi-section-title">' + esc(t("bi_more_metrics")) + '</h2><div class="bi-grid">' +
+    body += '<details class="bi-unavailable"><summary>' + esc(t("bi_more_metrics")) + '</summary><div class="bi-grid">' +
       card(t("bi_suppliers"), esc(t("bi_insufficient")), t("bi_suppliers_missing")) +
       card(t("bi_retention"), esc(t("bi_insufficient")), t("bi_retention_missing")) +
-      card(t("bi_logistics"), esc(t("bi_insufficient")), t("bi_logistics_missing")) + '</div>';
+      card(t("bi_logistics"), esc(t("bi_insufficient")), t("bi_logistics_missing")) + '</div></details>';
     $("#bi-body").innerHTML = body;
   }
   // Показываем понятную причину и безопасный код ошибки без данных клиента.
-  function showError(error, status) {
+  function showError(error, status, target) {
     var code = String(error && error.code || "");
     var key = "bi_load_error";
     if (status === 401 || code === "PGRST301") key = "bi_login_error";
@@ -66,13 +66,16 @@
     else if (typeof navigator !== "undefined" && navigator.onLine === false) key = "bi_network_error";
     var safeCode = /^[A-Z0-9]{3,12}$/i.test(code) ? code : "";
     var suffix = safeCode || (status >= 400 && status <= 599 ? "HTTP " + status : "");
-    $("#bi-body").textContent = t(key) + (suffix ? " (" + suffix + ")" : "");
+    $(target || "#bi-body").textContent = t(key) + (suffix ? " (" + suffix + ")" : "");
+    retryWorkspaces = target === "#bi-status";
+    $("#bi-retry").classList.remove("hidden");
   }
   async function load() {
-    if (!state.me || state.me.role !== "admin" || !state.ws || !c.db()) return;
+    if (!state.me || state.me.role !== "admin" || !selectedWorkspace || !c.db()) return;
     var from = $("#bi-from").value, to = $("#bi-to").value;
     if (!from || !to || from > to) { $("#bi-body").textContent = t("bi_bad_dates"); return; }
-    var requestId = ++requestNumber, workspaceId = state.ws.id;
+    var requestId = ++requestNumber, workspaceId = selectedWorkspace;
+    $("#bi-retry").classList.add("hidden");
     $("#bi-body").textContent = t("loading");
     var result;
     try {
@@ -81,26 +84,65 @@
       if (requestId === requestNumber) showError(null, 0);
       return;
     }
-    if (requestId !== requestNumber || !state.ws || state.ws.id !== workspaceId || state.tab !== "business") return;
+    if (requestId !== requestNumber || selectedWorkspace !== workspaceId || state.tab !== "business") return;
     if (result.error || !result.data) { showError(result.error, result.status || 0); return; }
     try { render(result.data); }
-    catch (e) { $("#bi-body").textContent = t("bi_render_error"); }
+    catch (e) { $("#bi-body").textContent = t("bi_render_error"); retryWorkspaces = false; $("#bi-retry").classList.remove("hidden"); }
   }
-  function open() {
+  async function open() {
     if (!state.me || state.me.role !== "admin") return;
-    $("#bi-no-workspace").classList.toggle("hidden", !!state.ws);
-    $("#bi-content").classList.toggle("hidden", !state.ws);
-    if (!state.ws) { requestNumber++; return; }
-    $("#bi-workspace").textContent = t("bi_workspace", { name: state.ws.name });
     if (!$("#bi-from").value) { $("#bi-period").value = "30"; setPeriod(); }
-    load();
+    var current = ++workspaceRequest, select = $("#bi-workspace-select"), list = [];
+    requestNumber++;
+    $("#bi-retry").classList.add("hidden");
+    select.disabled = true;
+    $("#bi-content").classList.add("hidden");
+    $("#bi-no-workspace").classList.add("hidden");
+    $("#bi-status").textContent = t("loading");
+    try {
+      for (var from = 0; ; from += 1000) {
+        // Только название и ID: личные контакты байеров здесь не нужны.
+        var result = await c.db().from("workspaces").select("id,name").order("name").order("id").range(from, from + 999);
+        if (current !== workspaceRequest || state.tab !== "business") return;
+        if (result.error) { showError(result.error, result.status || 0, "#bi-status"); return; }
+        var page = result.data || [];
+        list = list.concat(page);
+        if (page.length < 1000) break;
+      }
+      var preferred = selectedWorkspace || (state.ws && state.ws.id) || "";
+      if (!list.some(function (item) { return item.id === preferred; })) preferred = "";
+      select.innerHTML = '<option value="">' + esc(t("bi_select_workspace")) + '</option>' + list.map(function (item) {
+        return '<option value="' + esc(item.id) + '">' + esc(item.name) + '</option>';
+      }).join("");
+      select.value = preferred;
+      select.disabled = !list.length;
+      selectedWorkspace = preferred;
+      $("#bi-status").textContent = list.length ? "" : t("bi_no_workspaces");
+      $("#bi-content").classList.toggle("hidden", !preferred);
+      $("#bi-no-workspace").classList.toggle("hidden", !!preferred || !list.length);
+      if (preferred) load();
+    } catch (e) {
+      if (current === workspaceRequest && state.tab === "business") showError(null, 0, "#bi-status");
+    }
   }
   function bind() {
-    $("#bi-buyers").addEventListener("click", function () { c.switchTab("buyers"); });
-    $("#bi-period").addEventListener("change", function () { setPeriod(); if (this.value !== "custom") load(); });
+    $("#bi-workspace-select").addEventListener("change", function () {
+      selectedWorkspace = this.value;
+      requestNumber++;
+      $("#bi-retry").classList.add("hidden");
+      $("#bi-content").classList.toggle("hidden", !selectedWorkspace);
+      $("#bi-no-workspace").classList.toggle("hidden", !!selectedWorkspace);
+      if (selectedWorkspace) load();
+    });
+    $("#bi-period").addEventListener("change", function () {
+      $("#bi-custom-dates").classList.toggle("hidden", this.value !== "custom");
+      setPeriod();
+      if (this.value !== "custom") load();
+    });
     $("#bi-from").addEventListener("change", function () { $("#bi-period").value = "custom"; });
     $("#bi-to").addEventListener("change", function () { $("#bi-period").value = "custom"; });
     $("#bi-apply").addEventListener("click", load);
+    $("#bi-retry").addEventListener("click", function () { if (retryWorkspaces) open(); else load(); });
   }
   U.business = { bind: bind, open: open };
 })(window.ULA);

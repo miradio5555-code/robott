@@ -43,6 +43,7 @@
     invites: [],            // для админа: действующие приглашения
     clients: [],
     clientsQ: "",
+    clientsAll: false,
     clientsLoading: false,
     suppliers: [],
     suppliersQ: "",
@@ -50,7 +51,7 @@
     supplierEditing: null
   };
 
-  var form = { editing: null, existing: [], removed: [], pending: [], saving: false };
+  var form = { editing: null, existing: [], removed: [], pending: [], saving: false, clientId: null, snapshot: null };
   var lb = { urls: [], i: 0 };
   var toastTimer = null;
 
@@ -266,17 +267,27 @@
   function photoUrls(o) {
     return sortedPhotos(o).map(function (p) { return photoUrl(p.storage_path); });
   }
-  // Клиенты, подписанные на заказ в Telegram, получают новый статус сами (функция telegram-notify).
-  // Зовём только для заказов, где кто-то подписан; ответ — сколько сообщений ушло.
+  // Клиенты, подписанные на заказ в Telegram, получают новый статус от СЕРВЕРА: смена статуса и сообщение попадают в очередь
+  // в одной транзакции, отправляет обработчик order-notify-worker (файл 53), сайт для этого не нужен.
+  // Прежний вызов из браузера остался только как запасной путь для базы, где файла 53 ещё нет: при наличии очереди
+  // сайт ничего не отправляет (а старая функция telegram-notify при очереди тоже ничего не отправляет — дублей нет).
+  var queueProbe = null;
+  function hasNotifyQueue() {
+    if (!queueProbe) queueProbe = Promise.resolve(db.rpc("notify_queue_enabled")).then(function (r) { return !r.error && r.data === true; }).catch(function () { return false; });
+    return queueProbe;
+  }
   function tgNotify(ids) {
     var list = (ids || []).filter(function (id) {
       var o = state.orders.filter(function (x) { return x.id === id; })[0];
       return o && o.tg_subs && o.tg_subs.length;
     });
     if (!list.length || !db || state.readOnly) return;
-    db.functions.invoke("telegram-notify", { body: { action: "order_status", ids: list } }).then(function (res) {
-      var n = res && res.data && res.data.sent;
-      if (n > 0) toast(t("tgc_sent", { n: n }), "ok");
+    hasNotifyQueue().then(function (queued) {
+      if (queued) return;   // очередь есть: сообщение уже поставлено сервером вместе со статусом
+      return db.functions.invoke("telegram-notify", { body: { action: "order_status", ids: list } }).then(function (res) {
+        var n = res && res.data && res.data.sent;
+        if (n > 0) toast(t("tgc_sent", { n: n }), "ok");
+      });
     }).catch(function () { /* не получилось — байер всё равно может написать вручную */ });
   }
 
@@ -339,7 +350,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261202r"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261208b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -537,15 +548,29 @@
       var c = e.target.closest("[data-close]");
       if (c) {
         var m = c.closest(".modal");
-        if (m) closeModal(m.id);
+        if (m) requestClose(m.id);
       }
     });
 
     document.addEventListener("keydown", function (e) {
+      if (e.key === "Tab") {
+        var openM = $$(".modal.open");
+        var top = openM[openM.length - 1];
+        if (top && !$("#lightbox").classList.contains("open")) {
+          var fs = focusables(top);
+          if (fs.length) {
+            var first = fs[0], last = fs[fs.length - 1], a = document.activeElement;
+            if (!top.contains(a)) { e.preventDefault(); first.focus(); }
+            else if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+          }
+        }
+        return;
+      }
       if (e.key === "Escape") {
         if ($("#lightbox").classList.contains("open")) { closeLightbox(); return; }
         var open = $$(".modal.open").filter(function (m) { return m.id !== "modal-onboard"; });
-        if (open.length) closeModal(open[open.length - 1].id);
+        if (open.length) requestClose(open[open.length - 1].id);
       } else if ($("#lightbox").classList.contains("open")) {
         if (e.key === "ArrowLeft") lbStep(-1);
         if (e.key === "ArrowRight") lbStep(1);
@@ -595,6 +620,7 @@
       renderSuppliers();
       renderBuyers();
       renderWarehouse();
+      if (state.tab === "business" && ULA.business) ULA.business.open();
       if (state.tab === "quote") ULA.quote.render();
       renderWsBanner();
       if ($("#modal-detail").classList.contains("open")) renderDetail();
@@ -616,11 +642,30 @@
     document.body.classList.toggle("no-scroll", any);
   }
 
+  // Фокус в окнах: при открытии уходит внутрь окна, Tab не выходит за окно, при закрытии возвращается на кнопку, открывшую его
+  var modalOpeners = {};
+  var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+  function focusables(m) {
+    return $$(FOCUSABLE, m).filter(function (e) { return e.offsetParent !== null && !e.closest("[data-close].modal-backdrop"); });
+  }
   function openModal(id) {
     var m = $("#" + id);
+    var ae = document.activeElement;
+    if (!m.classList.contains("open") && ae && ae !== document.body && !m.contains(ae)) modalOpeners[id] = ae;
     m.classList.add("open");
     m.setAttribute("aria-hidden", "false");
+    var sheet = m.querySelector(".modal-sheet") || m;
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-modal", "true");
+    var head = sheet.querySelector("h1, h2, h3");
+    if (head && !sheet.getAttribute("aria-label")) { if (!head.id) head.id = id + "-title"; sheet.setAttribute("aria-labelledby", head.id); }
     updateScrollLock();
+    setTimeout(function () {
+      if (!m.classList.contains("open") || m.contains(document.activeElement)) return;
+      var f = focusables(m).filter(function (e) { return !e.hasAttribute("data-close"); })[0] || focusables(m)[0];
+      if (!f) { sheet.setAttribute("tabindex", "-1"); f = sheet; }
+      try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }, 30);
   }
 
   function closeModal(id) {
@@ -630,6 +675,11 @@
     if (id === "modal-detail") state.detailId = null;
     if (id === "modal-order") releasePending();
     updateScrollLock();
+    var back = modalOpeners[id];
+    delete modalOpeners[id];
+    if (back && document.body.contains(back) && back.offsetParent !== null && !$$(".modal.open").length) {
+      try { back.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }
   }
 
   function openLightbox(urls, i) {
@@ -896,8 +946,11 @@
     await Promise.all([loadOrders(), loadSuppliers(), loadCountry(ws)]);
     ULA.board.load();           // новости и курс ULA на главной
     ULA.exchange.loadCount();   // значок новых заявок на обмен в меню
+    if (ULA.daily) { await Promise.all([ULA.daily.loadPrefs(), ULA.daily.loadModules()]); ULA.daily.resetToday(); }   // файл 55: режим из профиля, модули кабинета
     decideSimple();
     applySimpleMode();
+    if (ULA.daily) { ULA.daily.applyModules(); ULA.daily.render(); }
+    if (ULA.notifyq) ULA.notifyq.refresh();   // ошибки уведомлений клиентам — строкой в «Сегодня» (только владелец, файл 57)
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
     ULA.live.watch(ws.id);      // новое в кабинете появляется само (файл 49)
   }
@@ -1223,6 +1276,8 @@
 
     // клиенты: поиск, выгрузка, клик по номеру заказа
     $("#clients-search").addEventListener("input", function (e) { state.clientsQ = e.target.value; renderClients(); });
+    var nbtn = $("#clients-nocard-btn");
+    if (nbtn) nbtn.addEventListener("click", function () { state.clientsAll = !state.clientsAll; renderClients(); });
     $("#clients-export").addEventListener("click", exportClientsCsv);
     $("#clients").addEventListener("click", function (e) {
       var b = e.target.closest("[data-order-id]");
@@ -1274,6 +1329,20 @@
       var short = !$("#order-form").classList.contains("form-short");
       try { localStorage.setItem("ula_form_full", short ? "0" : "1"); } catch (e) { /* ignore */ }
       setFormShort(short);
+    });
+    // несохранённые изменения, выбор клиента, снятие пометок ошибок
+    $("#f-unsaved-keep").addEventListener("click", function () { $("#f-unsaved").classList.add("hidden"); });
+    $("#f-unsaved-drop").addEventListener("click", function () { $("#f-unsaved").classList.add("hidden"); form.snapshot = null; closeModal("modal-order"); });
+    $("#f-status").addEventListener("change", applyFormStage);
+    $("#order-form").addEventListener("input", function (e) { clearFieldError(e.target); });
+    $("#f-client_search").addEventListener("input", renderClientPick);
+    $("#f-client-clear").addEventListener("click", function () { setPickedClient(null); });
+    $("#f-client-results").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-pick]");
+      if (b) setPickedClient(b.getAttribute("data-pick"));
+    });
+    window.addEventListener("beforeunload", function (e) {
+      if ($("#modal-order").classList.contains("open") && formDirty()) { e.preventDefault(); e.returnValue = ""; }
     });
     $("#f-purchase_currency").addEventListener("change", onCurrencyChange);
     $("#f-client_currency").addEventListener("change", onCurrencyChange);
@@ -1358,6 +1427,7 @@
     if (silent !== true) $("#loading").classList.remove("hidden");
     var rows = [];
     var wallet = ULA.wallet ? ULA.wallet.load() : null;   // балансы клиентов (файл 50) — параллельно с заказами
+    var dlTasks = ULA.deadlines ? ULA.deadlines.load() : null;   // задачи по срокам (файл 54)
     try {
       for (var from = 0; ; from += 1000) {
         var res = await db.from("orders")
@@ -1375,6 +1445,7 @@
       handleError(err);
     }
     if (wallet) await wallet;
+    if (dlTasks) await dlTasks;
     state.loading = false;
     state.loadedAt = Date.now();   // живое обновление не перезагружает то, что только что загрузили
     $("#loading").classList.add("hidden");
@@ -1392,6 +1463,7 @@
     renderBrandWs();
     renderSummary();
     renderAssistant();
+    if (ULA.daily) ULA.daily.render();   // «Сегодня»
     renderChips();
     renderOrders();
     if (ULA.shipments) ULA.shipments.refresh();   // список партий (если открыт)
@@ -1453,7 +1525,7 @@
     setSettingsError("");
     ULA.mfa.refresh();
     ULA.passkey.refresh();
-    if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); }
+    if (ws) { fillWsSettings(state.ws); ULA.tgws.refresh(); if (ULA.notifyq) ULA.notifyq.refresh(); if (ULA.deadlines) ULA.deadlines.refreshSettings(); if (ULA.daily) ULA.daily.refreshSettings(); }
     openModal("modal-settings");
     var body = $("#settings-form .modal-body");
     var target = scrollTo && document.getElementById(scrollTo);
@@ -1729,7 +1801,7 @@
       if (state.to && o.order_date > state.to) return false;
       if (!q) return true;
       var c = o.client || {};
-      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat, o.tracking_number,
+      var hay = [o.order_number, o.client_name, o.client_phone, o.client_wechat, o.product_ru, o.product_zh, o.supplier, o.supplier_wechat, o.supplier_link, o.tracking_number,
         c.name, c.phone, c.telegram, c.city]
         .filter(Boolean).join(" ").toLowerCase();
       if (hay.indexOf(q) !== -1) return true;
@@ -1812,18 +1884,51 @@
     return html;
   }
 
-  // Короткая карточка заказа: фото, товар, клиент, деньги и 2 кнопки.
-  // Всё остальное (характеристики, поставщик, история) — в «Открыть».
+  // Короткая карточка заказа. Первый уровень: товар, статус, следующий шаг, остаток к оплате (с валютой), срок доставки и ОДНА
+  // главная кнопка, зависящая от реального состояния заказа. Фото, история, расчёты, прибыль и служебное — под «Подробнее».
+  // Неизвестную цену и срок называем прямо («Цена не указана», «Срок доставки не задан»), нулём не подменяем.
+  function nextStatus(o) {
+    var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
+    var i = flow.indexOf(o.status);
+    return i >= 0 && i < flow.length - 1 ? flow[i + 1] : null;
+  }
+  // что сейчас главное по этому заказу: { act, label }
+  function primaryAction(o) {
+    if (state.readOnly) return { act: "open", label: t("open") };
+    if (o.source === "request" && o.status === "new") return { act: "quote", label: t("rq_calc") };
+    if (!isActive(o)) return { act: "open", label: t("open") };
+    var priced = o.client_price != null;
+    if (!priced && o.status !== "new") return { act: "edit", label: t("td_btn_price") };
+    if (priced && num(o.balance_som) > 0 && (o.status === "awaiting_payment" || o.status === "arrived")) return { act: "pay", label: t("ca_pay") };
+    if (o.status === "china_warehouse" && !(num(o.weight_kg) > 0)) return { act: "weight", label: t("td_btn_weight") };
+    if (o.status === "in_transit" && !o.tracking_number) return { act: "track", label: t("td_btn_track") };
+    var nx = nextStatus(o);
+    return nx ? { act: "status", label: t("ca_next", { s: t("status_" + nx) }) } : { act: "open", label: t("open") };
+  }
+
+  // остаток к оплате и срок — одной строкой каждый
+  function factsHtml(o) {
+    var c = o.client_currency, bal = num(o.balance_som), rows = [];
+    // база считает «к оплате» по себестоимости, пока цена для клиента не названа; суммой к оплате это не показываем
+    if (o.client_price == null) rows.push('<span class="flag-missing">' + esc(t("ca_price_unknown")) + "</span>");
+    else if (bal > 0) rows.push('<span class="pay-owe">' + esc(t("ca_left", { s: cur(bal, c) })) + "</span>");
+    else rows.push('<span class="pay-ok">' + ULA.icon("check", 14) + esc(t("pay_full")) + "</span>");
+    if (isActive(o)) {
+      var eta = ULA.deadlines ? ULA.deadlines.etaText(o) : "";
+      if (eta) rows.push('<span class="ca-eta">' + esc(t("ca_eta", { d: eta })) + "</span>");
+      else if (ULA.deadlines && ULA.deadlines.ready()) rows.push('<span class="ca-eta none">' + esc(t("ca_eta_none")) + "</span>");
+    }
+    return '<div class="card-facts">' + rows.join("") + "</div>";
+  }
+
   function cardHtml(o) {
     var urls = photoThumbs(o);
-    var c = o.client_currency;
-    var bal = num(o.balance_som);
-    var hasPrice = o.profit_som != null;
-    var pr = num(o.profit_som);
     var photo = urls.length
       ? '<button type="button" class="card-photo" data-act="photo" data-i="0"><img src="' + esc(urls[0]) + '" loading="lazy" alt="">' +
         (urls.length > 1 ? "<span>+" + (urls.length - 1) + "</span>" : "") + "</button>"
       : '<div class="card-photo card-photo-empty" aria-hidden="true">' + ULA.icon("package", 24) + "</div>";
+    var pa = primaryAction(o);
+    var step = isActive(o) && nextStatus(o) && pa.act !== "status" ? '<p class="card-step">' + esc(t("ca_step", { s: t("status_" + nextStatus(o)) })) + "</p>" : "";
     return '' +
       '<article class="card st-' + o.status + (ULA.bulk && ULA.bulk.has(o.id) ? " selected" : "") + '" data-id="' + esc(o.id) + '">' +
         '<div class="card-top">' +
@@ -1831,33 +1936,35 @@
           '<span class="order-no">№ ' + esc(o.order_number) + "</span>" +
           '<span class="pill pill-dot st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
-        progressHtml(o) +
         '<div class="card-main" data-act="open">' + photo +
           '<div class="card-info">' +
             "<h3>" + esc(o.product_ru) + "</h3>" +
-            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) + shipTag(o) + trackTag(o) + tgTag(o) +
+            '<div class="card-sub"><span>' + esc(o.client_name) + "</span>" + placeHtml(o) + reqTag(o) +
               '<span class="card-date">' + fmtDate(o.order_date) + "</span></div>" +
           "</div>" +
         "</div>" +
-        fillWarnHtml(o) +
-        payHtml(o) +
-        cardHistoryHtml(o) +
-        (o.admin_comment ? '<p class="note">' + esc(o.admin_comment) + "</p>" : "") +
+        factsHtml(o) + step +
         '<div class="card-actions">' +
-          (o.source === "request" && o.status === "new"
-            ? '<button type="button" class="btn btn-primary" data-act="quote" data-write>' + t("rq_calc") + "</button>"
-            : '<button type="button" class="btn btn-primary" data-act="open">' + t("open") + "</button>") +
-          '<button type="button" class="btn btn-notify" data-act="notify" data-write>' + t("client_notify") + "</button>" +
-          // «⋯» — редкие действия, чтобы не загромождать карточку
-          '<details class="card-more">' +
-            '<summary class="btn card-more-btn" aria-label="' + esc(t("more_actions")) + '">⋯</summary>' +
-            '<div class="card-more-menu">' +
-              '<button type="button" class="menu-action" data-act="link">' + t("client_link") + "</button>" +
-              '<button type="button" class="menu-action" data-act="invoice">' + t("inv_btn") + "</button>" +
-              '<button type="button" class="menu-action" data-act="labels">' + t("lb_btn") + "</button>" +
-              '<button type="button" class="menu-action" data-act="edit" data-write>' + t("edit") + "</button>" +
-              '<button type="button" class="menu-action" data-act="status" data-write>' + t("change_status") + "</button>" +
-              '<button type="button" class="menu-action menu-logout owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
+          '<button type="button" class="btn btn-primary" data-act="' + pa.act + '"' + (pa.act === "open" ? "" : " data-write") + ">" + esc(pa.label) + "</button>" +
+          '<details class="card-more-info">' +
+            '<summary class="btn card-more-btn">' + esc(t("ca_details")) + "</summary>" +
+            '<div class="card-more-body">' +
+              progressHtml(o) +
+              payHtml(o) +
+              '<div class="card-sub">' + shipTag(o) + trackTag(o) + tgTag(o) + "</div>" +
+              fillWarnHtml(o) +
+              cardHistoryHtml(o) +
+              (o.admin_comment ? '<p class="note owner-only">' + esc(o.admin_comment) + "</p>" : "") +
+              '<div class="card-more-menu">' +
+                '<button type="button" class="menu-action" data-act="open">' + t("open") + "</button>" +
+                '<button type="button" class="menu-action" data-act="notify" data-write>' + t("client_notify") + "</button>" +
+                '<button type="button" class="menu-action" data-act="link">' + t("client_link") + "</button>" +
+                '<button type="button" class="menu-action" data-act="invoice">' + t("inv_btn") + "</button>" +
+                '<button type="button" class="menu-action" data-act="labels">' + t("lb_btn") + "</button>" +
+                '<button type="button" class="menu-action" data-act="edit" data-write>' + t("edit") + "</button>" +
+                '<button type="button" class="menu-action" data-act="status" data-write>' + t("change_status") + "</button>" +
+                '<button type="button" class="menu-action menu-logout owner-only" data-act="delete" data-write>' + t("remove") + "</button>" +
+              "</div>" +
             "</div>" +
           "</details>" +
         "</div>" +
@@ -2117,28 +2224,47 @@
   // «Что сделать сегодня» стоит первым и раскрыт, лишние кнопки (Выбрать, Из Excel) спрятаны. Остальное — кнопкой «Показать все разделы»
   // в меню или галочкой в настройках. Решение запоминается для каждого человека на этом устройстве.
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
+  // Выбор хранится в профиле (файл 55) и действует на всех устройствах; в браузере остаётся копия на случай, если базы нет.
+  // Решение «по числу заказов» принимается ОДИН раз, только пока ничего не выбрано, и явный выбор не заменяет.
   var SIMPLE_TABS = ["home", "orders", "clients", "shop", "debts", "profile"];
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
+    var p = ULA.daily && ULA.daily.prefs();
+    if (p && p.ready && p.simple !== null && p.simple !== undefined) return !!p.simple;
     try { return localStorage.getItem(simpleKey()) === "1"; } catch (e) { return false; }
   }
   function setSimple(on) {
     try { localStorage.setItem(simpleKey(), on ? "1" : "0"); } catch (e) { /* без хранилища — не страшно */ }
+    if (ULA.daily) ULA.daily.savePrefs(on, true);   // явный выбор человека
+    var p = ULA.daily && ULA.daily.prefs();
+    if (p && p.ready) { p.simple = !!on; p.explicit = true; }
     applySimpleMode();
   }
   function decideSimple() {
     if (!state.me || state.me.role === "admin" || state.readOnly) return;
+    var p = ULA.daily && ULA.daily.prefs();
+    var auto = state.orders.length < 15;
     try {
-      if (localStorage.getItem(simpleKey()) === null) localStorage.setItem(simpleKey(), state.orders.length < 15 ? "1" : "0");
+      if (p && p.ready) {
+        if (p.simple === null || p.simple === undefined) {
+          ULA.daily.savePrefs(auto, false);   // только в пустой профиль, как «по умолчанию», а не как выбор
+          p.simple = auto; p.explicit = false;
+        }
+        localStorage.setItem(simpleKey(), p.simple ? "1" : "0");
+      } else if (localStorage.getItem(simpleKey()) === null) localStorage.setItem(simpleKey(), auto ? "1" : "0");
     } catch (e) { /* ignore */ }
   }
   function applySimpleMode() {
     var on = isSimple();
     document.body.classList.toggle("simple-mode", on);
     $$(".section-menu .tab").forEach(function (b) {
-      b.classList.toggle("simple-hidden", on && SIMPLE_TABS.indexOf(b.getAttribute("data-tab")) === -1);
+      var tab = b.getAttribute("data-tab");
+      // выключенный обмен с незавершёнными сделками или спорами остаётся в меню и в простом режиме
+      var held = tab === "exchange" && ULA.daily && ULA.daily.exchangeHeld();
+      b.classList.toggle("simple-hidden", on && !held && SIMPLE_TABS.indexOf(tab) === -1);
     });
+    if (ULA.daily) ULA.daily.applyModules();
     // заголовок группы прячем, если в ней не осталось видимых разделов
     $$("[data-group-toggle]").forEach(function (g) {
       var k = g.getAttribute("data-group-toggle");
@@ -2160,7 +2286,7 @@
       try { asc = localStorage.getItem("cc_as_collapsed"); } catch (e) { /* ignore */ }
       if (asc === null) { as.classList.toggle("collapsed", !on); $("#as-toggle").setAttribute("aria-expanded", String(on)); }
     }
-    if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report") switchTab("home");
+    if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report" && !(state.tab === "exchange" && ULA.daily && ULA.daily.exchangeHeld())) switchTab("home");
   }
 
   function applyOptionalTabs() {
@@ -2184,11 +2310,11 @@
     var rows = [];
     try {
       for (var from = 0; ; from += 1000) {
+        // файл 52: тут и «клиенты без адреса» (их создаёт каждый заказ); в списке их прячет фильтр, но поиск и правка работают
         var res = await db.from("clients")
           .select("id, name, phone, telegram, city, address, pickup_point, created_at, orders(id, order_number, status, order_date)")
           .eq("workspace_id", state.ws.id)
-          .order("created_at", { ascending: false })
-          .range(from, from + 999);
+          .order("created_at", { ascending: false }).range(from, from + 999);
         if (res.error) throw res.error;
         rows = rows.concat(res.data);
         if (res.data.length < 1000) break;
@@ -2200,17 +2326,18 @@
     state.clientsLoading = false;
     $("#clients-loading").classList.add("hidden");
     renderClients();
+    if (ULA.clientlinks) ULA.clientlinks.refreshBadge();   // «Совпадения (N)» (файл 52)
   }
 
   // Поиск по имени, телефону (можно вводить только цифры) и Telegram
   function filteredClients() {
     var q = state.clientsQ.trim().toLowerCase();
-    if (!q) return state.clients;
+    if (!q) return state.clientsAll ? state.clients : state.clients.filter(function (c) { return !!c.city; });
     var qDigits = q.replace(/\D/g, "");
-    return state.clients.filter(function (c) {
+    return state.clients.filter(function (c) {   // поиск идёт по всем клиентам, в том числе без адреса
       if (String(c.name).toLowerCase().indexOf(q) !== -1) return true;
       if (c.telegram && c.telegram.toLowerCase().indexOf(q.replace(/^@/, "")) !== -1) return true;
-      return qDigits.length >= 3 && String(c.phone).replace(/\D/g, "").indexOf(qDigits) !== -1;
+      return qDigits.length >= 3 && String(c.phone || "").replace(/\D/g, "").indexOf(qDigits) !== -1;
     });
   }
 
@@ -2218,6 +2345,12 @@
     var box = $("#clients");
     var empty = $("#clients-empty");
     if (state.clientsLoading) return;
+    var nb = $("#clients-nocard-btn");
+    if (nb) {
+      var nStub = state.clients.filter(function (c) { return !c.city; }).length;
+      nb.classList.toggle("hidden", !nStub);
+      nb.textContent = t(state.clientsAll ? "cl_hide_nocard" : "cl_show_nocard", { n: nStub });
+    }
 
     if (!state.clients.length) {
       box.innerHTML = "";
@@ -2235,6 +2368,9 @@
       return;
     }
     empty.classList.add("hidden");
+    // долг клиента — тем же расчётом, что раздел «Долги» (только заказы с ценой для клиента, по валютам)
+    clientDebts = {};
+    if (ULA.debts && ULA.debts._collect) ULA.debts._collect().forEach(function (g) { if (g.clientId) clientDebts[g.clientId] = g; });
     box.innerHTML = list.map(clientRowHtml).join("");
   }
 
@@ -2361,6 +2497,17 @@
     }
   }
 
+  var clientDebts = {};
+  // сводка клиента: заказов всего и в работе, долг (красным — если просрочен, как в «Долгах»)
+  function clientSummaryHtml(c, orders) {
+    if (!orders.length) return "";
+    var active = orders.filter(function (o) { return CLOSED.indexOf(o.status) === -1; }).length;
+    var g = clientDebts[c.id];
+    var debt = g ? Object.keys(g.totals).map(function (code) { return cur(g.totals[code], code); }).join(" + ") : "";
+    return '<div class="client-row-sum">' + esc(t("cl_sum", { n: orders.length, a: active })) +
+      (debt ? ' · <span class="' + (g.overdue ? "cl-debt-bad" : "cl-debt") + '">' + esc(t("wl_debt")) + ": " + debt + "</span>" : "") + "</div>";
+  }
+
   function clientRowHtml(c) {
     var orders = (c.orders || []).slice().sort(function (a, b) {
       return String(b.order_date).localeCompare(String(a.order_date));
@@ -2368,15 +2515,18 @@
     var place = c.address
       ? "<span>" + esc(t("l_address")) + ":</span> " + esc(c.address)
       : "<span>" + esc(t("l_pickup")) + ":</span> " + esc(c.pickup_point);
+    if (!c.city) place = "";   // клиент без адреса (файл 52): адрес заполнит сам клиент на странице заказа
     return '' +
       '<article class="client-row">' +
         "<div>" +
           '<div class="client-row-name">' + esc(c.name) + "</div>" +
           '<div class="client-row-date">' + esc(t("l_added")) + ": " + fmtDate(c.created_at) + "</div>" +
+          clientSummaryHtml(c, orders) +
         "</div>" +
-        '<div class="client-row-contacts">' + phoneLink(c.phone) + (c.telegram ? telegramLink(c.telegram) : "") +
-          (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.phone, c.name), c.name) : "") + "</div>" +
-        '<div class="client-row-place"><b>' + esc(c.city) + "</b>" + place + "</div>" +
+        '<div class="client-row-contacts">' + (c.phone ? phoneLink(c.phone) : "") + (c.telegram ? telegramLink(c.telegram) : "") +
+          (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.id), c.name) : "") + "</div>" +
+        '<div class="client-row-place">' + (c.city ? "<b>" + esc(c.city) + "</b>" + place : '<span class="muted">' + esc(t("cl_nocard")) + "</span>") +
+          ' <button type="button" class="btn btn-light" data-write data-client-edit="' + esc(c.id) + '">' + esc(t("cl_edit")) + "</button></div>" +
         '<div class="client-row-orders">' + orders.map(function (o) {
           return '<button type="button" class="order-tag st-' + esc(o.status) + '" data-order-id="' + esc(o.id) + '" title="' +
             esc(t("status_" + o.status)) + '"><span class="dot"></span>№ ' + esc(o.order_number) + "</button>";
@@ -2450,8 +2600,9 @@
     if (state.ws && !state.ws.warehouse_address && !state.readOnly) {
       add("warn", t("h_no_wh"), { type: "settings" });
     }
+    // сроки оплаты и доставки, заявки и недостающие данные по каждому заказу — на экране «Сегодня» (js/daily.js), здесь их не повторяем
     // группы заказов
-    ["requests", "no_price", "no_address", "no_rate"].forEach(function (k) {
+    ["no_price", "no_address", "no_rate"].forEach(function (k) {
       var n = list.filter(HINT_FILTERS[k]).length;
       if (n) add(k === "no_rate" ? "bad" : "warn", t("h_" + k, { n: n }), { type: "filter", key: k });
     });
@@ -2552,6 +2703,7 @@
     $("#as-admin-list").innerHTML = hints.map(function (h) {
       return '<div class="hint ' + h.level + '"><span class="hint-text">' + esc(h.text) + "</span></div>";
     }).join("");
+    if (ULA.deadlines) ULA.deadlines.adminJobs($("#as-admin-list"));   // состояние серверных задач (файл 54)
   }
 
   function fmtTime(s) {
@@ -2909,6 +3061,12 @@
     if (state.readOnly && act !== "open" && act !== "link" && act !== "invoice" && act !== "labels") return;
     if (act === "open") openDetail(o.id);
     else if (act === "edit") { closeModal("modal-detail"); openOrderForm(o); }
+    else if (act === "pay" || act === "weight" || act === "track") {
+      // открыть форму сразу на нужном поле: поле показано, даже если форма короткая
+      closeModal("modal-detail");
+      openOrderForm(o);
+      focusField(act === "pay" ? "paid_amount" : act === "weight" ? "weight_kg" : "tracking_number");
+    }
     else if (act === "status") openStatus(o);
     else if (act === "link") openLink(o);
     else if (act === "quote") ULA.quote.forOrder(o);
@@ -2942,9 +3100,12 @@
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
         (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0, photoThumbs(o)) + "</div>" : "") +
         clientBoxHtml(o.client) +
+        (ULA.clientlinks && ULA.clientlinks.deliveryHtml ? ULA.clientlinks.deliveryHtml(o) : "") +
         specsHtml(o) +
         moneyHtml(o, true) +
         (ULA.wallet ? ULA.wallet.orderHtml(o) : "") +
+        (ULA.deadlines ? ULA.deadlines.orderHtml(o) : "") +
+        (ULA.tracking ? ULA.tracking.buyerHtml(o) : "") +   // путь заказа для клиента (файл 64)
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
           (o.shipment_id ? "<div><dt>" + t("sh_tag") + "</dt><dd>" + esc((ULA.shipments && ULA.shipments.name(o.shipment_id)) || "—") + "</dd></div>" : "") +
@@ -2977,6 +3138,7 @@
       return t("history_payment", { amount: cur(item.paid_total, order && order.client_currency) });
     }
     if (item.event_type === "address") return t("history_address");
+    if (item.event_type === "stage") return ULA.tracking ? ULA.tracking.historyText(item) : t("tk_h_stage");   // файл 64
     return t("status_" + (item.new_status || item.status));
   }
 
@@ -3019,7 +3181,7 @@
     var o = state.orders.filter(function (x) { return x.id === state.statusId; })[0];
     if (!o) return;
     $("#status-list").innerHTML = STATUSES.map(function (s) {
-      return '<button type="button" class="status-option st-' + s + (o.status === s ? " current" : "") +
+      return '<button type="button" class="status-option st-' + s + (o.status === s ? " current" : "") + (nextStatus(o) === s ? " suggested" : "") +
         '" data-status="' + s + '"><span class="dot"></span>' + esc(t("status_" + s)) + "</button>";
     }).join("");
   }
@@ -3210,7 +3372,135 @@
   function setFormShort(on) {
     $("#order-form").classList.toggle("form-short", on);
     $("#f-more").textContent = t(on ? "f_more_show" : "f_more_hide");
-    $("#f-more").classList.toggle("hidden", !!form.editing);
+    $("#f-more").classList.remove("hidden");   // короткий режим работает и при правке
+  }
+
+  // Поля по этапу работы: вес и трек-номер нужны не при первой заявке, а когда заказ дошёл до склада в Китае.
+  // Скрытое поле остаётся в форме со своим значением: при сохранении оно НЕ стирается.
+  var EARLY_STAGES = ["new", "awaiting_payment", "purchasing"];
+  function applyFormStage() {
+    var early = EARLY_STAGES.indexOf($("#f-status").value || "new") !== -1;
+    $("#order-form").classList.toggle("stage-early", early);
+  }
+
+  // Ошибка в поле: поле показываем, даже если оно было спрятано в короткой форме
+  function revealField(el) {
+    if (!el) return;
+    var f = $("#order-form");
+    if (f.classList.contains("form-short") && el.closest(".adv")) setFormShort(false);
+    if (el.closest(".stage-late")) f.classList.add("stage-all");
+  }
+  function clearFieldError(el) {
+    if (!el || !el.classList || !el.classList.contains("invalid")) return;
+    el.classList.remove("invalid");
+    el.removeAttribute("aria-invalid");
+    var p = el.parentNode && el.parentNode.querySelector(".field-err");
+    if (p) p.remove();
+  }
+  function showFieldError(id, message) {
+    var el = $("#f-" + id);
+    if (!el) return;
+    revealField(el);
+    clearFieldError(el);
+    el.classList.add("invalid");
+    el.setAttribute("aria-invalid", "true");
+    var p = document.createElement("p");
+    p.className = "field-err";
+    p.setAttribute("role", "alert");
+    p.textContent = message;
+    el.parentNode.appendChild(p);
+    try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    el.scrollIntoView({ block: "center" });
+  }
+  function focusField(id) {
+    var el = $("#f-" + id);
+    if (!el) return;
+    revealField(el);
+    try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    el.scrollIntoView({ block: "center" });
+  }
+  function fieldLabel(id) {
+    var el = $("#f-" + id), lab = el && el.closest("label"), sp = lab && lab.querySelector("span");
+    return sp ? sp.textContent : id;
+  }
+  var NUM_FIELDS = ["quantity", "unit_price_cny", "exchange_rate", "weight_kg", "delivery_cost", "delivery_tariff", "delivery_rate", "client_price", "paid_amount", "markup"];
+  // первая ошибка формы или null. Числа: пусто или число ≥ 0 (раньше «abc» молча становилось нулём)
+  function validateForm() {
+    var v = function (id) { return $("#f-" + id).value.trim(); };
+    if (!v("client_name")) return { id: "client_name", msg: t("req_client") };
+    if (!v("product_ru")) return { id: "product_ru", msg: t("req_product") };
+    for (var i = 0; i < NUM_FIELDS.length; i++) {
+      var raw = v(NUM_FIELDS[i]);
+      if (raw === "") continue;
+      var n = Number(raw.replace(/\s/g, "").replace(",", "."));
+      if (!isFinite(n) || n < 0) return { id: NUM_FIELDS[i], msg: t("f_err_num", { f: fieldLabel(NUM_FIELDS[i]) }) };
+    }
+    return null;
+  }
+  // ошибка из базы: если в ней названо поле формы — показать это поле
+  function fieldFromError(err) {
+    var txt = String((err && (err.message + " " + (err.details || "") + " " + (err.hint || ""))) || "");
+    var keys = Object.keys(readForm());
+    for (var i = 0; i < keys.length; i++) if (new RegExp("\\b" + keys[i] + "\\b").test(txt)) return keys[i];
+    return null;
+  }
+
+  // несохранённые изменения: сравниваем форму с тем, что было при открытии
+  function formSignature() {
+    return JSON.stringify(readForm()) + "|" + (form.clientId || "") + "|" + form.pending.length + "|" + form.removed.length;
+  }
+  function formDirty() { return form.snapshot != null && form.snapshot !== formSignature(); }
+  function requestClose(id) {
+    if (id === "modal-order" && !form.saving && formDirty()) {
+      $("#f-unsaved").classList.remove("hidden");
+      $("#f-unsaved-keep").focus();
+      return;
+    }
+    closeModal(id);
+  }
+
+  // ---------- Выбор клиента по постоянному номеру ----------
+  function pickedClient() {
+    if (!form.clientId) return null;
+    var c = (state.clients || []).filter(function (x) { return x.id === form.clientId; })[0];
+    if (!c && form.editing && form.editing.client && form.editing.client.id === form.clientId) c = form.editing.client;   // клиент заказа приходит вместе с заказом
+    return c || null;
+  }
+  function setPickedClient(id) {
+    form.clientId = id || null;
+    var c = pickedClient();
+    $("#f-client-chosen").classList.toggle("hidden", !c);
+    $("#f-client_search").parentNode.classList.toggle("hidden", !!c);
+    $("#f-client-results").classList.add("hidden");
+    $("#f-client_search").value = "";
+    if (c) {
+      $("#f-client-chosen-t").textContent = t("cp_chosen", { name: c.name || t("cp_noname"), info: clientInfo(c) });
+      $("#f-client_name").value = c.name || $("#f-client_name").value;
+      if (c.phone && !$("#f-client_phone").value.trim()) $("#f-client_phone").value = c.phone;
+    }
+    var dn = $("#f-client_name"); clearFieldError(dn);
+  }
+  // последний заказ клиента: по нему различаются люди с одинаковым именем и без телефона
+  function lastOrderNo(c) {
+    var os = (c.orders || []).slice().sort(function (x, y) { return String(y.order_date).localeCompare(String(x.order_date)) || String(y.order_number).localeCompare(String(x.order_number)); });
+    return os.length ? t("cp_last", { n: os[0].order_number }) : "";
+  }
+  function clientInfo(c) {
+    return [c.phone ? fmtPhone(c.phone) : t("cp_nophone"), c.city || (c.address ? "" : t("cp_noaddr")), c.orders ? t("cp_orders", { n: c.orders.length }) : "", lastOrderNo(c)].filter(Boolean).join(" · ");
+  }
+  async function renderClientPick() {
+    var q = $("#f-client_search").value.trim().toLowerCase(), box = $("#f-client-results");
+    if (!q) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    if (!state.clients.length && !state.clientsLoading && db && state.ws) await loadClients();   // список клиентов ещё не открывали
+    var digits = q.replace(/\D/g, "");
+    var found = (state.clients || []).filter(function (c) {
+      return String(c.name || "").toLowerCase().indexOf(q) !== -1 || (c.telegram && String(c.telegram).toLowerCase().indexOf(q.replace(/^@/, "")) !== -1) ||
+        (digits.length >= 3 && String(c.phone || "").replace(/\D/g, "").indexOf(digits) !== -1);
+    }).slice(0, 8);
+    box.classList.remove("hidden");
+    box.innerHTML = found.length
+      ? found.map(function (c) { return '<button type="button" class="cp-item" role="option" data-pick="' + esc(c.id) + '"><b>' + esc(c.name || t("cp_noname")) + "</b><small>" + esc(clientInfo(c)) + "</small></button>"; }).join("")
+      : '<p class="cp-none">' + esc(t("cp_none")) + "</p>";
   }
 
   function openOrderForm(o) {
@@ -3218,11 +3508,16 @@
     form.editing = o || null;
     form.existing = o ? sortedPhotos(o) : [];
     form.removed = [];
+    form.snapshot = null;
+    $("#f-unsaved").classList.add("hidden");
+    $("#order-form").classList.remove("stage-all");
+    $$("#order-form .invalid").forEach(clearFieldError);
 
     var set = function (id, v) { $("#f-" + id).value = v == null ? "" : v; };
     $("#order-form-title").textContent = t(o ? "edit_order" : "new_order");
-    setFormShort(!o && !formFullPref());
+    setFormShort(!formFullPref());
     fillStatusSelect(o ? o.status : "new");
+    applyFormStage();
 
     if (o) {
       set("order_number", o.order_number);
@@ -3280,6 +3575,8 @@
     } else sn.classList.add("hidden");
     updateCalc();
     renderPhotoPreviews();
+    setPickedClient(o && o.client_id ? o.client_id : null);
+    form.snapshot = formSignature();
     openModal("modal-order");
     var body = $("#order-form .modal-body");
     if (body) body.scrollTop = 0;
@@ -3538,11 +3835,11 @@
   async function saveOrder(e) {
     e.preventDefault();
     if (form.saving) return;
+    var bad = validateForm();
+    if (bad) { showFieldError(bad.id, bad.msg); toast(bad.msg, "error"); return; }
     var v = readForm();
-    if (!v.client_name || !v.product_ru) {
-      toast(t("req_fields"), "error");
-      return;
-    }
+    // клиент: выбранный по постоянному номеру; не выбран — его определит база (по полному номеру телефона или создаст нового)
+    if (form.clientId) v.client_id = form.clientId;
     var btn = $("#order-save");
     form.saving = true;
     btn.disabled = true;
@@ -3583,6 +3880,7 @@
       var shipId = form.editing && form.editing.shipment_id;
       if (shipId) await db.rpc("shipment_recalc", { p_shipment: shipId });
 
+      form.snapshot = null;
       closeModal("modal-order");
       if (failed) toast(t("photo_failed", { n: failed }), "error");
       else toast(form.editing ? t("saved") : t("saved") + ": № " + ins.data.order_number, "ok");
@@ -3594,6 +3892,10 @@
       await loadOrders();
       if (statusChanged) tgNotify([orderId]);   // клиенту в Telegram — новый статус
     } catch (err) {
+      // ошибку в спрятанном поле не прячем: поле показывается и подсвечивается
+      var bf = fieldFromError(err);
+      if (bf) showFieldError(bf, String(err.message || t("error_generic")).slice(0, 160));
+      else if ($("#order-form").classList.contains("form-short")) setFormShort(false);
       handleError(err);
     } finally {
       form.saving = false;
@@ -3618,13 +3920,14 @@
     num: num, cur: cur, fmtDate: fmtDate, fmtPhone: fmtPhone, cleanPhone: cleanPhone,
     photoUrl: photoUrl, thumbUrl: thumbUrl, shrinkImage: shrinkImage, openLightbox: openLightbox, showView: showView,
     clientUrl: clientUrl, copyText: copyText, closeModal: closeModal, uid: uid,
+    loadClients: loadClients, renderClients: renderClients,
     switchTab: switchTab, openSettings: openSettings, getTheme: getTheme, applyTheme: applyTheme, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },
     csvCell: csvCell, todayISO: todayISO, missingFields: missingFields, isApp: isApp, reloadOrders: loadOrders, refresh: refreshData, renderAll: renderAll,
-    statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED,
+    statusHistoryHtml: statusHistoryHtml, STATUSES: STATUSES, CLOSED: CLOSED, runAction: function (a, o) { runAction(a, o); }, $$: $$,
     db: function () { return db; } // база появляется позже, при запуске
   };
 

@@ -62,5 +62,27 @@ if ! grep -q "СТОП" <<<"$out"; then echo "❌ Старый файл 07 за�
 if [ "$before" != "$after" ]; then echo "❌ Старый файл 07 изменил функцию страницы клиента"; exit 1; fi
 echo "✅ 8. Старый файл останавливается и ничего не меняет"
 
+echo "▶ Перенос клиентов на постоянный номер (файл 56)…"
+bash tests/client_identity_test.sh
+bash tests/client_identity_rollback_test.sh
+bash tests/preview_56_test.sh
+
+echo "▶ Очередь уведомлений клиентам (файл 57)…"
+bash tests/notify_queue_test.sh
+echo "▶ Те же проверки очереди поверх файла 58…"
+ULA_NOTIFY_WITH_54=1 bash tests/notify_queue_test.sh
+echo "▶ Сроки, задачи и напоминания (файл 58)…"
+bash tests/deadlines_test.sh
+echo "▶ Ежедневная работа (файл 59)…"
+bash tests/daily_test.sh
+echo "▶ Кабинет клиента (файл 60)…"
+bash tests/cabinet_test.sh
+echo "▶ Цена для клиента и адрес заказа (файл 61)…"
+bash tests/price_delivery_test.sh
+echo "▶ Изменения файлов 45 и 46 (файл 63)…"
+bash tests/restore_45_46_test.sh
+echo "▶ Путь заказа для клиента (файл 64)…"
+bash tests/tracking_db_test.sh
+
 echo ""
 echo "🎉 Все проверки пройдены"
