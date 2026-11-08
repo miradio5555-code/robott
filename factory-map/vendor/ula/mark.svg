@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Знак ULA для тёмной темы: белый круг, U из двух цветов -->
+  <circle cx="32" cy="32" r="30" fill="#FFFFFF"/>
+  <path d="M19.5 18 V32 a12.5 12.5 0 0 0 12.5 12.5" fill="none" stroke="#D84F1C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 44.5 a12.5 12.5 0 0 0 12.5 -12.5 V18" fill="none" stroke="#151417" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

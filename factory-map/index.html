@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-title" content="ULA Factory">
+<title>ULA Factory · Карта фабрик Китая</title>
+<link rel="icon" href="vendor/ula/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="vendor/ula/apple-touch-icon.png">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ula-mark" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#151417"/><path d="M19.5 18 V32 a12.5 12.5 0 0 0 12.5 12.5" fill="none" stroke="#FF6A3D" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 44.5 a12.5 12.5 0 0 0 12.5 -12.5 V18" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"/></symbol>
+  <symbol id="i-factory" viewBox="0 0 24 24"><path d="M3 21V10l6 4v-4l6 4V4h6v17H3Z"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><path d="M6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm12-12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 18h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></symbol>
+  <symbol id="i-news" viewBox="0 0 24 24"><path d="M4 5h13v14a1 1 0 0 0 1 1H6a2 2 0 0 1-2-2V5Zm13 4h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5M8 16h5"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="m20 20-4.5-4.5M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9M15 5v4M9 15v4"/></symbol>
+</svg>
+
+<!-- Главный экран: карта всегда в раскладке, остальные разделы открываются поверх неё -->
+<main id="mapScreen" class="map-screen">
+  <div id="leafletMap" aria-label="Интерактивная карта Китая"></div>
+
+  <div id="chrome" class="chrome">
+    <div class="chrome-nav">
+      <button id="backBtn" type="button" class="chip-btn" disabled><svg class="icon"><use href="#i-back"/></svg>Назад</button>
+      <nav id="breadcrumbs" class="crumbs" aria-label="Путь по карте"></nav>
+    </div>
+    <div class="chrome-search">
+      <label class="search">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <input id="globalSearch" type="search" placeholder="Поиск товара" autocomplete="off" aria-label="Поиск товара">
+      </label>
+      <button id="filtersBtn" type="button" class="chip-btn"><svg class="icon"><use href="#i-filter"/></svg>Фильтры<span id="filterCount" class="filter-count" hidden></span></button>
+      <button id="allChina" type="button" class="chip-btn">Весь Китай</button>
+    </div>
+  </div>
+
+  <aside id="sheet" class="sheet" aria-label="Карточка выбранного места">
+    <button id="sheetGrab" type="button" class="grabber" aria-label="Свернуть или развернуть карточку"></button>
+    <header class="sheet-head">
+      <div class="sheet-title">
+        <h1 id="sheetTitle"></h1>
+        <p id="sheetSub"></p>
+      </div>
+      <button id="sheetToggle" type="button" class="sheet-toggle">Свернуть</button>
+    </header>
+    <div id="contextPanel" class="sheet-body"></div>
+  </aside>
+</main>
+
+<header class="topbar"><div class="brand"><svg class="brand-mark" aria-hidden="true"><use href="#ula-mark"/></svg><span class="brand-name"><b>ULA</b> Factory</span></div></header>
+
+<section id="factories" class="page">
+  <div class="page-head">
+    <h2>Фабрики</h2>
+    <p class="meta">Кандидат и подтверждённое производство — разные статусы.</p>
+    <div class="page-actions">
+      <button id="addFactory" type="button" class="primary">Добавить фабрику</button>
+      <label class="file">Предпросмотр CSV<input id="importCsv" type="file" accept=".csv"></label>
+    </div>
+  </div>
+  <div class="filters">
+    <input id="factorySearch" type="search" placeholder="товар, технология, район, название / 中文">
+    <select id="areaFilter"></select>
+    <select id="statusFilter">
+      <option value="">Все статусы</option>
+      <option>кандидат</option>
+      <option>производство подтверждено источниками</option>
+      <option>посещена лично</option>
+    </select>
+  </div>
+  <div id="importPreview" class="notice"></div>
+  <div id="factoryList"></div>
+</section>
+
+<section id="trips" class="page">
+  <div class="page-head">
+    <h2>Куда съездить</h2>
+    <p class="meta">Отмечайте фабрики в карточках. Адреса и итог визита сохраняются в рабочей базе.</p>
+    <div class="page-actions"><button id="copyTripAddresses" type="button">Копировать адреса</button></div>
+  </div>
+  <div id="tripList"></div>
+</section>
+
+<section id="news" class="page">
+  <div class="page-head">
+    <h2>Новости</h2>
+    <p class="meta">Проверенная внешняя информация и журнал работы.</p>
+    <div class="page-actions">
+      <button id="addNews" type="button" class="primary">Сохранить новость</button>
+      <label class="file">Импорт подборки<input id="importNews" type="file" accept=".json"></label>
+    </div>
+  </div>
+  <div class="filters news-filters">
+    <select id="newsTheme">
+      <option value="">Все темы</option>
+      <option value="official">Официальные объявления</option>
+      <option value="logistics">Логистика</option>
+      <option value="exhibition">Фабрики и выставки</option>
+      <option value="work">Моя работа</option>
+    </select>
+    <select id="newsTerritory">
+      <option value="">Все территории</option>
+      <option value="Дунгуань">Дунгуань</option>
+      <option value="Гуандун">Гуандун</option>
+      <option value="Китай">Китай</option>
+      <option value="Кыргызстан">Кыргызстан</option>
+      <option value="ЕАЭС">ЕАЭС</option>
+    </select>
+  </div>
+  <div id="newsImportPreview" class="notice"></div>
+  <div id="newsList" class="news-list"></div>
+</section>
+
+<section id="more" class="page">
+  <div class="page-head"><h2>Ещё</h2></div>
+  <div class="group">
+    <button type="button" class="row" data-action="page" data-id="progress"><span class="row-main"><b>План и прогресс</b><small>Задачи и статусы районов</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
+    <button type="button" class="row" data-action="page" data-id="request"><span class="row-main"><b>Запросы клиентов</b><small>Подбор и логистика</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
+    <button id="exportBtn" type="button" class="row"><span class="row-main"><b>Экспорт CSV</b><small>Копия текущей базы фабрик</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
+  </div>
+  <p class="map-credit">Границы ADM1: <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a>, China 2019, 34 единицы, Public Domain по метаданным набора. Leaflet © contributors, BSD-2-Clause.</p>
+</section>
+
+<section id="progress" class="page">
+  <div class="page-head">
+    <button type="button" class="link-back" data-action="page" data-id="more"><svg class="icon"><use href="#i-back"/></svg>Ещё</button>
+    <h2>План и прогресс</h2>
+    <p class="meta">Дунгуань · 东莞市</p>
+    <div class="page-actions"><button id="areaStatusBtn" type="button">Изменить статус района</button></div>
+  </div>
+  <div id="taskList"></div>
+  <article class="notice"><h3>Ежедневная задача Codex</h3><pre>Открой data/db/main.json и progress.md. Проверь после последней даты news.lastChecked первичные источники: таможню КНР, ЕЭК/Кыргызстан, власти Дунгуаня и Гуандуна, организаторов выставок и перевозчиков. Отбери только изменения, важные для закупок, фабрик, поездок или маршрута Китай → Кыргызстан. У каждой карточки сохрани ссылку, дату публикации, дату проверки, область действия и краткое влияние. Не выдавай условие перевозчика за официальное правило и не отправляй сообщения фабрикам. Затем обнови страницу сайта и кратко отчитайся.</pre></article>
+</section>
+
+<section id="request" class="page">
+  <div class="page-head">
+    <button type="button" class="link-back" data-action="page" data-id="more"><svg class="icon"><use href="#i-back"/></svg>Ещё</button>
+    <h2>Запрос клиента</h2>
+    <p class="meta">Подбор и логистика</p>
+  </div>
+  <form id="clientForm" class="form two">
+    <label>Товар / 中文<input name="product" required placeholder="трикотажные свитера / 毛衣"></label>
+    <label>Характеристики<textarea name="specs"></textarea></label>
+    <label>Количество<input name="quantity"></label>
+    <label>Срок<input name="deadline"></label>
+    <label>Страна назначения<select name="country"><option value="">Укажите страну</option><option>Кыргызстан</option><option>Казахстан</option><option>Россия</option><option>Другая</option></select></label>
+    <label>Маршрут / транспорт<textarea name="route"></textarea></label>
+    <button class="primary">Подобрать и подготовить проверку</button>
+  </form>
+  <div id="requestResult" class="notice"></div>
+</section>
+
+<nav id="tabbar" class="tabbar" aria-label="Разделы">
+  <div class="brand tab-brand"><svg class="brand-mark" aria-hidden="true"><use href="#ula-mark"/></svg><span class="brand-name"><b>ULA</b> Factory</span></div>
+  <button type="button" data-page="map" class="active"><svg class="icon tab-icon-map"><use href="#i-map"/></svg><svg class="tab-mark" aria-hidden="true"><use href="#ula-mark"/></svg>Карта</button>
+  <button type="button" data-page="factories"><svg class="icon"><use href="#i-factory"/></svg>Фабрики</button>
+  <button type="button" data-page="trips"><svg class="icon"><use href="#i-route"/></svg>Поездка</button>
+  <button type="button" data-page="news"><svg class="icon"><use href="#i-news"/></svg>Новости</button>
+  <button type="button" data-page="more"><svg class="icon"><use href="#i-more"/></svg>Ещё</button>
+</nav>
+
+<dialog id="filtersDialog" class="sheet-dialog" aria-label="Фильтры">
+  <div class="dialog-head"><h2>Фильтры</h2><button type="button" class="close-text">Готово</button></div>
+  <div class="group form-group">
+    <label>Товар<input id="mapProduct" placeholder="Товар / 中文" autocomplete="off"></label>
+    <label>Статус
+      <select id="mapStatus">
+        <option value="">Все статусы</option>
+        <option value="кандидат">Кандидат</option>
+        <option value="производство подтверждено источниками">Подтверждена</option>
+        <option value="посещена лично">Посещена</option>
+      </select>
+    </label>
+    <label class="switch-row"><span>Только фабрики в поездке</span><input id="mapVisits" type="checkbox"></label>
+  </div>
+  <p class="group-title">На карте</p>
+  <div class="group">
+    <button id="myLocation" type="button" class="row"><span class="row-main"><b>Где я</b></span></button>
+    <button id="manualPoint" type="button" class="row"><span class="row-main"><b>Выбрать точку на карте</b></span></button>
+    <div class="row row-static"><span class="row-main"><b>Рядом со мной</b></span>
+      <select id="nearRadius" aria-label="Радиус"><option value="5">5 км</option><option value="15" selected>15 км</option><option value="30">30 км</option></select>
+      <button id="nearbyBtn" type="button" class="mini">Найти</button>
+    </div>
+    <button id="searchMapArea" type="button" class="row"><span class="row-main"><b>Искать в этой области</b></span></button>
+    <button id="showVisits" type="button" class="row"><span class="row-main"><b>Маршрут визитов</b></span></button>
+  </div>
+  <p class="group-title">Статусы районов</p>
+  <div class="legend"><span><i class="gray"></i>Не начато</span><span><i class="yellow"></i>Сбор данных</span><span><i class="blue"></i>Нанесены</span><span><i class="green"></i>План выполнен</span></div>
+  <button id="clearMapFilters" type="button" class="reset">Сбросить фильтры</button>
+</dialog>
+
+<dialog id="factoryDialog"><form id="factoryForm" class="form" method="dialog">
+  <div class="dialog-head"><h2 id="formTitle">Фабрика</h2><button type="button" class="close" aria-label="Закрыть">×</button></div>
+  <input name="id" type="hidden">
+  <label>Название компании (китайское юрлицо, если известно)<input name="company_cn" required></label>
+  <label>Товар (RU / 中文)<input name="product" required></label>
+  <label>Технологии и операции на площадке<textarea name="process"></textarea></label>
+  <label>Район<select name="area"></select></label>
+  <label>Адрес производства<textarea name="address_cn"></textarea></label>
+  <label>Координаты, только проверенные: широта / долгота<input name="lat" placeholder="22.948" inputmode="decimal"><input name="lng" placeholder="113.927" inputmode="decimal"></label>
+  <label>Контакт<input name="contact"></label>
+  <label>MOQ / образец / срок<textarea name="terms"></textarea></label>
+  <label>Статус<select name="status"><option>кандидат</option><option>производство подтверждено источниками</option><option>посещена лично</option></select></label>
+  <label>Источник и дата проверки<textarea name="evidence"></textarea></label>
+  <label>Заметка о визите<textarea name="visitNotes"></textarea></label>
+  <label>Следующее действие<textarea name="next"></textarea></label>
+  <button class="primary">Сохранить</button>
+</form></dialog>
+
+<dialog id="statusDialog"><form id="statusForm" class="form" method="dialog">
+  <div class="dialog-head"><h2>Статус района</h2><button type="button" class="close" aria-label="Закрыть">×</button></div>
+  <label>Район<select name="area"></select></label>
+  <label>Статус<select name="status"><option value="not_started">Не начато</option><option value="collecting">Сбор данных</option><option value="mapped">Нанесены производства</option><option value="complete">План выполнен</option></select></label>
+  <label>Основание<textarea name="reason" required></textarea></label>
+  <button class="primary">Сохранить</button>
+</form></dialog>
+
+<dialog id="newsDialog"><form id="newsForm" class="form" method="dialog">
+  <div class="dialog-head"><h2>Сохранить новость</h2><button type="button" class="close" aria-label="Закрыть">×</button></div>
+  <label>Тема<select name="theme"><option value="official">Официальное объявление</option><option value="logistics">Логистика</option><option value="exhibition">Фабрики и выставки</option></select></label>
+  <label>Заголовок по-русски<input name="title" required></label>
+  <label>Китайское название документа<input name="cnTitle"></label>
+  <label>Дата публикации<input name="publishedAt" type="date" required></label>
+  <label>Дата вступления в силу<input name="effectiveAt" type="date"></label>
+  <label>Территория / маршрут<input name="territory" required placeholder="Дунгуань, Китай → Кыргызстан"></label>
+  <label>Что изменилось<textarea name="changed" required></textarea></label>
+  <label>Кого касается<textarea name="affected" required></textarea></label>
+  <label>Ссылка на первоисточник<input name="sourceUrl" type="url" required></label>
+  <label>Дата последней проверки<input name="lastChecked" type="date" required></label>
+  <label class="switch-row"><span>Это проект правила</span><input name="project" type="checkbox"></label>
+  <label>Показать на карте<select name="mapTarget"><option value="">Нет привязки</option><option value="china">Весь Китай</option><option value="dongguan">Дунгуань</option><option value="dalang">Далань</option><option value="houjie">Хоучжэ</option></select></label>
+  <button class="primary">Сохранить новость</button>
+</form></dialog>
+
+<div id="toast" role="status"></div>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="../config.js"></script>
+<script src="../supabase.js"></script>
+<script src="remote.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
