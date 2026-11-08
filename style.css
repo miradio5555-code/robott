@@ -4176,3 +4176,146 @@ body.is-admin .nav-for-buyer { display: none; }
 .state-box .btn { margin-top: 12px; }
 .cab-card:focus-visible, .next-step .btn:focus-visible, .cab-contact .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 #client-content h1:focus { outline: none; }
+
+/* =====================================================
+   ПУТЬ ЗАКАЗА ДЛЯ КЛИЕНТА (js/tracking.js, файл 64)
+   Шапка заказа тёмная в обеих темах, поэтому цвета шкалы внутри неё — свои, светлые.
+   Анимации короткие и с ограниченным числом повторов; при «уменьшить движение» — статичная шкала.
+   ===================================================== */
+.tk-hero { --tk-ok: #3DBE7A; --tk-now: #E5485B; }
+
+/* текущий этап: иконка + название + человеческое описание */
+.tk-now { display: flex; align-items: flex-start; gap: 14px; margin: 18px 0 4px; }
+.tk-now-icon {
+  position: relative; flex: none; display: grid; place-items: center;
+  width: 58px; height: 58px; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08); color: #fff;
+}
+.tk-now-text { min-width: 0; }
+.tk-now-step { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: rgba(255, 255, 255, 0.6); }
+.tk-now .client-hero-status { margin: 2px 0 4px; }
+.tk-now-desc { font-size: 15px; line-height: 1.4; color: rgba(255, 255, 255, 0.82); }
+.tk-dots { position: absolute; left: 0; right: 0; bottom: 7px; display: flex; justify-content: center; gap: 3px; }
+.tk-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .55; }
+.tk-mover { position: absolute; left: 21px; bottom: 9px; color: #FFD166; line-height: 0; }
+.tk-now-ready .tk-now-icon, .tk-now-received .tk-now-icon { background: rgba(61, 190, 122, 0.18); color: var(--tk-ok); }
+.tk-ico .tk-draw { stroke-dasharray: 1; stroke-dashoffset: 0; }
+
+/* шкала: на телефоне вертикальная */
+.tl { list-style: none; margin-top: 18px; }
+.tl-step { position: relative; display: flex; align-items: flex-start; gap: 12px; padding-bottom: 10px; color: rgba(255, 255, 255, 0.55); font-size: 15px; }
+.tl-step:last-child { padding-bottom: 0; }
+.tl-step::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: rgba(255, 255, 255, 0.16); }
+.tl-step:last-child::before { display: none; }
+.tl-dot {
+  position: relative; z-index: 1; flex: none; display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: var(--hero); color: rgba(255, 255, 255, 0.45);
+}
+.tl-label { padding-top: 4px; line-height: 1.3; overflow-wrap: anywhere; }
+.tl-step.done { color: rgba(255, 255, 255, 0.85); }
+.tl-step.done::before { background: var(--tk-ok); }
+.tl-step.done .tl-dot { border-color: var(--tk-ok); background: var(--tk-ok); color: #fff; }
+.tl-step.current { color: #fff; font-weight: 700; }
+.tl-step.current .tl-dot { border-color: #fff; background: var(--tk-now); color: #fff; box-shadow: 0 0 0 4px rgba(229, 72, 91, 0.28); }
+
+/* широкий экран: шапка шире колонки страницы, шкала горизонтальная */
+@media (min-width: 1000px) {
+  .client-hero.tk-hero { margin-left: -160px; margin-right: -160px; }
+  .tl { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); margin-top: 24px; }
+  .tl-step { flex-direction: column; align-items: center; gap: 0; padding: 0 4px; text-align: center; font-size: 12.5px; }
+  .tl-step::before { left: calc(50% + 16px); right: calc(16px - 50%); top: 13px; bottom: auto; width: auto; height: 2px; }
+  .tl-label { padding-top: 8px; }
+}
+
+/* конфетти у «Получен клиентом» — один раз */
+.tk-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.tk-confetti i { position: absolute; top: -10px; width: 7px; height: 11px; border-radius: 2px; opacity: 0; }
+
+/* карточка маршрута: Китай → [грузовик] → город. Стилизованная схема, не карта и не GPS */
+.tk-route h2 { margin-bottom: 14px; }
+.tk-map { --p: .5; position: relative; height: 64px; margin: 0 2px 8px; }
+.tk-line {
+  position: absolute; left: 20px; right: 20px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--line-strong) 0 8px, transparent 8px 14px);
+}
+.tk-fill { position: absolute; left: 0; top: 0; bottom: 0; width: calc(22px + (100% - 44px) * var(--p)); border-radius: 2px; background: var(--green); }
+.tk-end {
+  position: absolute; top: 50%; z-index: 1; display: grid; place-items: center;
+  width: 40px; height: 40px; margin-top: -20px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+}
+.tk-end-a { left: 0; }
+.tk-end-b { right: 0; }
+.tk-map.is-arrived .tk-end-b { border-color: var(--green); background: var(--green-tint); color: var(--green); }
+.tk-vehicle {
+  position: absolute; top: 50%; z-index: 2; display: grid; place-items: center;
+  left: calc(42px + (100% - 84px) * var(--p));   /* между значками начала и конца, не поверх них */
+  width: 44px; height: 44px; margin: -30px 0 0 -22px; border-radius: 14px;
+  background: var(--primary); color: var(--on-primary); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.tk-map.is-arrived .tk-vehicle { left: calc(100% - 66px); }
+.tk-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 700; }
+.tk-ends span { min-width: 0; overflow-wrap: anywhere; }
+.tk-ends span:last-child { text-align: right; }
+.tk-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.tk-facts dt { font-size: 12px; font-weight: 600; color: var(--muted); }
+.tk-facts dd { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tk-route .fine-print { margin: 12px 0 0; font-size: 12px; }
+/* спокойное сообщение о задержке: не красное, без тревоги */
+.tk-late { margin-top: 12px; padding: 10px 12px; border-left: 3px solid #C98A00; border-radius: var(--r-sm); background: var(--soft); font-size: 14px; line-height: 1.4; }
+
+/* история заказа */
+.tk-hist { list-style: none; }
+.tk-h { position: relative; display: grid; gap: 2px; margin-left: 5px; padding: 0 0 14px 18px; border-left: 2px solid var(--line); }
+.tk-h:last-child { padding-bottom: 0; border-left-color: transparent; }
+.tk-h::before { content: ""; position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; border: 2px solid var(--muted); border-radius: 50%; background: var(--surface); }
+.tk-h:first-child::before { border-color: var(--green); background: var(--green); }
+.tk-h time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tk-h-title { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.tk-h.pay .tk-h-title { font-weight: 600; }
+.tk-h-note { margin-top: 4px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--soft); font-size: 14px; overflow-wrap: anywhere; }
+.tk-h-who { font-weight: 600; color: var(--muted); }
+
+/* байер: блок в карточке заказа */
+.tk-buyer { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.tk-buyer h4 { margin: 0; }
+.tk-b-ship { display: grid; gap: 8px; margin: 0; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 10px; }
+.tk-b-ship legend { padding: 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tk-b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tk-b-ship .field, .tk-buyer > .field { margin: 0; }
+.tk-b-note { color: #8A5A00; }
+html[data-theme="dark"] .tk-b-note { color: #E8B04A; }
+.tk-hist-b { margin-top: 8px; }
+
+/* ---------- анимации: только если человек не просил уменьшить движение ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .tl-step.current .tl-dot { animation: tk-pulse 2.4s ease-out 0.4s 3; }
+  .tk-now-icon { animation: tk-pop .5s ease-out both; }
+  .tk-ico .tk-draw { animation: tk-draw .8s ease-out .35s both; }
+  .tk-dots i { animation: tk-blink 1.2s ease-in-out 5; }
+  .tk-dots i:nth-child(2) { animation-delay: .2s; }
+  .tk-dots i:nth-child(3) { animation-delay: .4s; }
+  .tk-a-buying .tk-ico { animation: tk-bob 1.6s ease-in-out 3; }
+  .tk-mover { animation: tk-slide-in 1.4s cubic-bezier(.2, .7, .2, 1) .3s both; }
+  .tk-a-packing .tk-lid { transform-box: fill-box; animation: tk-lid .9s ease-out .3s both; }
+  .tk-a-shipped .tk-ico, .tk-a-local .tk-ico { animation: tk-roll 1.2s ease-in-out .5s 4 alternate; }
+  .tk-a-arrived_dest .tk-wave { transform-box: fill-box; transform-origin: left center; animation: tk-wave 1.1s ease-in-out .3s 2; }
+  .tk-now-ready .tk-now-icon { animation: tk-pop .5s ease-out both, tk-glow 1.8s ease-out .5s 2; }
+  .tk-vehicle { animation: tk-drive 1.8s cubic-bezier(.2, .7, .2, 1) .2s both; }
+  .tk-fill { animation: tk-fill 1.8s cubic-bezier(.2, .7, .2, 1) .2s both; }
+  .tk-confetti i { animation: tk-fall 1.6s ease-in forwards; }
+}
+@keyframes tk-pulse { 0% { box-shadow: 0 0 0 4px rgba(229, 72, 91, .28); } 60% { box-shadow: 0 0 0 10px rgba(229, 72, 91, 0); } 100% { box-shadow: 0 0 0 4px rgba(229, 72, 91, .28); } }
+@keyframes tk-pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tk-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes tk-blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes tk-bob { 0%, 100% { transform: none; } 50% { transform: translateY(-2px) rotate(-3deg); } }
+@keyframes tk-slide-in { from { transform: translateX(-30px); opacity: 0; } 60% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes tk-lid { from { transform: translateY(-5px); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes tk-roll { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+@keyframes tk-wave { 0%, 100% { transform: none; } 50% { transform: skewY(-8deg) scaleX(.94); } }
+@keyframes tk-glow { 0% { box-shadow: 0 0 0 0 rgba(61, 190, 122, .55); } 100% { box-shadow: 0 0 0 14px rgba(61, 190, 122, 0); } }
+@keyframes tk-drive { from { left: 42px; } }
+@keyframes tk-fill { from { width: 0; } }
+@keyframes tk-fall { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx, 10px), 190px) rotate(320deg); } }

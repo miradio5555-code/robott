@@ -3099,6 +3099,7 @@
         moneyHtml(o, true) +
         (ULA.wallet ? ULA.wallet.orderHtml(o) : "") +
         (ULA.deadlines ? ULA.deadlines.orderHtml(o) : "") +
+        (ULA.tracking ? ULA.tracking.buyerHtml(o) : "") +   // путь заказа для клиента (файл 64)
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
           (o.shipment_id ? "<div><dt>" + t("sh_tag") + "</dt><dd>" + esc((ULA.shipments && ULA.shipments.name(o.shipment_id)) || "—") + "</dd></div>" : "") +
@@ -3131,6 +3132,7 @@
       return t("history_payment", { amount: cur(item.paid_total, order && order.client_currency) });
     }
     if (item.event_type === "address") return t("history_address");
+    if (item.event_type === "stage") return ULA.tracking ? ULA.tracking.historyText(item) : t("tk_h_stage");   // файл 64
     return t("status_" + (item.new_status || item.status));
   }
 

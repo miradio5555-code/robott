@@ -69,6 +69,8 @@ function build(scn) {
     mkOrder({ client_name: "Айбек", product_ru: "Кроссовки", source: "request", status: "new" });
   }
   if (scn === "cab") buildCab(db, ws, mkClient, mkOrder);
+  // байер с файлом 64: у заказов есть поля пути заказа → в карточке виден блок «Путь заказа для клиента»
+  if (scn === "track") db.orders.forEach((o) => Object.assign(o, { track_stage: null, shipped_at: null, transit_days_min: null, transit_days_max: null, ship_to: null }));
   if (scn === "clients") {
     // два «Айбека» без адреса и без телефона; у одного заказ уже есть
     const a = mkClient("Айбек", null), b = mkClient("Айбек", null), c = mkClient("Нурлан", "+996700111222");
@@ -112,6 +114,36 @@ function buildCab(db, ws, mkClient, mkOrder) {
   const cab2 = db.orders.find((x) => x.order_number === "CAB-2");
   db.delivery[cab2.id] = { name: "Айбек Тестов", phone: "+996555111222", telegram: null, city: "Бишкек", address: "ул. Абая 10", pickup_point: null, state: "proposed", source: "cabinet" };
   db.tgOn = new Set([db.orders.find((x) => x.order_number === "CAB-1").id]);
+  buildTrack(db, mkClient, o);
+}
+// Путь заказа (файл 64): клиент D, заказы на разных этапах. Ссылка заказа: ?order=OT(n), общая ссылка: ?c=T.D
+// Заказы CAB-1…CAB-9 полей файла 64 не имеют — это «старые» заказы (этап из статуса).
+T.D = "5".repeat(32);
+function buildTrack(db, mkClient, o) {
+  const D = mkClient("Дина Трекова", "+996555777888", { city: "Бишкек", address: "ул. Токтогула 5", has_card: true });
+  const day = (n) => days(n).slice(0, 10);
+  const at = (n, s = 0) => iso(new Date(Date.now() + n * 864e5 + s * 1000));
+  const tk = (x) => o(D, { client_price: 4000, paid_amount: 0, client_card_ok: true, track_stage: null, shipped_at: null, transit_days_min: null, transit_days_max: null, ship_to: null, history: [], ...x });
+  tk({ product_ru: "Кроссовки (в пути)", status: "in_transit", paid_amount: 4000, track_stage: "shipped", shipped_at: day(-8), transit_days_min: 10, transit_days_max: 20,
+    ship_to: "Бишкек, Кыргызстан", tracking_number: "YT2611080001", client_comment: "Груз в машине, всё по плану",
+    history: [
+      { event_type: "status", status: "new", created_at: at(-20) }, { event_type: "payment", paid_total: 4000, created_at: at(-19) },
+      { event_type: "status", status: "purchasing", created_at: at(-15) }, { event_type: "stage", status: "purchasing", stage: "bought", note: null, created_at: at(-13) },
+      { event_type: "status", status: "china_warehouse", created_at: at(-11) },
+      { event_type: "stage", status: "china_warehouse", stage: "packing", note: "Вес 2,4 кг, упаковали в коробку", created_at: at(-9) },
+      { event_type: "status", status: "in_transit", created_at: at(-8) }, { event_type: "stage", status: "in_transit", stage: "shipped", note: "Груз в машине, всё по плану", created_at: at(-8, 2) },
+    ] });                                                                                                         // CAB-10
+  tk({ product_ru: "Платье (срок прошёл)", status: "in_transit", track_stage: "shipped", shipped_at: day(-25), transit_days_min: 10, transit_days_max: 18, ship_to: "Ош" });   // CAB-11
+  tk({ product_ru: "Сумка (выкуплена)", status: "purchasing", track_stage: "bought" });                                    // CAB-12
+  tk({ product_ru: "Куртка (готовим к отправке)", status: "china_warehouse", track_stage: "packing" });                     // CAB-13
+  tk({ product_ru: "Часы (прибыли)", status: "arrived", track_stage: null });                                               // CAB-14
+  tk({ product_ru: "Плед (по городу)", status: "arrived", track_stage: "local" });                                          // CAB-15
+  tk({ product_ru: "Лампа (готова к выдаче)", status: "arrived", track_stage: "ready" });                                   // CAB-16
+  tk({ product_ru: "Чайник (получен)", status: "delivered", track_stage: "received", paid_amount: 4000 });                  // CAB-17
+  tk({ product_ru: "Рюкзак (заявка)", status: "new" });                                                                     // CAB-18
+  tk({ product_ru: "Шарф (этап не подходит к статусу)", status: "arrived", track_stage: "buying" });                        // CAB-19 → «Прибыл в страну назначения»
+  tk({ product_ru: "Зонт (в пути без даты)", status: "in_transit", history: [{ event_type: "status", status: "in_transit", created_at: at(-3) }] });   // CAB-20: дата из истории
+  db.cabinets.push({ token: T.D, client_id: D.id });
 }
 function calc(r) {
   const cost = Number(r.quantity) * Number(r.unit_price_cny) * Number(r.exchange_rate) + Number(r.delivery_cost) * Number(r.delivery_rate);
@@ -163,7 +195,10 @@ function orderView(db, o, needOk, extra) {
   return { brand: { name: db.workspaces[0].name, logo: null, fx: null }, contact: contactOf(db), order_number: o.order_number, order_date: o.order_date, product_ru: o.product_ru, product_zh: o.product_zh,
     quantity: o.quantity, weight_kg: o.weight_kg, status: o.status, client_currency: o.client_currency, ...money(db, o),
     delivery_info: o.delivery_info, client_comment: o.client_comment, tracking_number: o.tracking_number, delivery_eta_from: dayOf(o.delivery_eta_from), delivery_eta_to: dayOf(o.delivery_eta_to),
-    updated_at: o.updated_at, status_history: [], photos: [], ...(db.srv56 ? {} : { delivery: delView(delOf(db, o)) }), client: cardOf(db, o, needOk), ...extra };
+    updated_at: o.updated_at, status_history: o.history || [], photos: [], ...(db.srv56 ? {} : { delivery: delView(delOf(db, o)) }), client: cardOf(db, o, needOk),
+    // файл 64: только публичные поля пути заказа (у «старых» заказов стенда их нет — как в базе без файла 64)
+    ...("track_stage" in o ? { track_stage: o.track_stage, shipped_at: dayOf(o.shipped_at), transit_days_min: o.transit_days_min, transit_days_max: o.transit_days_max, ship_to: o.ship_to } : {}),
+    ...extra };
 }
 function clientRpc(db, name, a) {
   const cab = (tok) => (typeof tok === "string" && /^[a-f0-9]{32}$/.test(tok) ? (db.cabinets || []).find((x) => x.token === tok) : null);

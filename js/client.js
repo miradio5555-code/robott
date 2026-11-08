@@ -710,9 +710,14 @@
   // Доставка: этап, ожидаемый срок (только если байер его назвал)
   function etaBlockHtml(o) {
     if (o.status === "cancelled") return "";
-    var e = etaText(o);
+    var e = etaText(o), TK = U.tracking;
+    var stage = TK ? t("tk_s_" + TK.STAGES[TK.stageIndex(o)]) : t("status_" + o.status);
+    if (!e && TK) {   // груз в пути: тот же ориентировочный срок, что в карточке маршрута (иначе «срок не назначен» противоречит ей)
+      var tr = TK.transit(o);
+      if (tr.eta && tr.idx >= 5 && tr.idx <= 7) e = tr.eta[0] === tr.eta[1] ? fmtDate(tr.eta[0]) : fmtDate(tr.eta[0]) + " – " + fmtDate(tr.eta[1]);
+    }
     return '<section class="client-block cab-eta-block"><h2>' + esc(t("cl_delivery_info")) + "</h2>" +
-      '<dl class="specs specs-2"><div><dt>' + esc(t("cl_status")) + "</dt><dd>" + esc(t("status_" + o.status)) + "</dd></div>" +
+      '<dl class="specs specs-2"><div><dt>' + esc(t("cl_status")) + "</dt><dd>" + esc(stage) + "</dd></div>" +
       (isLive(o) && hasEta(o) ? "<div><dt>" + esc(t("cab_eta")) + "</dt><dd>" + (e ? esc(e) : '<span class="muted">' + esc(t("cab_eta_none")) + "</span>") + "</dd></div>" : "") +
       "</dl></section>";
   }
@@ -777,14 +782,16 @@
     var flow = STATUSES.filter(function (s) { return s !== "cancelled"; });
     var idx = flow.indexOf(o.status);
 
-    var steps = o.status === "cancelled"
+    var TK = U.tracking;   // путь заказа из 10 этапов (js/tracking.js); без него — прежняя шкала статусов
+    var steps = TK ? TK.clientHtml(o) : o.status === "cancelled"
       ? '<p class="cancelled-note">' + esc(t("cl_cancelled")) + "</p>"
       : '<ol class="steps" aria-label="' + esc(t("cl_status")) + '">' + flow.map(function (s, i) {
           return '<li class="' + (i < idx ? "done" : i === idx ? "current" : "") + '"' +
             (i === idx ? ' aria-current="step"' : "") + '><span class="dot"></span><span>' +
             esc(t("status_" + s)) + "</span></li>";
         }).join("") + "</ol>";
-    var clientHistory = statusHistoryHtml(o.status_history, o);
+    var clientHistory = TK ? "" : statusHistoryHtml(o.status_history, o);
+    var dest = (dlv(o) || {}).city || "";
 
     // Пока данных нет — форма стоит сразу после статуса (это главное действие).
     // Когда данные есть — уходит вниз, под оплату.
@@ -797,18 +804,20 @@
 
     box.innerHTML =
       (cab.token ? '<button type="button" class="btn cab-back" data-cab-back>← ' + esc(t("cab_back")) + "</button>" : "") +
-      '<section class="client-hero">' +
+      '<section class="client-hero' + (TK ? " tk-hero" : "") + '">' +
         // номер заказа не переносим посередине
         "<h1>" + esc(t("cl_order", { n: "\u0000" })).replace("\u0000", '<span class="num">' + esc(o.order_number) + "</span>") + "</h1>" +
         '<p class="client-hero-date">' + fmtDate(o.order_date) + "</p>" +
-        (o.status === "cancelled" ? "" : '<p class="client-hero-status">' + esc(t("status_" + o.status)) + "</p>") +
+        (o.status === "cancelled" || TK ? "" : '<p class="client-hero-status">' + esc(t("status_" + o.status)) + "</p>") +
         steps + clientHistory +
       "</section>" +
 
+      (TK ? TK.routeHtml(o, dest) : "") +
       nextStepHtml(o) +
       (deliveryFirst ? delivery : "") +
       etaBlockHtml(o) +
       trackHtml(o) +
+      (TK ? TK.historyHtml(o) : "") +
       (cab.token ? cabTgHtml(o) : tgHtml(o)) +
 
       '<section class="client-block">' +
