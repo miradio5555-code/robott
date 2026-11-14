@@ -309,12 +309,9 @@
   }
 
   function applyTheme(th) {
+    // тема ставится в js/head.js: на странице всегда html[data-theme="light|dark"], «Авто» следит за системой
+    if (window.ULA_THEME) { window.ULA_THEME.set(th); return; }
     try { localStorage.setItem("cc_theme", th); } catch (e) { /* ignore */ }
-    if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
-    else document.documentElement.removeAttribute("data-theme");
-    var dark = th === "dark" || (th === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", dark ? "#1C1C1E" : "#FFFFFF");
   }
 
   // ---------- Вход через Google ----------
@@ -350,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261208c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261215a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 

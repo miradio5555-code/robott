@@ -1506,7 +1506,7 @@ I18N.vi = {
   pf_dark: "Chế độ tối",
   pf_dark_sub: "Dịu mắt vào ban đêm",
   pf_color: "Màu nút",
-  pf_col_ula: "Cổ điển",
+  pf_col_ula: "Đỏ thương hiệu",
   pf_col_blue: "Xanh dương",
   pf_col_violet: "Tím",
   pf_col_green: "Xanh lá",
