@@ -1534,7 +1534,7 @@ I18N.zh = {
   pf_dark: "深色模式",
   pf_dark_sub: "夜间更护眼",
   pf_color: "按钮颜色",
-  pf_col_ula: "经典",
+  pf_col_ula: "品牌红",
   pf_col_blue: "蓝色",
   pf_col_violet: "紫色",
   pf_col_green: "绿色",

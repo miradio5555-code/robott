@@ -14,7 +14,7 @@
     tsize: { key: "ula_tsize", attr: "data-tsize", def: "m", list: ["s", "m", "l", "xl"] },
     ui: { key: "ula_ui", attr: "data-ui", def: "rounded", list: ["rounded", "soft", "crisp"] }
   };
-  var SWATCH = { ula: "#151417", blue: "#2F6FDE", violet: "#7C5CFC", green: "#15803D", orange: "#E8590C" };
+  var SWATCH = { ula: "#B50919", blue: "#2F6FDE", violet: "#7C5CFC", green: "#15803D", orange: "#E8590C" };
 
   function getLook(name) {
     var L = LOOK[name], v = null;
@@ -28,6 +28,7 @@
     else document.documentElement.setAttribute(L.attr, v);
   }
   function isDark() {
+    if (window.ULA_THEME) return window.ULA_THEME.isDark();
     var th = c.getTheme();
     return th === "dark" || (th === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
   }

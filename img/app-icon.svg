@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
-  <!-- Значок приложения: квадрат без скругления (телефон скругляет сам), U в безопасной зоне -->
-  <rect width="64" height="64" fill="#151417"/>
-  <path d="M16.5 16 V32 a15.5 15.5 0 0 0 15.5 15.5" fill="none" stroke="#FF6A3D" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M32 47.5 a15.5 15.5 0 0 0 15.5 -15.5 V16" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

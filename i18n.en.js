@@ -1534,7 +1534,7 @@ I18N.en = {
   pf_dark: "Dark mode",
   pf_dark_sub: "Easy on the eyes at night",
   pf_color: "Button color",
-  pf_col_ula: "Classic",
+  pf_col_ula: "Brand red",
   pf_col_blue: "Blue",
   pf_col_violet: "Violet",
   pf_col_green: "Green",

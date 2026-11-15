@@ -1544,7 +1544,7 @@ I18N.ru = {
   pf_dark: "Тёмная тема",
   pf_dark_sub: "Глаза меньше устают вечером",
   pf_color: "Цвет кнопок",
-  pf_col_ula: "Классика",
+  pf_col_ula: "Фирменный красный",
   pf_col_blue: "Синий",
   pf_col_violet: "Фиолетовый",
   pf_col_green: "Зелёный",
