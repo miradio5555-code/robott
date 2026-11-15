@@ -161,11 +161,20 @@
     var cnt = $("#today-count");
     cnt.textContent = current.length ? String(current.length) : "";
     cnt.classList.toggle("hidden", !current.length);
+    var g = U.game;
+    if (g) g.onTodayRendered(current.length);   // серия дней «Всё сделано»
+    var st = $("#today-streak"), wk = $("#home-week");
+    if (st) st.innerHTML = g ? g.streakHtml() : "";
+    if (wk) wk.innerHTML = g ? g.weekHtml() : "";
     if (!state.orders.length) {
       box.innerHTML = '<div class="td-empty">' + esc(t("td_empty_new")) + "</div>";
       return;
     }
-    if (!current.length) { box.innerHTML = '<div class="td-empty">' + U.icon("check", 18) + esc(t("td_empty")) + "</div>"; return; }
+    if (!current.length) {
+      var ad = g && state.me && state.me.role !== "admin" ? g.allDoneHtml() : "";
+      box.innerHTML = ad || '<div class="td-empty">' + U.icon("check", 18) + esc(t("td_empty")) + "</div>";
+      return;
+    }
     var shown = showAll ? current : current.slice(0, LIMIT);
     box.innerHTML = shown.map(rowHtml).join("") +
       (current.length > shown.length ? '<button type="button" class="btn btn-block td-more" data-td-more>' + esc(t("td_more", { n: current.length - shown.length })) + "</button>" : "");
