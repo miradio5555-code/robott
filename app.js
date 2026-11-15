@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261216a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261216b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1462,6 +1462,7 @@
     renderBrandWs();
     renderSummary();
     renderAssistant();
+    if (ULA.game) ULA.game.sync();       // игра: уровень, значки, заполненность (до «Сегодня» — там серия дней)
     if (ULA.daily) ULA.daily.render();   // «Сегодня»
     renderChips();
     renderOrders();
@@ -1837,7 +1838,7 @@
     }
     empty.classList.add("hidden");
     var shown = list.slice(0, state.limit);
-    box.innerHTML = shown.map(cardHtml).join("") +
+    box.innerHTML = (ULA.game ? ULA.game.ordersSummaryHtml() : "") + shown.map(cardHtml).join("") +
       (list.length > shown.length
         ? '<button type="button" class="btn btn-block more" data-act="more">' + esc(t("show_more")) + " (" + (list.length - shown.length) + ")</button>"
         : "") + doneLink;
@@ -1933,6 +1934,7 @@
         '<div class="card-top">' +
           '<label class="sel-box"><input type="checkbox" data-sel="' + esc(o.id) + '"' + (ULA.bulk && ULA.bulk.has(o.id) ? " checked" : "") + '><span></span></label>' +
           '<span class="order-no">№ ' + esc(o.order_number) + "</span>" +
+          (ULA.game ? ULA.game.ringHtml(o) : "") +
           '<span class="pill pill-dot st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
         "</div>" +
         '<div class="card-main" data-act="open">' + photo +
@@ -3114,6 +3116,7 @@
         '<div class="detail-top"><span class="pill st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span>" +
           '<span class="muted">' + fmtDate(o.order_date) + "</span></div>" +
         fillWarnHtml(o) +
+        (ULA.game ? ULA.game.detailHtml(o) : "") +   // заполненность: «Осталось: вес, трек-номер»
         '<div class="card-product"><h3>' + esc(o.product_ru) + "</h3>" +
           (o.product_zh ? '<p lang="zh-CN">' + esc(o.product_zh) + "</p>" : "") + "</div>" +
         (urls.length ? '<div class="thumbs thumbs-large">' + thumbsHtml(urls, 0, photoThumbs(o)) + "</div>" : "") +

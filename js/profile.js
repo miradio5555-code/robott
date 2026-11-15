@@ -10,11 +10,11 @@
   var $ = c.$, $$ = c.$$, esc = c.esc, money = c.money, state = c.state;
 
   var LOOK = {
-    accent: { key: "ula_accent", attr: "data-accent", def: "ula", list: ["ula", "blue", "violet", "green", "orange"] },
+    accent: { key: "ula_accent", attr: "data-accent", def: "ula", list: ["ula", "blue", "violet", "green", "orange", "gold"] },
     tsize: { key: "ula_tsize", attr: "data-tsize", def: "m", list: ["s", "m", "l", "xl"] },
     ui: { key: "ula_ui", attr: "data-ui", def: "rounded", list: ["rounded", "soft", "crisp"] }
   };
-  var SWATCH = { ula: "#B50919", blue: "#2F6FDE", violet: "#7C5CFC", green: "#15803D", orange: "#E8590C" };
+  var SWATCH = { ula: "#B50919", blue: "#2F6FDE", violet: "#7C5CFC", green: "#15803D", orange: "#E8590C", gold: "#8A6A12" };
 
   function getLook(name) {
     var L = LOOK[name], v = null;
@@ -215,6 +215,7 @@
         '<button type="button" data-pf-tab="clients"><b>' + money(Object.keys(clients).length) + "</b><span>" + esc(t("pf_clients")) + "</span></button>" +
         "</div>";
     }
+    if (U.game) h += U.game.profileHtml();   // уровень, награды, значки
 
     if (owner) {
       var cs = checks(), ok = cs.filter(function (x) { return x.ok; }).length;
@@ -241,6 +242,10 @@
 
     h += '<h3 class="pf-cap">' + esc(t("pf_color")) + "<em>" + esc(t("pf_col_" + acc)) + "</em></h3>" +
       '<div class="pf-card pf-swatches">' + LOOK.accent.list.map(function (k) {
+        // «Золотой» — награда за уровень «Профи»: до него кнопка с замком и подсказкой
+        if (k === "gold" && k !== acc && !(U.game && U.game.reward("gold"))) {
+          return '<button type="button" class="pf-sw pf-sw-lock" disabled style="--sw:' + SWATCH[k] + '" title="' + esc(t("gm_rw_gold")) + '" aria-label="' + esc(t("pf_col_gold") + " — " + t("gm_rw_gold")) + '"><i class="pf-lock">' + U.icon("shield", 14) + "</i></button>";
+        }
         return '<button type="button" class="pf-sw' + (k === acc ? " on" : "") + '" data-pf-accent="' + k + '" style="--sw:' + SWATCH[k] + '" aria-label="' + esc(t("pf_col_" + k)) + '" aria-pressed="' + (k === acc) + '"><i>' + U.icon("check", 16) + "</i></button>";
       }).join("") + "</div>";
 
