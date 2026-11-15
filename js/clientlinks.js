@@ -59,7 +59,7 @@
     m.className = "modal";
     m.setAttribute("aria-hidden", "true");
     m.innerHTML = '<div class="modal-backdrop" data-close></div><div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="cll-title">' +
-      '<div class="modal-head"><h2 id="cll-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>' +
+      '<div class="modal-head"><h2 id="cll-title"></h2><button class="icon-btn" type="button" data-close aria-label="' + esc(t("close")) + '">×</button></div>' +
       '<div class="modal-body" id="cll-body"></div></div>';
     document.body.appendChild(m);
     return m;
@@ -196,7 +196,7 @@
     m.className = "modal modal-small";
     m.setAttribute("aria-hidden", "true");
     m.innerHTML = '<div class="modal-backdrop" data-close></div><div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="cle-title">' +
-      '<div class="modal-head"><h2 id="cle-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>' +
+      '<div class="modal-head"><h2 id="cle-title"></h2><button class="icon-btn" type="button" data-close aria-label="' + esc(t("close")) + '">×</button></div>' +
       '<form class="modal-body" id="cle-form" novalidate>' +
       '<label class="field"><span id="cle-l-name"></span><input id="cle-name" maxlength="120" autocomplete="off"></label>' +
       '<label class="field"><span id="cle-l-phone"></span><input id="cle-phone" type="tel" maxlength="30" autocomplete="off"></label>' +

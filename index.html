@@ -646,8 +646,8 @@
       </button>
 
       <details class="client-block quote-rates">
-        <summary data-i18n="fx_my_title"></summary>
-        <p class="fine-print" data-i18n="fx_my_hint"></p>
+        <summary data-i18n="q_rates_title"></summary>
+        <p class="fine-print" data-i18n="q_rates_hint"></p>
         <div id="my-rates" class="fx-table"></div>
       </details>
     </main>
@@ -926,7 +926,7 @@
     <form id="order-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 id="order-form-title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
 
       <div class="modal-body">
@@ -1101,7 +1101,7 @@
     <form id="settings-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 data-i18n="settings"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body settings-body">
 
@@ -1375,7 +1375,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 id="detail-title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div id="detail-body" class="modal-body"></div>
     </div>
@@ -1387,7 +1387,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="change_status"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div id="status-list" class="modal-body status-list"></div>
     </div>
@@ -1399,7 +1399,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="link_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="link_hint"></p>
@@ -1435,7 +1435,7 @@
     <form id="supplier-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 id="supplier-form-title" data-i18n="supplier_add"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <label class="field"><span data-i18n="supplier_name"></span><input id="sp-name" maxlength="120" required></label>
@@ -1463,13 +1463,13 @@
     <div class="modal-backdrop" data-close></div>
     <div class="modal-sheet">
       <div class="modal-head sp-head">
-        <button class="sp-back" type="button" data-close aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button class="sp-back" type="button" data-close data-i18n-title="a11y_back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
         <span id="support-ava" class="sp-ava" aria-hidden="true"></span>
         <div class="sp-head-t">
           <h2 id="support-title"></h2>
           <p id="support-sub" class="sp-status"></p>
         </div>
-        <button class="icon-btn sp-close" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn sp-close" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div id="support-dev" class="sp-dev hidden"></div>
       <div id="support-log" class="sp-log" aria-live="polite"></div>
@@ -1492,7 +1492,7 @@
     <form id="reset-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 data-i18n="reset_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="reset_hint"></p>
@@ -1551,7 +1551,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="bc_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="bc_hint"></p>
@@ -1581,7 +1581,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="im_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <!-- шаг 1: файл -->
@@ -1654,7 +1654,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="pwa_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <div class="pwa-app"><img src="img/icon-192.png?r=10" alt="" width="56" height="56"><div><b>ULA Factory</b><span data-i18n="pwa_sub"></span></div></div>
@@ -1671,7 +1671,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="vol_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="vol_hint"></p>
@@ -1702,7 +1702,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="inv_title_modal"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p id="inv-sum" class="muted"></p>
@@ -1722,7 +1722,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="lb_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="lb_hint"></p>
@@ -1744,7 +1744,7 @@
     <form id="expense-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 id="ex-form-title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <label class="field"><span data-i18n="ex_f_cat"></span><select id="ex-cat"></select></label>
@@ -1769,7 +1769,7 @@
     <form id="product-form" class="modal-sheet" novalidate>
       <div class="modal-head">
         <h2 id="pr-heading"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <section class="fstep" data-fs="pr-photo">
@@ -1815,7 +1815,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="tm_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="tm_hint"></p>
@@ -1834,7 +1834,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="rl_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="rl_hint"></p>
@@ -1860,7 +1860,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 id="sh-title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div id="sh-body" class="modal-body">
         <section class="fstep" data-fs="sh-main">
@@ -1936,7 +1936,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 id="bulk-status-title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div id="bulk-status-list" class="modal-body status-list"></div>
     </div>
@@ -1947,7 +1947,7 @@
     <div class="modal-sheet">
       <div class="modal-head">
         <h2 data-i18n="bulk_q_title"></h2>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <p class="muted" data-i18n="bulk_q_hint"></p>
@@ -1965,7 +1965,7 @@
           <h2 id="notify-title"></h2>
           <p id="notify-sub" class="fine-print"></p>
         </div>
-        <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
         <div class="notify-langs" role="group">
@@ -1990,10 +1990,10 @@
 
   <!-- ============ ПРОСМОТР ФОТО ============ -->
   <div id="lightbox" class="lightbox" aria-hidden="true">
-    <button class="lb-close" type="button" data-lb-close aria-label="Close">×</button>
-    <button class="lb-nav lb-prev" type="button" data-lb-prev aria-label="Previous">‹</button>
+    <button class="lb-close" type="button" data-lb-close data-i18n-title="close">×</button>
+    <button class="lb-nav lb-prev" type="button" data-lb-prev data-i18n-title="a11y_prev">‹</button>
     <img id="lb-img" alt="">
-    <button class="lb-nav lb-next" type="button" data-lb-next aria-label="Next">›</button>
+    <button class="lb-nav lb-next" type="button" data-lb-next data-i18n-title="a11y_next">›</button>
     <div id="lb-count" class="lb-count"></div>
   </div>
 
