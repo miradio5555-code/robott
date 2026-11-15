@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261216b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261216c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1255,9 +1255,29 @@
       sectionMenu.classList.toggle("hidden", !open);
       sectionMenuBtn.setAttribute("aria-expanded", String(open));
     });
+    // Закрыть: нажатие мимо меню (в т. ч. по затемнению под шторкой — оно часть .section-menu-wrap,
+    // поэтому проверяем само меню и кнопку), кнопка «×» в шапке шторки, смахивание шторки вниз.
     document.addEventListener("click", function (e) {
-      if (!e.target.closest(".section-menu-wrap")) closeSectionMenu();
+      if (e.target.closest("#sheet-close") || !e.target.closest("#section-menu, #section-menu-btn")) closeSectionMenu();
     });
+    (function () {
+      var y0 = null, dy = 0;
+      sectionMenu.addEventListener("touchstart", function (e) {
+        // тянуть можно за шапку или когда список прокручен в самый верх
+        y0 = (e.target.closest(".sheet-head") || sectionMenu.scrollTop <= 0) ? e.touches[0].clientY : null; dy = 0;
+      }, { passive: true });
+      sectionMenu.addEventListener("touchmove", function (e) {
+        if (y0 === null) return;
+        dy = e.touches[0].clientY - y0;
+        if (dy > 0) { sectionMenu.style.transform = "translateY(" + dy + "px)"; sectionMenu.style.transition = "none"; }
+      }, { passive: true });
+      sectionMenu.addEventListener("touchend", function () {
+        if (y0 === null) return;
+        sectionMenu.style.transition = ""; sectionMenu.style.transform = "";
+        if (dy > 80) closeSectionMenu();
+        y0 = null; dy = 0;
+      });
+    })();
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeSectionMenu();
     });
