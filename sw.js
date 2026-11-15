@@ -9,6 +9,9 @@
 //   • Данные (заказы, клиенты) сюда НЕ попадают: запросы к Supabase идут мимо,
 //     всегда напрямую и всегда свежие.
 //   • Нет интернета — сайт всё равно откроется (данные подгрузятся, когда появится сеть).
+//   • Память не растёт: после обновления остаются файлы новой и предыдущей версии (предыдущая —
+//     для вкладки, которая ещё открыта), всё старше удаляется. Шрифты и картинки без версии
+//     перепроверяются, удалённые с сайта — убираются. Проверка: node tests/sw_test.mjs
 // =====================================================
 "use strict";
 
@@ -35,6 +38,14 @@ self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(keys.filter(function (k) { return k.indexOf("ula-") === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+    }).then(function () {
+      // новая копия sw.js: оставить файлы только той версии, что у сохранённой страницы
+      return caches.open(CACHE).then(function (c) {
+        return c.match(PAGE).then(function (r) { return r ? r.text() : ""; }).then(function (html) {
+          var v = versionOf(html);
+          return v ? prune(c, [v]) : null;
+        });
+      }).catch(function () {});
     }).then(function () { return self.clients.claim(); })
   );
 });
@@ -53,6 +64,43 @@ function assetsOf(html) {
 function versionOf(html) {
   var m = /\?v=([0-9a-zA-Z]+)/.exec(html || "");
   return m ? m[1] : "";
+}
+
+// Версия в адресе файла: «app.js?v=20261216c» → «20261216c»; у шрифтов и картинок версии нет
+function versionOfUrl(u) {
+  var m = /[?&]v=([0-9a-zA-Z]+)/.exec(String(u || ""));
+  return m ? m[1] : "";
+}
+
+// Какие сохранённые файлы пора удалить: с версией, которой нет в списке keep
+function staleUrls(urls, keep) {
+  return urls.filter(function (u) {
+    var v = versionOfUrl(u);
+    return !!v && keep.indexOf(v) === -1;
+  });
+}
+
+// Удалить файлы прошлых версий. keep — версии, которые остаются (новая и, пока открыта вкладка, предыдущая).
+function prune(c, keep) {
+  return c.keys().then(function (reqs) {
+    var stale = staleUrls(reqs.map(function (r) { return r.url; }), keep);
+    return Promise.all(reqs.filter(function (r) { return stale.indexOf(r.url) !== -1; }).map(function (r) { return c.delete(r); }));
+  });
+}
+
+// Шрифты и картинки хранятся без версии: после обновления сайта перепроверить каждый.
+// Изменился — сохранить новый; на сайте его больше нет — удалить; нет сети — оставить как есть.
+function refreshUnversioned(c) {
+  return c.keys().then(function (reqs) {
+    return Promise.all(reqs.filter(function (r) {
+      return !versionOfUrl(r.url) && /\/(fonts|img)\/[^?]+$/.test(new URL(r.url).pathname);
+    }).map(function (r) {
+      return fetch(r.url, { cache: "no-cache" }).then(function (res) {
+        if (res.ok) return c.put(r, res);
+        if (res.status === 404 || res.status === 410) return c.delete(r);
+      }).catch(function () {});
+    }));
+  });
 }
 
 // Пришло push-уведомление от сервера (сайт может быть закрыт)
@@ -123,6 +171,10 @@ function openPage(e) {
       if (old && nv === ov) return c.put(PAGE, f.page);
       // Сначала скачиваем все файлы, только потом меняем сохранённую страницу.
       return c.addAll(assetsOf(texts[0])).then(function () { return c.put(PAGE, f.page); }).then(function () {
+        if (!nv) return;
+        // Новая версия уже сохранена целиком — теперь можно убрать всё старше предыдущей.
+        return prune(c, ov ? [nv, ov] : [nv]).then(function () { return refreshUnversioned(c); }).catch(function () {});
+      }).then(function () {
         if (!old || !nv || nv === ov) return;
         return self.clients.get(e.resultingClientId || e.clientId).then(function (cl) {
           if (cl) cl.postMessage({ type: "ula-update", version: nv });
