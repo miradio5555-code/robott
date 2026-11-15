@@ -4654,3 +4654,68 @@ html[data-theme="dark"] .lang-switch button.active { background: var(--fill-2); 
 @keyframes intro-out { to { opacity: 0; } }
 /* браузер без @property: «стрелка» не анимируется — знак просто проявляется */
 @media (max-width: 360px) { .intro-sym { width: 120px; height: 120px; } .in-ula { font-size: 40px; } }
+
+/* =====================================================
+   НАВИГАЦИЯ: разделы по задачам
+   Группы: Главное · Деньги · Товары и доставка · Инструменты · Управление (только админ).
+   Телефон: «Ещё» открывает шторку снизу (у самого пальца) с плитками разделов;
+   то, что уже есть на нижней панели, в шторке не повторяется (.in-bn).
+   ===================================================== */
+.section-menu a.tab { display: flex; align-items: center; text-decoration: none; }
+.sheet-head { display: none; }
+.section-menu-ico.g-goods { background: rgba(220, 164, 58, .16); color: #A86F0C; }
+.section-menu-ico.g-admin { background: var(--surface-sunken); color: var(--text-2); }
+html[data-theme="dark"] .section-menu-ico.g-goods { background: rgba(220, 164, 58, .18); color: #E9BC62; }
+
+@media (max-width: 640px) {
+  body:not(.no-bottom-nav) .topbar:has(.section-menu:not(.hidden)) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  body:not(.no-bottom-nav) #view-admin .section-menu {
+    position: fixed; z-index: 60; top: auto; left: 0; right: 0; bottom: 0;
+    width: auto; max-height: min(86dvh, 720px);
+    padding: 6px var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));
+    border: 0; border-radius: var(--r-xl) var(--r-xl) 0 0;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-3);
+    animation: ula-sheet-up .26s var(--ease, ease-out);
+  }
+  /* затемнение под шторкой: нажатие мимо закрывает её (общий обработчик клика вне меню) */
+  body:not(.no-bottom-nav) #view-admin .section-menu-wrap:has(.section-menu:not(.hidden))::before { content: ""; position: fixed; inset: 0; z-index: 55;
+    background: rgba(10, 11, 14, .48); animation: ula-fade-in .2s ease-out; }
+  body:not(.no-bottom-nav) .sheet-head { display: flex; align-items: center; justify-content: center; position: sticky; top: -6px; z-index: 1;
+    margin: -6px calc(-1 * var(--sp-4)) 4px; padding: 18px var(--sp-4) 8px; background: var(--surface-raised); }
+  body:not(.no-bottom-nav) .sheet-head::before { content: ""; position: absolute; top: 7px; left: 50%; width: 38px; height: 4px;
+    margin-left: -19px; border-radius: 4px; background: var(--border-strong); }
+  body:not(.no-bottom-nav) .sheet-head b { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+
+  /* плитки: 3 в ряд, значок сверху, подпись снизу */
+  body:not(.no-bottom-nav) .section-menu-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  body:not(.no-bottom-nav) .section-menu .menu-profile,
+  body:not(.no-bottom-nav) .section-menu .menu-group { grid-column: 1 / -1; }
+  body:not(.no-bottom-nav) .section-menu .menu-group { padding: 10px 2px 0; }
+  body:not(.no-bottom-nav) .section-menu .menu-group.mg-bn,
+  body:not(.no-bottom-nav) .section-menu .tab.in-bn { display: none !important; }
+  body:not(.no-bottom-nav) .section-menu .tab:not(.menu-profile) {
+    position: relative; flex-direction: column; justify-content: center; gap: 6px;
+    min-height: 82px; padding: 10px 6px; border-radius: var(--r-md);
+    background: var(--surface-sunken); text-align: center;
+    font-size: var(--fs-xs); font-weight: 600; line-height: 1.2; color: var(--text);
+  }
+  body:not(.no-bottom-nav) .section-menu .tab:not(.menu-profile) .tab-ico { width: 40px; height: 40px; border-radius: 12px;
+    background: var(--surface-raised); color: var(--text-2); }
+  body:not(.no-bottom-nav) .section-menu .tab:not(.menu-profile) .tab-ico svg { width: 22px; height: 22px; }
+  body:not(.no-bottom-nav) .section-menu .tab:not(.menu-profile):active { transform: scale(.96); }
+  body:not(.no-bottom-nav) .section-menu .tab.active:not(.menu-profile) { background: var(--accent-tint); color: var(--accent-text); }
+  body:not(.no-bottom-nav) .section-menu .tab.active .tab-ico { color: var(--accent-text); }
+  body:not(.no-bottom-nav) .section-menu .tab.active::after { display: none; }
+  /* красная цифра — в углу плитки */
+  body:not(.no-bottom-nav) .section-menu .tab:not(.menu-profile) .badge-inline { position: absolute; top: 6px; right: 6px; margin: 0; }
+  /* действия (Обновить, Обучение, Выйти…) — компактным списком ниже */
+  body:not(.no-bottom-nav) .section-menu .menu-divider { margin: var(--sp-3) 0 var(--sp-1); }
+  body:not(.no-bottom-nav) .section-menu .menu-action { min-height: 46px; padding: 0 6px; }
+}
+@media (max-width: 340px) {
+  body:not(.no-bottom-nav) .section-menu-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@keyframes ula-fade-in { from { opacity: 0; } }
+@keyframes ula-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { #view-admin .section-menu { animation: none !important; } }

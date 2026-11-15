@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261215c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261216a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1165,6 +1165,7 @@
       $("#s-show-" + k).addEventListener("change", function (e) {
         try { localStorage.setItem("ula_show_" + k, e.target.checked ? "1" : "0"); } catch (err) { /* без хранилища — не страшно */ }
         applyOptionalTabs();
+        refreshMenuGroups();
         if (!e.target.checked && state.tab === k) switchTab("orders");
       });
     });
@@ -2126,6 +2127,11 @@
     $("#bn-more").style.order = 9;
     $("#bn-plus").classList.toggle("hidden", !plus);
     $("#bottom-nav").classList.toggle("has-plus", plus);
+    // в «Ещё» на телефоне не повторяем то, что уже есть на нижней панели
+    $$(".section-menu .tab[data-tab]").forEach(function (b) {
+      b.classList.toggle("in-bn", bnTabs.indexOf(b.getAttribute("data-tab")) !== -1);
+    });
+    refreshMenuGroups();
     $$(".tab").forEach(function (b) {
       // «Отчёт» открывается из «Аналитики», в меню подсвечиваем «Аналитику»
       var on = b.getAttribute("data-tab") === (state.tab === "report" ? "analytics" : state.tab);
@@ -2165,8 +2171,8 @@
     var ico = $("#section-menu-ico");
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
-      var ICONS = { home: "home", exchange: "wallet", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "users", business: "chart", inbox: "message", support: "message", profile: "id" };
+      var ICONS = { home: "home", exchange: "swap", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
+        suppliers: "factory", shipments: "truck", buyers: "id", business: "pie", inbox: "message", support: "lifebuoy", profile: "id" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
@@ -2263,14 +2269,7 @@
       b.classList.toggle("simple-hidden", on && !held && SIMPLE_TABS.indexOf(tab) === -1);
     });
     if (ULA.daily) ULA.daily.applyModules();
-    // заголовок группы прячем, если в ней не осталось видимых разделов
-    $$("[data-group-toggle]").forEach(function (g) {
-      var k = g.getAttribute("data-group-toggle");
-      var any = $$('.section-menu .tab[data-group="' + k + '"]').some(function (b) {
-        return !b.classList.contains("simple-hidden") && !b.classList.contains("hidden") && getComputedStyle(b).display !== "none";
-      });
-      g.classList.toggle("simple-hidden", on && !any);
-    });
+    refreshMenuGroups();
     var btn = $("#simple-btn");
     if (btn) {
       btn.classList.toggle("hidden", !state.me || state.me.role === "admin");
@@ -2285,6 +2284,27 @@
       if (asc === null) { as.classList.toggle("collapsed", !on); $("#as-toggle").setAttribute("aria-expanded", String(on)); }
     }
     if (on && SIMPLE_TABS.indexOf(state.tab) === -1 && state.tab !== "report" && !(state.tab === "exchange" && ULA.daily && ULA.daily.exchangeHeld())) switchTab("home");
+  }
+
+  // Заголовок группы прячем, если в ней не осталось видимых разделов (простой режим, права, выключенные модули).
+  // mg-bn — все её разделы уже на нижней панели телефона: тогда группа не нужна только в «Ещё» на телефоне.
+  function refreshMenuGroups() {
+    var bn = $$(".section-menu .tab.in-bn");
+    bn.forEach(function (b) { b.classList.toggle("in-bn", false); });
+    var vis = {};
+    $$(".section-menu .tab[data-group]").forEach(function (b) {
+      if (b.classList.contains("menu-profile") || getComputedStyle(b).display === "none") return;
+      var k = b.getAttribute("data-group");
+      vis[k] = vis[k] || { all: 0, bn: 0 };
+      vis[k].all++;
+      if (bn.indexOf(b) !== -1) vis[k].bn++;
+    });
+    bn.forEach(function (b) { b.classList.toggle("in-bn", true); });
+    $$("[data-group-toggle]").forEach(function (g) {
+      var v = vis[g.getAttribute("data-group-toggle")];
+      g.classList.toggle("simple-hidden", !v);
+      g.classList.toggle("mg-bn", !!v && v.bn === v.all);
+    });
   }
 
   function applyOptionalTabs() {
