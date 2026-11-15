@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     }
     const stats = { today: new Date().toISOString().slice(0, 10), workspaces: Object.values(byWs) };
 
-    const langName = { ru: "русском", en: "английском", zh: "китайском" }[lang];
+    const langName = ({ ru: "русском", en: "английском", zh: "китайском" } as Record<string, string>)[lang];
     const system =
       "Ты — помощник администратора платформы ULA Factory (учёт заказов байеров, которые закупают товары в Китае " +
       "и отправляют карго в Центральную Азию). Отвечай коротко, по делу, на " + langName + " языке. " +

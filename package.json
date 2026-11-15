@@ -1,0 +1,25 @@
+{
+  "name": "ula-factory",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ULA Factory — учёт заказов из Китая. Здесь только короткие команды: сторонних пакетов у сайта нет, npm install не нужен.",
+  "scripts": {
+    "check": "node tests/check_all.mjs",
+    "check:web": "node tests/check_web.js",
+    "check:static": "node tests/check_static.js",
+    "check:functions": "bash tests/check_functions.sh",
+    "test:sw": "node tests/sw_test.mjs",
+    "test:tracking": "node tests/tracking_test.mjs",
+    "test:orders": "node tests/templates_test.mjs",
+    "test:import": "node tests/import_test.mjs",
+    "test:whatsapp": "python3 -m unittest discover -s integrations/whatsapp -p \"test_*.py\"",
+    "test:db": "bash tests/run_db_tests.sh",
+    "stand": "node tests/browser/server.mjs",
+    "smoke": "node tests/browser/smoke.mjs",
+    "mobile:sync": "bash mobile/copy-web.sh",
+    "mobile:check": "bash mobile/copy-web.sh --check",
+    "ios:prepare": "bash mobile/copy-web.sh && (cd mobile && npx cap copy ios) && bash mobile/copy-web.sh --check",
+    "version:set": "node scripts/set_version.js",
+    "release:check": "bash scripts/release_check.sh"
+  }
+}

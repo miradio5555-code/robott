@@ -83,6 +83,8 @@ echo "▶ Изменения файлов 45 и 46 (файл 63)…"
 bash tests/restore_45_46_test.sh
 echo "▶ Путь заказа для клиента (файл 64)…"
 bash tests/tracking_db_test.sh
+echo "▶ Игра: серия дней в профиле (файл 66)…"
+bash tests/game_test.sh
 
 echo ""
 echo "🎉 Все проверки пройдены"

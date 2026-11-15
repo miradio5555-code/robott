@@ -39,6 +39,7 @@ echo "▶ Сценарии обработчика с поддельным Telegr
 ULA_PG_CONTAINER="$NAME" node tests/notify_worker_test.mjs
 
 if command -v deno >/dev/null 2>&1; then
+  export DENO_NO_PACKAGE_JSON=1   # package.json в корне — только команды npm run; Deno его учитывать не должен
   echo "▶ Старая функция telegram-notify (Deno, поддельные база и Telegram)…"
   deno run --quiet --allow-read --allow-env --import-map=tests/notify_importmap.json tests/notify_legacy_test.ts
   echo "▶ Защита order-notify-worker (секрет, 503/401)…"
