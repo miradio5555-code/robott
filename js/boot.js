@@ -38,6 +38,6 @@
   if (seen || calm || pub) { done(); return; }
   el.classList.add("play", "play-on");
   el.addEventListener("click", done);
-  setTimeout(open, 1850);
-  setTimeout(done, 2600);
+  setTimeout(open, 2400);   // время — в style.css, блок «ЗАСТАВКА ПРИ ВХОДЕ»
+  setTimeout(done, 3050);
 })();

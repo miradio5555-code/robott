@@ -2930,42 +2930,7 @@ html[data-theme="dark"] #tab-orders .chips-ico .chip.active:not(.chip-all) .ci {
 }
 #tab-quote .q-step .grid-2 { align-items: end; }
 
-/* ---------- Заставка при входе ---------- */
-/* Время (с): кольцо 0–.6, левая половинка U .3–.85, правая .65–1.2, пульс 1.1–1.6, название .9–1.4, пролёт внутрь знака с 1.75 (сайт открывается на 1.85) */
-.intro { display: none; }
-.intro.play { display: block; position: fixed; inset: 0; z-index: 9999; overflow: hidden; pointer-events: auto; cursor: pointer;
-  --i1: #F4F3F6; --i2: #FFFFFF; --ic: #17191D; --ir: rgba(21,20,23,.0); }
-html[data-theme="dark"] .intro.play { --i1: #0F0E11; --i2: #1E1C22; --ic: #fff; --ir: rgba(255,255,255,.32); }
-.intro-bg { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, var(--i2), var(--i1));
-  animation: intro-bg-out .65s cubic-bezier(.5,0,.2,1) 1.85s forwards; }
-/* тёплое свечение за знаком */
-.intro-glow { position: absolute; left: 50%; top: 50%; width: 120vmin; height: 120vmin; max-width: 640px; max-height: 640px; border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255,106,61,.26), rgba(255,106,61,0)); transform: translate(-50%, -52%) scale(.5); opacity: 0;
-  animation: intro-glow 1.5s cubic-bezier(.2,.7,.2,1) .15s forwards, intro-bg-out .5s ease-in 1.85s forwards; }
-.intro-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -58%); display: grid; justify-items: center; gap: 22px;
-  color: var(--ic); animation: intro-through .75s cubic-bezier(.55,0,.8,.3) 1.75s forwards; }
-.intro-mark svg { width: 132px; height: 132px; overflow: visible; filter: drop-shadow(0 14px 32px rgba(0,0,0,.35)); }
-/* круг: кольцо рисуется, внутри появляется тёмный диск */
-.im-disc { transform-box: fill-box; transform-origin: center; opacity: 0; animation: intro-disc .7s cubic-bezier(.3,1.4,.5,1) .15s forwards; }
-.im-ring { stroke: var(--ir); stroke-width: .9; stroke-dasharray: 1 2; stroke-dashoffset: 1; animation: intro-draw .75s cubic-bezier(.6,0,.2,1) forwards; }
-/* две половинки U рисуются: левая сверху вниз, правая снизу вверх */
-.im-u1, .im-u2 { stroke-dasharray: 1 2; stroke-dashoffset: 1; }
-.im-u1 { animation: intro-draw .6s cubic-bezier(.5,0,.2,1) .3s forwards; }
-.im-u2 { animation: intro-draw .6s cubic-bezier(.5,0,.2,1) .65s forwards; }
-/* пульс: оранжевое кольцо расходится, когда U дорисована */
-.im-pulse { transform-box: fill-box; transform-origin: center; opacity: 0; animation: intro-pulse .6s ease-out 1.1s forwards; }
-.intro-name { font: 800 24px/1 var(--font-display, system-ui), system-ui, sans-serif; letter-spacing: .3em; padding-left: .3em; opacity: 0; transform: translateY(10px);
-  animation: intro-name .6s cubic-bezier(.2,.7,.2,1) .9s forwards; }
-.in-ula { color: #B50919; }
-.in-f { color: var(--ic); font-weight: 600; }
-@keyframes intro-draw { to { stroke-dashoffset: 0; } }
-@keyframes intro-disc { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
-@keyframes intro-glow { to { opacity: 1; transform: translate(-50%, -52%) scale(1); } }
-@keyframes intro-pulse { 0% { opacity: .75; transform: scale(1); } 100% { opacity: 0; transform: scale(1.5); } }
-@keyframes intro-name { to { opacity: 1; transform: none; letter-spacing: .06em; padding-left: .06em; } }
-/* выход: знак «пролетает» мимо камеры, фон растворяется и открывает сайт */
-@keyframes intro-through { to { opacity: 0; transform: translate(-50%, -58%) scale(2.2); } }
-@keyframes intro-bg-out { to { opacity: 0; } }
+
 
 /* ---------- Нижнее меню на телефоне ---------- */
 .bottom-nav { display: none; }
@@ -4410,16 +4375,6 @@ html[data-theme="dark"] .bm-on-dark { display: block !important; }
 }
 .auth-screen { background: var(--paper); }
 
-/* Заставка при входе: знак проявляется и «пролетает» внутрь */
-.intro.play { --i1: #F7F8FA; --i2: #FFFFFF; --ic: #17191D; }
-html[data-theme="dark"] .intro.play { --i1: #0C0D10; --i2: #17191D; --ic: #FFFFFF; }
-.intro-glow { display: none; }
-.intro-logo { width: 132px; height: 132px; object-fit: contain; opacity: 0; transform: scale(.86);
-  animation: intro-disc .7s cubic-bezier(.3, 1.3, .5, 1) .1s forwards; }
-.intro-name { font-family: var(--font); font-weight: 800; }
-.in-ula { color: var(--accent-text); }
-.in-f { font-weight: 700; letter-spacing: .2em; }
-
 /* ---------- Кнопки ---------- */
 .btn {
   min-height: var(--control-h);
@@ -4635,3 +4590,67 @@ html[data-theme="dark"] .lang-switch button.active { background: var(--fill-2); 
   #view-admin .section-menu .menu-logout { color: var(--error-text); }
   #view-admin > main.container { max-width: 1200px; padding-left: var(--sp-8); padding-right: var(--sp-8); }
 }
+
+
+/* =====================================================
+   ЗАСТАВКА ПРИ ВХОДЕ В ПРИЛОЖЕНИЕ (js/boot.js: раз за сессию, нажатие — пропустить,
+   не показывается при «Уменьшить движение» и на страницах для клиентов)
+   Всегда на графите — как иконка приложения и экран запуска телефона, без «вспышки» белым.
+   Время (с):  0–.5 фон и мягкое свечение · .15–1.05 круг с линиями прорисовывается по часовой ·
+               .95–1.4 красная дуга, 1.35 вспышка и волна · 1.2–1.75 буквы U-L-A · 1.55–2.1 FACTORY и линии ·
+               2.3 знак «пролетает» внутрь, фон растворяется (сайт открывается на 2.4, заставка убирается на 3.05)
+   ===================================================== */
+@property --sweep { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.intro { display: none; }
+.intro.play { display: block; position: fixed; inset: 0; z-index: 9999; overflow: hidden; cursor: pointer; color: #fff; }
+.intro-bg { position: absolute; inset: 0; background: #111216;
+  animation: intro-out .65s cubic-bezier(.5, 0, .2, 1) 2.4s forwards; }
+.intro-glow { display: block; position: absolute; left: 50%; top: 46%; width: 90vmin; height: 90vmin; max-width: 560px; max-height: 560px;
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(181, 9, 25, .22), rgba(181, 9, 25, 0));
+  transform: translate(-50%, -50%) scale(.4); opacity: 0;
+  animation: intro-glow 1.6s cubic-bezier(.2, .7, .2, 1) .1s forwards, intro-out .5s ease-in 2.35s forwards; }
+.intro-mark { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 26px;
+  animation: intro-through .7s cubic-bezier(.55, 0, .8, .3) 2.3s forwards; }
+
+.intro-sym { position: relative; width: 144px; height: 144px; }
+.intro-sym img { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* круг и линии: открываются «стрелкой» по часовой, знак чуть приближается */
+.is-lines { --sweep: 0deg;
+  -webkit-mask: conic-gradient(from 0deg, #000 var(--sweep), transparent 0); mask: conic-gradient(from 0deg, #000 var(--sweep), transparent 0);
+  transform: scale(.9) rotate(-8deg); opacity: 0;
+  animation: is-draw .9s cubic-bezier(.6, .05, .25, 1) .15s forwards, is-settle 1s cubic-bezier(.2, .8, .2, 1) .15s forwards; }
+/* красная дуга (от 0° до ~100°): прорисовывается следом и вспыхивает */
+.is-arc { --sweep: 0deg;
+  -webkit-mask: conic-gradient(from 0deg, #000 var(--sweep), transparent 0); mask: conic-gradient(from 0deg, #000 var(--sweep), transparent 0);
+  animation: is-arc .5s cubic-bezier(.45, 0, .2, 1) .9s forwards, is-flash .7s ease-out 1.35s; }
+/* волна от знака, когда дуга дорисована */
+.is-pulse { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(213, 30, 50, .7); opacity: 0;
+  animation: is-pulse .9s cubic-bezier(.2, .7, .2, 1) 1.35s; }
+
+.intro-name { display: grid; justify-items: center; gap: 10px; font-family: var(--font); line-height: 1; }
+.in-ula { display: flex; gap: .02em; font-size: 46px; font-weight: 900; letter-spacing: -.02em; color: #D51E32; }
+.in-ula i { font-style: normal; display: inline-block; opacity: 0; transform: translateY(70%); clip-path: inset(0 0 0 0);
+  animation: in-letter .55s cubic-bezier(.2, .9, .25, 1.15) forwards; }
+.in-ula i:nth-child(1) { animation-delay: 1.2s; }
+.in-ula i:nth-child(2) { animation-delay: 1.3s; }
+.in-ula i:nth-child(3) { animation-delay: 1.4s; }
+.in-f { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; color: #fff; }
+.in-f > span { letter-spacing: .6em; margin-right: -.6em; opacity: 0; animation: in-word .6s cubic-bezier(.2, .7, .2, 1) 1.55s forwards; }
+.in-f s { display: block; width: 26px; height: 3px; border-radius: 2px; background: #D51E32; transform: scaleX(0);
+  animation: in-line .5s cubic-bezier(.2, .7, .2, 1) 1.75s forwards; }
+.in-f s:first-child { transform-origin: right; }
+.in-f s:last-child { transform-origin: left; }
+
+@keyframes is-draw { to { --sweep: 360deg; } }
+@keyframes is-settle { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes is-arc { to { --sweep: 112deg; } }   /* дуга занимает 3°–101° от верха */
+@keyframes is-flash { 0% { filter: none; } 35% { filter: drop-shadow(0 0 10px rgba(255, 60, 80, .9)) brightness(1.25); } 100% { filter: none; } }
+@keyframes is-pulse { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes intro-glow { to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes in-letter { to { opacity: 1; transform: none; } }
+@keyframes in-word { from { opacity: 0; letter-spacing: 1.1em; margin-right: -1.1em; } to { opacity: 1; letter-spacing: .32em; margin-right: -.32em; } }
+@keyframes in-line { to { transform: scaleX(1); } }
+@keyframes intro-through { to { opacity: 0; transform: translate(-50%, -50%) scale(2.4); } }
+@keyframes intro-out { to { opacity: 0; } }
+/* браузер без @property: «стрелка» не анимируется — знак просто проявляется */
+@media (max-width: 360px) { .intro-sym { width: 120px; height: 120px; } .in-ula { font-size: 40px; } }
