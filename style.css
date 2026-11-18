@@ -4887,3 +4887,28 @@ html[data-accent="gold"][data-accent]:not(.x-) { --accent: #8A6A12; --accent-hov
 .cc-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .cc-list li small { margin-left: auto; color: var(--muted); }
 .cc-list b.neg { color: var(--danger, #d92d20); }
+
+/* ===== Импорт: шаги и проверка строк (js/import.js) ===== */
+.im-steps { display: flex; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; counter-reset: ims; flex-wrap: wrap; }
+.im-steps li { counter-increment: ims; display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); }
+.im-steps li::before { content: counter(ims); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-sunken); font-weight: 700; font-size: 12px; }
+.im-steps li + li::after { content: none; }
+.im-steps li.on { color: var(--text); font-weight: 600; }
+.im-steps li.on::before { background: var(--primary); color: var(--on-primary); }
+.im-steps li.done::before { content: "✓"; background: var(--success, #12b76a); color: #fff; }
+.im-check-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+@media (min-width: 641px) { .im-check-sum { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.im-stat { padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); }
+.im-stat b { display: block; font-size: 20px; }
+.im-stat span { font-size: var(--fs-sm); color: var(--muted); }
+.im-stat.ok b { color: var(--success, #12b76a); }
+.im-stat.warn b { color: var(--warning, #b7791f); }
+.im-stat.bad b { color: var(--danger, #d92d20); }
+.im-issues { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; max-height: 320px; overflow: auto; }
+.im-issues li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; border-left: 3px solid var(--line); background: var(--surface); }
+.im-issues li.warn { border-left-color: var(--warning, #b7791f); }
+.im-issues li.bad { border-left-color: var(--danger, #d92d20); }
+.im-issues li span { overflow-wrap: anywhere; }
+.im-issues li small { color: var(--text-2); }
+.im-allok { padding: 10px 12px; border-radius: 10px; background: var(--surface-sunken); }
+#im-report { margin-bottom: 8px; min-height: 44px; }

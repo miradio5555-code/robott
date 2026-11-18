@@ -1591,6 +1591,12 @@
         <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
       </div>
       <div class="modal-body">
+        <ol id="im-steps" class="im-steps" data-i18n-title="im_steps">
+          <li class="on" aria-current="step" data-i18n="im_s_file"></li>
+          <li data-i18n="im_s_map"></li>
+          <li data-i18n="im_s_check"></li>
+          <li data-i18n="im_s_done"></li>
+        </ol>
         <!-- шаг 1: файл -->
         <div id="im-file">
           <p class="muted" data-i18n="im_hint"></p>
@@ -1641,6 +1647,21 @@
           <div id="im-notes" class="im-notes"></div>
           <div class="im-actions">
             <button id="im-back" class="btn" type="button" data-i18n="im_back"></button>
+            <button id="im-next" class="btn btn-primary" type="button"></button>
+          </div>
+        </div>
+        <!-- шаг 3: проверка каждой строки, предпросмотр и подтверждение -->
+        <div id="im-check" class="hidden">
+          <div id="im-check-sum" class="im-check-sum" role="status"></div>
+          <h4 class="money-sub" data-i18n="im_c_issues"></h4>
+          <div id="im-issues"></div>
+          <button id="im-report" class="btn btn-sm" type="button" data-i18n="im_report"></button>
+          <h4 class="money-sub" data-i18n="im_preview"></h4>
+          <div id="im-check-preview"></div>
+          <div id="im-check-notes" class="im-notes" role="alert"></div>
+          <p class="fine-print" data-i18n="im_c_safe"></p>
+          <div class="im-actions">
+            <button id="im-back2" class="btn" type="button" data-i18n="im_back_cols"></button>
             <button id="im-go" class="btn btn-primary" type="button"></button>
           </div>
         </div>
