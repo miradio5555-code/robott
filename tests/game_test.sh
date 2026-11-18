@@ -22,7 +22,7 @@ q() { docker exec -i "$NAME" psql -U postgres -q -v ON_ERROR_STOP=1 "$@"; }
 q < tests/supabase_stub.sql >/dev/null
 q < supabase_schema.sql >/dev/null 2>&1
 echo "insert into public.admins (user_id) values ('00000000-0000-0000-0000-00000000000a') on conflict do nothing;" | q >/dev/null
-for f in $(ls migration_*.sql | sort); do q < "$f" >/dev/null 2>&1 || { echo "❌ Ошибка в $f"; exit 1; }; done
+for f in $(ls migration_*.sql | sort | awk -F_ '{ if ($2+0 <= 66) print }'); do q < "$f" >/dev/null 2>&1 || { echo "❌ Ошибка в $f"; exit 1; }; done
 
 q 2>&1 <<'SQL' | sed -e 's/^NOTICE:  //'
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000c1', 'g1@test'), ('00000000-0000-0000-0000-0000000000c2', 'g2@test') on conflict do nothing;

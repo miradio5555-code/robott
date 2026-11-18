@@ -811,22 +811,37 @@
       else if (tj !== "none") teamMsg = tj;
     }
 
-    var mem = await db.from("workspace_members")
-      .select("role, created_at, workspace:workspaces(" + WS_FIELDS + ")")
-      .eq("user_id", user.id)
-      .order("created_at");
-    var memRows = mem.data || [];
+    var memSel = "role, created_at, deactivated_at, workspace:workspaces(" + WS_FIELDS + ")";
+    var mem = await db.from("workspace_members").select(memSel).eq("user_id", user.id).order("created_at");
+    if (mem.error) {   // база без файла 67: колонки deactivated_at ещё нет
+      mem = await db.from("workspace_members").select("role, created_at, workspace:workspaces(" + WS_FIELDS + ")").eq("user_id", user.id).order("created_at");
+    }
+    var allRows = mem.data || [];
+    // отключённый сотрудник (файл 67): строка участия осталась для истории, но кабинета у него больше нет
+    var memRows = allRows.filter(function (m) { return !m.deactivated_at && m.workspace; });
+    var revoked = !memRows.length && allRows.some(function (m) { return !!m.deactivated_at; });
     var memRow = memRows.filter(function (m) { return m.role === "staff"; })[0] || memRows[0] || null;
     var myWs = memRow ? memRow.workspace : null;
     state.myRole = memRow ? memRow.role : null;
     state.ownRole = state.myRole;   // роль в своём кабинете; в режиме правки чужого myRole временно «owner»
     document.body.classList.toggle("is-staff", state.myRole === "staff");
 
+    // файл 69: сотрудник без права «все заказы» не видит кабинет напрямую — работает только в разделе «Команда»
+    var limitedWs = null;
+    if (!myWs && p.role !== "admin" && !revoked) {
+      var tw = await db.rpc("my_team_workspaces");
+      limitedWs = !tw.error && (tw.data || []).filter(function (w) { return !w.full; })[0] || null;
+      if (limitedWs) { myWs = { id: limitedWs.id, name: limitedWs.name, order_prefix: limitedWs.order_prefix }; state.myRole = "staff"; state.ownRole = "staff"; }
+    }
+    state.limited = !!limitedWs;
+    document.body.classList.toggle("is-limited", state.limited);
+    if (state.limited) document.body.classList.add("is-staff");
+
     // у байера обязательно должен быть кабинет; админ может работать и без своего
     if (!myWs && p.role !== "admin") {
       await db.auth.signOut();
       showView("login");
-      setLoginError(t("no_access"));
+      setLoginError(t(revoked ? "tw_access_revoked" : "no_access"));
       return;
     }
 
@@ -840,7 +855,8 @@
 
     ULA.support.startPolling();
     ULA.mfa.refresh();   // для администратора: напоминание «включите вход с кодом»
-    if (myWs) await openWorkspace(myWs);
+    if (state.limited) await openLimited(myWs);
+    else if (myWs) await openWorkspace(myWs);
     else switchTab("buyers");
     // ссылка из Telegram «Ответить: …#/support» — сразу открыть поддержку
     if (location.hash === "#/support") {
@@ -859,8 +875,8 @@
     // и нет данных компании (адрес склада) — тоже обязательно заполнить
     if (p.role === "buyer" && needsOnboard()) openOnboard();
 
-    // новому байеру один раз показываем обучение по шагам
-    ULA.tour.maybeStart();
+    // новому байеру один раз показываем обучение по шагам (сотруднику только со своими заказами — нет: там другие разделы)
+    if (!state.limited) ULA.tour.maybeStart();
     // устройство — для поддержки; окно «уведомления и местоположение» — после обучения
     if (ULA.device) ULA.device.afterLogin();
   }
@@ -952,6 +968,19 @@
     if (ULA.tracking) ULA.tracking.loadDefaults();   // обычный срок доставки кабинета (файл 65)
     ULA.shipments.load(true).then(applyOptionalTabs);   // названия партий для меток на карточках заказов; показать «Партии», если они есть
     ULA.live.watch(ws.id);      // новое в кабинете появляется само (файл 49)
+    if (ULA.teamwork) ULA.teamwork.start(ws);   // раздел «Команда»: задачи и уведомления (файлы 67–68)
+  }
+
+  // Сотрудник только со своими заказами (файл 69): заказы, клиенты и деньги кабинета ему закрыты базой,
+  // поэтому из кабинета загружается только раздел «Команда» (задачи, свои заказы, уведомления).
+  async function openLimited(ws) {
+    state.ws = ws;
+    state.readOnly = false; state.adminEdit = null;
+    state.orders = []; state.clients = [];
+    document.body.classList.remove("readonly");
+    renderWsBanner();
+    if (ULA.teamwork) await ULA.teamwork.start(ws);
+    switchTab("team");
   }
 
   // Валюта клиента по умолчанию в базе — сом. Новому кабинету из другой страны ставим местную валюту,
@@ -1037,8 +1066,10 @@
       state.clients = [];
       ULA.support.stopPolling();
       ULA.live.watch(null);
+      if (ULA.teamwork) ULA.teamwork.stop();
       state.me = null; state.myWs = null; state.ws = null;
-      document.body.classList.remove("is-admin", "readonly");
+      document.body.classList.remove("is-admin", "readonly", "is-limited");
+      state.limited = false;
       switchTab("orders");
       $("#login-password").value = "";
       showView("login");
@@ -1099,6 +1130,7 @@
     ULA.shipments.bind();
     ULA.requests.bind();
     ULA.team.bind();
+    if (ULA.teamwork) { ULA.teamwork.bind(); ULA.teamtasks.bind(); if (ULA.teamorders) ULA.teamorders.bind(); if (ULA.teamops) ULA.teamops.bind(); if (ULA.teamreports) ULA.teamreports.bind(); }
     ULA.debts.bind();
     ULA.report.bind();
     ULA.analytics.bind();
@@ -2120,7 +2152,8 @@
   // =====================================================
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
-    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
+    if (state.limited && name !== "profile") name = "team";   // файл 69: сотрудник только со своими заказами
+    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || (name === "team" && ULA.teamwork && ULA.teamwork.isOn()) || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
     if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
@@ -2139,14 +2172,15 @@
     $("#tab-support").classList.toggle("hidden", state.tab !== "support");
     $("#tab-inbox").classList.toggle("hidden", state.tab !== "inbox");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
+    $("#tab-team").classList.toggle("hidden", state.tab !== "team");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     // нижнее меню: у байера — Главная, Заказы, «+», Клиенты (Долги и Витрина — в «Ещё»); у админа — Главная, Байеры, «+», Поддержка (Обмен — в «Ещё»)
     // «plus» — круглая «+» посередине (новый заказ): есть, когда открыт свой кабинет. Порядок кнопок — как в списке.
     // админ в кабинете байера видит его разделы (Заказы, Клиенты), «Байеры» — чтобы вернуться к списку
-    var plus = !!state.ws && !state.readOnly;
+    var plus = !!state.ws && !state.readOnly && !state.limited;
     var foreign = !!state.ws && !(state.myWs && state.myWs.id === state.ws.id);
-    var bnTabs = !isAdmin ? ["home", "orders", "plus", "clients"]
+    var bnTabs = state.limited ? ["team", "profile"] : !isAdmin ? ["home", "orders", "plus", "clients"]
       : foreign ? (plus ? ["orders", "clients", "plus", "buyers"] : ["home", "orders", "clients", "buyers"])
       : plus ? ["home", "buyers", "plus", "support"] : state.ws ? ["home", "buyers", "support", "exchange"] : ["buyers", "support", "exchange", "quote"];
     $$("#bottom-nav [data-tab]").forEach(function (b) {
@@ -2177,6 +2211,7 @@
     if (state.tab === "buyers" && db) loadBuyers();
     if (state.tab === "quote") ULA.quote.open();
     if (state.tab === "profile") ULA.profile.open();
+    if (state.tab === "team" && ULA.teamwork) ULA.teamwork.open();
     if (ULA.profile) ULA.profile.refreshCard();
     if (state.tab === "exchange" && db) ULA.exchange.open();
     if (state.tab === "shop" && db && state.ws) ULA.shop.open();
@@ -2261,7 +2296,7 @@
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
   // Выбор хранится в профиле (файл 55) и действует на всех устройствах; в браузере остаётся копия на случай, если базы нет.
   // Решение «по числу заказов» принимается ОДИН раз, только пока ничего не выбрано, и явный выбор не заменяет.
-  var SIMPLE_TABS = ["home", "orders", "clients", "shop", "debts", "profile"];
+  var SIMPLE_TABS = ["home", "orders", "clients", "team", "shop", "debts", "profile"];   // team — задачи команды (файлы 67–68), без них пункт скрыт
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
@@ -3158,6 +3193,7 @@
         (ULA.wallet ? ULA.wallet.orderHtml(o) : "") +
         (ULA.deadlines ? ULA.deadlines.orderHtml(o) : "") +
         (ULA.tracking ? ULA.tracking.buyerHtml(o) : "") +   // путь заказа для клиента (файл 64)
+        (ULA.teamorders ? ULA.teamorders.detailHtml(o) : "") +   // команда заказа, этапы, задержки (файл 69)
         '<dl class="info">' +
           "<div><dt>" + t("f_client") + "</dt><dd>" + esc(o.client_name) + "</dd></div>" +
           (o.shipment_id ? "<div><dt>" + t("sh_tag") + "</dt><dd>" + esc((ULA.shipments && ULA.shipments.name(o.shipment_id)) || "—") + "</dd></div>" : "") +

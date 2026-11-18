@@ -25,12 +25,12 @@ app.js                      ULA.core, состояние state, вход, зак
   └─ все js/*.js ниже       берут U.core при загрузке: var c = U.core
 fx, alerts, device, adminedit, live, support, notify, icons, xlsx, analytics, inbox, business, bulk, onboarding,
 tgws, notifyq, deadlines, tracking, daily, mfa, passkey, captcha, tour, recovery, shop, broadcast, tools, expenses,
-exchange, board, import, requests, team, shipments, report, debts, wallet, clientlinks, profile, game,
+exchange, board, import, requests, team, teamwork, teamtasks, teamorders, teamops, teamreports, shipments, report, debts, wallet, clientlinks, profile, game,
 templates, clientcard, formsteps, quote, client
 pwa.js                      регистрация sw.js и плашка «Вышло обновление»
 ```
 
-Связи между разделами (кроме `U.core`): `debts → notify`, `clientcard → debts, wallet, templates`, `app.js → tracking, deadlines,
+Связи между разделами (кроме `U.core`): `teamtasks, teamorders, teamops, teamreports → teamwork` (раздел «Команда», файлы 67–71), `debts → notify`, `clientcard → debts, wallet, templates`, `app.js → tracking, deadlines,
 wallet, clientlinks, game, templates` (через `ULA.x && ULA.x.fn`, поэтому отсутствие файла не ломает сайт), `tools → qrcode`
 (подключается по требованию), `import → xlsx`.
 

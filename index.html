@@ -220,6 +220,7 @@
             <button type="button" class="tab" data-group="main" data-tab="orders"><i class="tab-ico" data-ico="package"></i><span data-i18n="nav_orders"></span></button>
             <button type="button" class="tab" data-group="main" data-tab="inbox"><i class="tab-ico" data-ico="message"></i><span data-i18n="wa_title"></span></button>
             <button type="button" class="tab" data-group="main" data-tab="clients"><i class="tab-ico" data-ico="users"></i><span data-i18n="nav_clients"></span></button>
+            <button type="button" class="tab tw-only" data-group="main" data-tab="team"><i class="tab-ico" data-ico="select"></i><span data-i18n="nav_team"></span><span id="team-badge" class="badge-inline hidden"></span></button>
             <div class="menu-group mg-money" data-group-toggle="money" role="presentation"><span data-i18n="menu_money"></span></div>
             <button type="button" class="tab" data-group="money" data-tab="debts"><i class="tab-ico" data-ico="wallet"></i><span data-i18n="nav_debts"></span><span id="debts-badge" class="badge-inline hidden"></span></button>
             <button type="button" class="tab" data-group="money" data-tab="exchange"><i class="tab-ico" data-ico="swap"></i><span data-i18n="nav_fx"></span><span id="fx-badge" class="badge-inline hidden"></span></button>
@@ -245,7 +246,7 @@
             <button id="install-btn" class="menu-action menu-install hidden" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7"/><path d="m9 11 3 3 3-3"/><path d="M10 18h4"/></svg><span data-i18n="pwa_btn"></span></button>
             <button id="refresh-menu-btn" class="menu-action menu-refresh" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span data-i18n="refresh_menu"></span></button>
             <button id="tour-btn" class="menu-action buyer-only" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span data-i18n="tour_btn"></span></button>
-            <button id="team-btn" class="menu-action owner-only buyer-only" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="tm_btn"></span></button>
+            <button id="team-btn" class="menu-action owner-only buyer-only tw-legacy" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="tm_btn"></span></button>
             <button id="settings-btn" class="menu-action owner-only" type="button" data-i18n-title="settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span data-i18n="settings"></span></button>
             <button id="logout-btn" class="menu-action menu-logout" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span data-i18n="logout"></span></button>
           </div>
@@ -665,6 +666,18 @@
       <div id="shop-list"></div>
     </main>
 
+    <!-- ============ РАЗДЕЛ: КОМАНДА (js/teamwork.js, js/teamtasks.js; файлы 67–68) ============ -->
+    <main id="tab-team" class="container container-narrow hidden">
+      <div class="page-head">
+        <div><h1 class="page-title" data-i18n="nav_team"></h1><p class="page-sub" data-i18n="tw_page_hint"></p></div>
+        <button id="tw-invite" class="btn btn-sm hidden" type="button" data-i18n="tw_invite_btn"></button>
+      </div>
+      <section id="tw-head" class="tw-head" aria-live="polite"></section>
+      <p id="tw-alert" class="tw-alert hidden" role="status"></p>
+      <div id="tw-chips" class="tw-nav"></div>
+      <div id="tw-body" class="tw-body"></div>
+    </main>
+
     <!-- ============ РАЗДЕЛ: КЛИЕНТЫ ============ -->
     <main id="tab-clients" class="container hidden">
       <div class="page-head"><div><h1 class="page-title" data-i18n="nav_clients"></h1><p class="page-sub" data-i18n="cl_page_hint"></p></div></div>
@@ -856,6 +869,8 @@
       <!-- посередине — круглая «+»: новый заказ (только у байера) -->
       <button type="button" id="bn-plus" class="bn-item bn-plus" data-write><i class="bn-plus-c" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></i><span data-i18n="bn_new"></span></button>
       <button type="button" class="tab bn-item" data-tab="clients"><i class="bn-ico" data-ico="users"></i><span data-i18n="nav_clients"></span></button>
+      <button type="button" class="tab bn-item hidden" data-tab="team"><i class="bn-ico" data-ico="select"></i><span data-i18n="nav_team"></span></button>
+      <button type="button" class="tab bn-item hidden" data-tab="profile"><i class="bn-ico" data-ico="id"></i><span data-i18n="pf_title"></span></button>
       <button type="button" class="tab bn-item" data-tab="shop"><i class="bn-ico" data-ico="store"></i><span data-i18n="nav_shop"></span></button>
       <button type="button" class="tab bn-item" data-tab="debts"><i class="bn-ico" data-ico="wallet"></i><span data-i18n="nav_debts"></span><b id="bn-debts-badge" class="bn-badge hidden"></b></button>
       <button type="button" class="tab bn-item admin-only hidden" data-tab="buyers"><i class="bn-ico" data-ico="id"></i><span data-i18n="nav_buyers"></span></button>
@@ -1856,6 +1871,61 @@
     </div>
   </div>
 
+  <!-- ============ ОКНО: ЗАДАЧА КОМАНДЫ (js/teamtasks.js) ============ -->
+  <div id="modal-tw-task" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="tw-task-title"></h2>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
+      </div>
+      <div id="tw-task-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: ЗАКАЗ ДЛЯ КОМАНДЫ (js/teamorders.js, файл 69) ============ -->
+  <div id="modal-tw-order" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="tw-order-title"></h2>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
+      </div>
+      <div id="tw-order-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: ИНЦИДЕНТ / РЕГЛАМЕНТ (js/teamops.js, файл 70) ============ -->
+  <div id="modal-tw-doc" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2 id="tw-doc-title"></h2>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
+      </div>
+      <div id="tw-doc-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ ОКНО: ФОРМЫ РАЗДЕЛА «КОМАНДА» (js/teamwork.js) ============ -->
+  <div id="modal-tw-form" class="modal modal-small" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <form id="tw-form" class="modal-sheet" novalidate>
+      <div class="modal-head">
+        <h2 id="tw-form-title"></h2>
+        <button class="icon-btn" type="button" data-close data-i18n-title="close">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="tw-form-fields"></div>
+        <p id="tw-form-error" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" data-close data-i18n="cancel"></button>
+        <button id="tw-form-save" class="btn btn-primary" type="submit" data-i18n="s_save"></button>
+      </div>
+    </form>
+  </div>
+
   <!-- ============ ОКНО: ССЫЛКА ДЛЯ ЗАЯВОК ============ -->
   <div id="modal-reqlink" class="modal modal-small" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
@@ -2066,6 +2136,11 @@
   <script src="js/import.js?v=20261218a"></script>
   <script src="js/requests.js?v=20261218a"></script>
   <script src="js/team.js?v=20261218a"></script>
+  <script src="js/teamwork.js?v=20261218a"></script>
+  <script src="js/teamtasks.js?v=20261218a"></script>
+  <script src="js/teamorders.js?v=20261218a"></script>
+  <script src="js/teamops.js?v=20261218a"></script>
+  <script src="js/teamreports.js?v=20261218a"></script>
   <script src="js/shipments.js?v=20261218a"></script>
   <script src="js/report.js?v=20261218a"></script>
   <script src="js/debts.js?v=20261218a"></script>

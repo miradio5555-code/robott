@@ -85,6 +85,12 @@ echo "▶ Путь заказа для клиента (файл 64)…"
 bash tests/tracking_db_test.sh
 echo "▶ Игра: серия дней в профиле (файл 66)…"
 bash tests/game_test.sh
+echo "▶ Команда и задачи (файлы 67–68)…"
+bash tests/team_test.sh
+echo "▶ Команда на заказах, этапы, задержки (файл 69)…"
+bash tests/order_team_test.sh
+echo "▶ Регламенты, инциденты, календарь, сводка, аналитика (файлы 70–71)…"
+bash tests/ops_test.sh
 
 echo ""
 echo "🎉 Все проверки пройдены"
