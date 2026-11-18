@@ -1299,6 +1299,8 @@
     if (nbtn) nbtn.addEventListener("click", function () { state.clientsAll = !state.clientsAll; renderClients(); });
     $("#clients-export").addEventListener("click", exportClientsCsv);
     $("#clients").addEventListener("click", function (e) {
+      var cc = e.target.closest("[data-client-card]");
+      if (cc && ULA.clientcard) { ULA.clientcard.open(cc.getAttribute("data-client-card")); return; }
       var b = e.target.closest("[data-order-id]");
       if (b) openDetail(b.getAttribute("data-order-id"));
     });
@@ -2571,7 +2573,8 @@
         '<div class="client-row-contacts">' + (c.phone ? phoneLink(c.phone) : "") + (c.telegram ? telegramLink(c.telegram) : "") +
           (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.id), c.name) : "") + "</div>" +
         '<div class="client-row-place">' + (c.city ? "<b>" + esc(c.city) + "</b>" + place : '<span class="muted">' + esc(t("cl_nocard")) + "</span>") +
-          ' <button type="button" class="btn btn-light" data-write data-client-edit="' + esc(c.id) + '">' + esc(t("cl_edit")) + "</button></div>" +
+          ' <button type="button" class="btn btn-light" data-write data-client-edit="' + esc(c.id) + '">' + esc(t("cl_edit")) + "</button>" +
+          (ULA.clientcard ? ' <button type="button" class="btn btn-light" data-client-card="' + esc(c.id) + '">' + esc(t("cc_open")) + "</button>" : "") + "</div>" +
         '<div class="client-row-orders">' + orders.map(function (o) {
           return '<button type="button" class="order-tag st-' + esc(o.status) + '" data-order-id="' + esc(o.id) + '" title="' +
             esc(t("status_" + o.status)) + '"><span class="dot"></span>№ ' + esc(o.order_number) + "</button>";
