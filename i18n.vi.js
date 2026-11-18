@@ -579,6 +579,8 @@ I18N.vi = {
   menu_main: "Chính",
   menu_money: "Tiền bạc",
   menu_more: "Công cụ",
+  fin_approx: "Lợi nhuận là ước tính: theo giá, tỷ giá và phí vận chuyển đã nhập. Chưa tính hoàn tiền, phí và chênh lệch tỷ giá.",
+  fin_approx_short: "≈ chưa tính hoàn tiền và phí",
   im_steps: "Các bước nhập",
   im_s_file: "Tệp",
   im_s_map: "Cột",

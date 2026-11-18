@@ -600,6 +600,8 @@ I18N.en = {
   menu_main: "Main",
   menu_money: "Money",
   menu_more: "Tools",
+  fin_approx: "Profit is approximate: based on the entered prices, rate and delivery. Refunds, fees and exchange-rate differences are not included.",
+  fin_approx_short: "≈ excl. refunds and fees",
   im_steps: "Import steps",
   im_s_file: "File",
   im_s_map: "Columns",

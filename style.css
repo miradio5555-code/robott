@@ -4912,3 +4912,8 @@ html[data-accent="gold"][data-accent]:not(.x-) { --accent: #8A6A12; --accent-hov
 .im-issues li small { color: var(--text-2); }
 .im-allok { padding: 10px 12px; border-radius: 10px; background: var(--surface-sunken); }
 #im-report { margin-bottom: 8px; min-height: 44px; }
+
+/* ===== Подпись «прибыль приблизительная» (docs/finance-model.md) ===== */
+.fin-approx { color: var(--muted); }
+small.fin-approx { display: block; font-size: var(--fs-2xs, 11px); font-weight: 400; }
+p.fin-approx { margin: 6px 4px 10px; }

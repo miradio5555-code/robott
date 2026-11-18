@@ -144,6 +144,7 @@
       '<div class="r-main ' + (T.profit < 0 ? "neg" : "") + '"><span class="r-main-label">' + esc(t("r_profit")) + "</span><b>" +
         sign(T.profit, code) + "</b><span class=\"r-main-sub\">" + esc(t("r_orders", { n: T.orders })) + " · " +
         esc(t("r_markup", { n: money(markup(T)) })) + "</span></div>" +
+      '<p class="fine-print fin-approx">' + esc(t("fin_approx")) + "</p>" +   // docs/finance-model.md
       '<div class="r-grid">' +
         cell(t("r_revenue"), cur(T.rev, code)) + cell(t("r_cost"), cur(T.cost, code)) +
         cell(t("r_paid"), cur(T.paid, code)) + cell(t("r_debt"), cur(T.debt, code), T.debt > 0 ? "neg" : "") +

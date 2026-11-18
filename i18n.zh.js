@@ -600,6 +600,8 @@ I18N.zh = {
   menu_main: "主要",
   menu_money: "资金",
   menu_more: "工具",
+  fin_approx: "利润为估算值：按录入的价格、汇率和运费计算，未计入退款、手续费和汇差。",
+  fin_approx_short: "≈ 未含退款和手续费",
   im_steps: "导入步骤",
   im_s_file: "文件",
   im_s_map: "列",
