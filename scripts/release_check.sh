@@ -24,6 +24,7 @@ step "0. Что проверяем"
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 version="$(sed -n 's/.*APP_VERSION = "\([^"]*\)".*/\1/p' app.js | head -1)"
 last_mig="$(ls migration_*.sql | sort | tail -1)"
+last_num="$(echo "$last_mig" | sed -E 's/^migration_0*([0-9]+)_.*/\1/')"
 echo "Ветка: $branch · версия сайта: $version · последний файл базы: $last_mig"
 if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
   echo "⚠️  Есть незаписанные изменения (git status) — проверяется то, что лежит в папке, а не последний коммит"
@@ -34,7 +35,7 @@ if node tests/check_all.mjs; then add "Сайт, словари, анализ, �
 
 step "2. База на временном Postgres (Docker)"
 if docker info >/dev/null 2>&1; then
-  if bash tests/run_db_tests.sh; then add "База: файлы 0–${last_mig#migration_} и правила доступа" "OK"
+  if bash tests/run_db_tests.sh; then add "База: файлы 0–${last_num} и правила доступа" "OK"
   else add "База: все файлы и правила доступа" "FAIL" "bash tests/run_db_tests.sh"; fi
 else
   echo "Docker не запущен — SQL-файлы на настоящем Postgres НЕ проверены."
