@@ -1,12 +1,18 @@
 // =====================================================
 // ULA FACTORY — загрузка старых заказов из Excel (.xlsx) или CSV.
 //
-// Байер выбирает файл → сайт сам находит строку с заголовками и угадывает колонки
-// (Дата, Клиент, Телефон, Товар, Сумма, Оплачено, Статус… на русском, английском, китайском) →
-// байер проверяет, что куда попадёт, и видит первые строки → «Загрузить». Можно сразу отменить загрузку.
+// Пять шагов: 1) загрузка файла → 2) разбор (сайт сам находит строку с заголовками и угадывает колонки:
+// Дата, Клиент, Телефон, Товар, Сумма, Оплачено, Статус… на русском, английском, китайском) →
+// 3) проверка каждой строки: что будет загружено, что пропущено и почему (номер строки как в Excel), отчёт CSV →
+// 4) предпросмотр заказов → 5) подтверждение «Загрузить». До подтверждения в базу ничего не пишется.
 //
 //   • Строки без имени клиента пропускаются (с причиной), полностью пустые — молча.
-//   • Заказ, который уже есть в кабинете (тот же клиент, товар, дата и сумма), второй раз не добавляется.
+//   • Заказ, который уже есть в кабинете (тот же клиент, товар, дата и сумма), второй раз не добавляется;
+//     повтор той же строки внутри файла — тоже.
+//   • Текст, похожий на формулу Excel (=…, @…, +SUM(…)), записывается без знака формулы — с пометкой в проверке.
+//   • Всё или ничего: до 1000 заказов уходят одним запросом (одна транзакция в базе). Больше — частями; если часть
+//     не сохранилась, уже загруженные удаляются сами. Только если удалить нельзя (у помощника нет права удалять
+//     заказы), окно честно показывает, сколько загружено, и предлагает владельцу отменить.
 //   • Номер заказа выдаёт база, номер из файла сохраняется во внутреннюю заметку.
 //   • «Себестоимость» записывается как закупка в юанях по курсу байера («Мой курс» или последний в заказах),
 //     чтобы считалась прибыль; если курса нет — как стоимость доставки (с пометкой в заметке).
@@ -274,46 +280,76 @@
     return [norm(name), norm(product), date, Math.round(num(price))].join("|");
   }
 
-  // Строки файла → заказы для базы + сколько и почему пропущено
-  function build() {
-    var m = im.map, out = [], skipped = 0, dups = 0, today = c.todayISO();
-    var existing = {};
-    (state.orders || []).forEach(function (o) { existing[dupKey(o.client_name, o.product_ru, o.order_date, o.client_price)] = true; });
+  // Текст из ячейки, который Excel или Google Таблицы выполнят как формулу при следующем открытии выгрузки
+  var FORMULA = /^[=@\t\r]|^[+\-]\s*[A-Za-z_][\w.]*\s*\(/;
+  function safeText(v, max, warn) {
+    var s = cellStr(v);
+    if (FORMULA.test(s)) { s = s.replace(/^[=@+\-\t\r\s]+/, ""); warn("formula"); }
+    return s.slice(0, max);
+  }
+  function hasText(v) { return typeof v === "number" ? true : !!cellStr(v); }
+  function notNumber(v) { return typeof v !== "number" && !!cellStr(v) && !/\d/.test(cellStr(v)); }
+
+  // Проверка и разбор всех строк. Без страницы и без базы — проверяется в tests/import_test.mjs.
+  //   rows — строки под заголовком; m — какая колонка какое поле; o — { existing, cur, status, today, headerRow, unsure, rate }
+  //   Возвращает items: по одной записи на каждую непустую строку файла — { line, name, product, order | null, errors, warnings }.
+  function analyze(rows, m, o) {
+    o = o || {};
+    var today = o.today || c.todayISO(), defCur = o.cur || "KGS", defStatus = o.status || "delivered";
+    var rate = o.rate || function (a, b) { return c.lastRateFor(a, b); };
+    var existing = {}, inFile = {}, items = [];
+    (o.existing || []).forEach(function (x) { existing[dupKey(x.client_name, x.product_ru, x.order_date, x.client_price)] = true; });
     var get = function (row, k) { return m[k] >= 0 ? row[m[k]] : ""; };
-    im.rows.forEach(function (row) {
-      if (!(row || []).some(function (x) { return cellStr(x); })) return;   // пустая строка
-      var name = cellStr(get(row, "client")).slice(0, 200);
-      if (!name) { skipped++; return; }
-      var product = cellStr(get(row, "product")).slice(0, 300) || t("im_no_product");
-      var qty = toNum(get(row, "qty")); if (!(qty > 0)) qty = 1;
-      var price = toNum(get(row, "price")), paid = toNum(get(row, "paid")), cost = toNum(get(row, "cost"));
-      var date = toDate(get(row, "date")) || today;
+    (rows || []).forEach(function (row, i) {
+      if (!(row || []).some(function (x) { return cellStr(x); })) return;   // пустая строка — молча
+      var it = { line: (o.headerRow || 0) + 2 + i, name: "", product: "", order: null, errors: [], warnings: [] };
+      var warn = function (code) { if (it.warnings.indexOf(code) === -1) it.warnings.push(code); };
+      items.push(it);
+      if (o.unsure && o.unsure[i]) warn("unsure");
+      var name = safeText(get(row, "client"), 200, warn);
+      var product = safeText(get(row, "product"), 300, warn);
+      it.name = name;
+      it.product = product;
+      if (!name) { it.errors.push("no_client"); return; }
+      if (!product) product = t("im_no_product");
+      var rawQty = get(row, "qty"), qty = toNum(rawQty);
+      if (!(qty > 0)) { if (hasText(rawQty)) warn("qty"); qty = 1; }
+      var rawPrice = get(row, "price"), rawPaid = get(row, "paid");
+      var price = toNum(rawPrice), paid = toNum(rawPaid), cost = toNum(get(row, "cost"));
+      if (notNumber(rawPrice) || price < 0) warn("price");
+      if (notNumber(rawPaid) || paid < 0) warn("paid");
+      var rawDate = get(row, "date"), date = toDate(rawDate);
+      if (!date) { if (hasText(rawDate)) warn("date"); date = today; }
       var curCell = cellStr(get(row, "currency")).toUpperCase();
-      var cur = /^[A-Z]{3}$/.test(curCell) ? curCell : im.cur;
-      var status = toStatus(get(row, "status")) || im.status;
+      var cur = /^[A-Z]{3}$/.test(curCell) ? curCell : defCur;
+      var rawStatus = get(row, "status"), status = toStatus(rawStatus);
+      if (!status) { if (hasText(rawStatus)) warn("status"); status = defStatus; }
+      var rawPhone = get(row, "phone"), phone = toPhone(rawPhone);
+      if (phone && phone.charAt(0) !== "+") warn("phone");
+      if (price > 0 && paid > price + 0.5) warn("overpaid");
       var notes = [];
       // себестоимость: закупка в юанях по курсу байера; валюта закупки в базе — только CNY или USD
       var buy = { cur: "CNY", unit: 0, rate: 1, dcost: 0 };
       if (cost > 0) {
         if (cur === "CNY" || cur === "USD") buy = { cur: cur, unit: Math.round(cost / qty * 100) / 100, rate: 1, dcost: 0 };
         else {
-          var r = num(c.lastRateFor("CNY", cur));
+          var r = num(rate("CNY", cur));
           if (r > 0) buy = { cur: "CNY", unit: Math.round(cost / r / qty * 100) / 100, rate: r, dcost: 0 };
-          else { buy.dcost = Math.round(cost * 100) / 100; notes.push(t("im_note_cost")); }
+          else { buy.dcost = Math.round(cost * 100) / 100; notes.push(t("im_note_cost")); warn("cost"); }
         }
       }
-      var ref = cellStr(get(row, "number"));
-      if (ref) notes.push(t("im_note_ref", { n: ref.slice(0, 40) }));
-      var com = cellStr(get(row, "comment"));
-      if (com) notes.push(com.slice(0, 900));
-      var o = {
-        workspace_id: state.ws.id,
+      var ref = safeText(get(row, "number"), 40, warn);
+      if (ref) notes.push(t("im_note_ref", { n: ref }));
+      var com = safeText(get(row, "comment"), 900, warn);
+      if (com) notes.push(com);
+      var order = {
+        workspace_id: o.workspaceId || (state.ws && state.ws.id),
         order_date: date,
         status: status,
         client_name: name,
-        client_phone: toPhone(get(row, "phone")) || null,
+        client_phone: phone || null,
         product_ru: product,
-        supplier: cellStr(get(row, "supplier")).slice(0, 200) || null,
+        supplier: safeText(get(row, "supplier"), 200, warn) || null,
         quantity: Math.round(qty * 100) / 100,
         purchase_currency: buy.cur,
         client_currency: cur,
@@ -325,21 +361,68 @@
         weight_kg: Math.max(0, Math.round(toNum(get(row, "weight")) * 100) / 100),
         client_price: price > 0 ? Math.round(price * 100) / 100 : null,
         paid_amount: Math.max(0, Math.round(paid * 100) / 100),
-        tracking_number: cellStr(get(row, "tracking")).replace(/\s+/g, " ").slice(0, 100) || null,
+        tracking_number: safeText(get(row, "tracking"), 100, warn).replace(/\s+/g, " ") || null,
         admin_comment: notes.length ? notes.join("\n") : null
       };
-      var k = dupKey(o.client_name, o.product_ru, o.order_date, o.client_price);
-      if (existing[k]) { dups++; return; }
-      out.push(o);
+      var k = dupKey(order.client_name, order.product_ru, order.order_date, order.client_price);
+      if (existing[k]) { it.errors.push("dup_cabinet"); return; }
+      if (inFile[k]) { it.errors.push("dup_file"); it.dupOf = inFile[k]; return; }
+      inFile[k] = it.line;
+      it.order = order;
     });
-    return { orders: out.slice(0, MAX_ROWS), skipped: skipped, dups: dups, cut: Math.max(0, out.length - MAX_ROWS) };
+    var ok = items.filter(function (x) { return x.order; });
+    return {
+      items: items,
+      orders: ok.slice(0, MAX_ROWS).map(function (x) { return x.order; }),
+      skipped: items.filter(function (x) { return x.errors.indexOf("no_client") !== -1; }).length,
+      dups: items.filter(function (x) { return x.errors.indexOf("dup_cabinet") !== -1; }).length,
+      fileDups: items.filter(function (x) { return x.errors.indexOf("dup_file") !== -1; }).length,
+      warned: ok.filter(function (x) { return x.warnings.length; }).length,
+      cut: Math.max(0, ok.length - MAX_ROWS)
+    };
+  }
+
+  // Строки файла → заказы для базы + сколько и почему пропущено
+  function build() {
+    return analyze(im.rows, im.map, { existing: state.orders, cur: im.cur, status: im.status, today: c.todayISO(), headerRow: im.headerRow, unsure: im.photo ? im.unsure : null });
+  }
+
+  // Текст замечания для строки
+  function issueText(code, it) {
+    return t("im_r_" + code, { n: it && it.dupOf ? it.dupOf : "" });
+  }
+
+  // Отчёт о проверке: каждая строка файла — будет загружена / пропущена и почему. Открывается в Excel.
+  function report() {
+    var p = im.parsed;
+    if (!p) return;
+    var cell = c.csvCell || function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
+    var lines = [[t("im_rep_line"), t("im_rep_result"), t("im_f_client"), t("im_f_product"), t("im_rep_notes")].map(function (x) { return cell(x); }).join(";")];
+    p.items.forEach(function (it) {
+      var res = it.order ? t(it.warnings.length ? "im_rep_ok_warn" : "im_rep_ok") : t("im_rep_skip");
+      var why = it.errors.concat(it.warnings).map(function (code) { return issueText(code, it); }).join("; ");
+      lines.push([it.line, res, it.name, it.product, why].map(function (x) { return cell(x); }).join(";"));
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "ula-proverka-importa.csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
 
   // =====================================================
   //  ОКНО
   // =====================================================
   function show(step) {
-    ["file", "map", "done"].forEach(function (s) { $("#im-" + s).classList.toggle("hidden", s !== step); });
+    ["file", "map", "check", "done"].forEach(function (s) { $("#im-" + s).classList.toggle("hidden", s !== step); });
+    var n = { file: 1, map: 2, check: 3, done: 4 }[step];
+    $$("#im-steps li").forEach(function (li, i) {
+      li.classList.toggle("on", i + 1 === n);
+      li.classList.toggle("done", i + 1 < n);
+      if (i + 1 === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    });
   }
 
   function open() {
@@ -364,6 +447,7 @@
       var buf = await file.arrayBuffer();
       var all = /\.(csv|txt|tsv)$/.test(name) ? readCsv(buf) : await readXlsx(buf);
       var h = findHeader(all);
+      im.headerRow = h;
       im.header = (all[h] || []).map(cellStr);
       im.rows = all.slice(h + 1);
       if (!im.rows.some(function (r) { return (r || []).some(function (x) { return cellStr(x); }); })) throw new Error("empty");
@@ -422,6 +506,7 @@
       var rows = data.rows || [];
       if (!rows.length) throw new Error("photo_empty");
       im.header = PHOTO_HEADER.slice();
+      im.headerRow = -1;   // у фото нет строк Excel: «строка 1» — первая распознанная
       im.rows = rows.map(function (r) {
         return [r.date || "", r.client || "", r.phone || "", r.product || "", r.qty == null ? "" : r.qty, r.price == null ? "" : r.price,
           r.paid == null ? "" : r.paid, toStatus(r.status) || "", r.comment || ""];
@@ -520,8 +605,33 @@
       summary();
       return;
     }
+    $("#im-preview").innerHTML = "";
+    summary();
+  }
+
+  // Шаг 3: проверка всех строк + предпросмотр первых заказов + подтверждение
+  function renderCheck() {
     var p = im.parsed = build();
     var n = p.orders.length;
+    var bad = p.items.filter(function (it) { return it.errors.length || it.warnings.length; });
+    var stat = function (cls, label, v) { return '<div class="im-stat ' + cls + '"><b>' + v + "</b><span>" + esc(label) + "</span></div>"; };
+    $("#im-check-sum").innerHTML =
+      stat("ok", t("im_c_ready"), n) +
+      stat(p.warned ? "warn" : "", t("im_c_warn"), p.warned) +
+      stat(p.skipped + p.dups + p.fileDups ? "bad" : "", t("im_c_skip"), p.skipped + p.dups + p.fileDups) +
+      stat("", t("im_c_total"), p.items.length);
+    var shown = bad.slice(0, 100);
+    $("#im-issues").innerHTML = bad.length
+      ? '<ul class="im-issues">' + shown.map(function (it) {
+          return '<li class="' + (it.order ? "warn" : "bad") + '"><b>' + esc(t(im.photo ? "im_c_row_photo" : "im_c_row", { n: it.line })) + "</b>" +
+            "<span>" + esc([it.name, it.product].filter(Boolean).join(" · ") || "—") + "</span>" +
+            "<small>" + esc((it.order ? t("im_c_will_load") : t("im_c_will_skip")) + ": " + it.errors.concat(it.warnings).map(function (code) { return issueText(code, it); }).join("; ")) + "</small></li>";
+        }).join("") + "</ul>" + (bad.length > shown.length ? '<p class="fine-print">' + esc(t("im_c_more", { n: bad.length - shown.length })) + "</p>" : "")
+      : '<p class="im-allok">' + esc(t("im_c_all_ok")) + "</p>";
+    $("#im-report").classList.toggle("hidden", !p.items.length);
+    var notes = [];
+    if (p.cut) notes.push(t("im_cut", { n: MAX_ROWS }));
+    $("#im-check-notes").innerHTML = notes.map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("");
     var rows = p.orders.slice(0, 4).map(function (o) {
       var sum = o.client_price != null ? c.cur(o.client_price, o.client_currency) : "—";
       return '<div class="im-row"><div class="im-row-main"><b>' + esc(o.product_ru) + " × " + money(o.quantity) + "</b><span>" +
@@ -529,8 +639,9 @@
         '<div class="im-row-side"><b>' + esc(sum) + "</b>" + (o.paid_amount ? "<small>" + esc(t("l_paid")) + ": " + esc(c.cur(o.paid_amount, o.client_currency)) + "</small>" : "") +
         '<span class="pill pill-dot st-' + o.status + '">' + esc(t("status_" + o.status)) + "</span></div></div>";
     }).join("");
-    $("#im-preview").innerHTML = n ? '<div class="im-list">' + rows + (n > 4 ? '<p class="fine-print">' + esc(t("im_more_rows", { n: n - 4 })) + "</p>" : "") + "</div>" : "";
-    summary();
+    $("#im-check-preview").innerHTML = n ? '<div class="im-list">' + rows + (n > 4 ? '<p class="fine-print">' + esc(t("im_more_rows", { n: n - 4 })) + "</p>" : "") + "</div>" : "";
+    $("#im-go").disabled = !n || im.busy;
+    $("#im-go").textContent = n ? t("im_go", { n: n }) : t("im_go_none");
   }
 
   // Предупреждения и кнопка «Загрузить» (без перерисовки строк — чтобы не сбивать ввод)
@@ -540,27 +651,32 @@
     var notes = [];
     if (p.skipped) notes.push(t("im_skip", { n: p.skipped }));
     if (p.dups) notes.push(t("im_dups", { n: p.dups }));
+    if (p.fileDups) notes.push(t("im_dups_file", { n: p.fileDups }));
     if (p.cut) notes.push(t("im_cut", { n: MAX_ROWS }));
     if (im.map.client < 0) notes.unshift(t("im_need_client"));
     $("#im-notes").innerHTML = notes.map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("");
-    $("#im-go").disabled = !n || im.map.client < 0 || im.busy;
-    $("#im-go").textContent = n ? t("im_go", { n: n }) : t("im_go_none");
+    $("#im-next").disabled = !p.items.length || im.map.client < 0 || im.busy;
+    $("#im-next").textContent = t("im_next", { n: n });
   }
+
+  var ONE_SHOT = 1000;   // до стольких заказов — одним запросом: база сохраняет их одной транзакцией (всё или ничего)
 
   async function go() {
     var p = im.parsed;
     if (!p || !p.orders.length || im.busy) return;
     im.busy = true;
-    var btn = $("#im-go"), db = c.db(), done = 0;
+    var btn = $("#im-go"), db = c.db(), done = 0, all = p.orders;
     btn.disabled = true;
+    $("#im-back2").disabled = true;
     im.inserted = [];
     try {
-      for (var i = 0; i < p.orders.length; i += 100) {
-        var res = await db.from("orders").insert(p.orders.slice(i, i + 100)).select("id");
+      var size = all.length <= ONE_SHOT ? all.length : ONE_SHOT;
+      for (var i = 0; i < all.length; i += size) {
+        var res = await db.from("orders").insert(all.slice(i, i + size)).select("id");
         if (res.error) throw res.error;
         (res.data || []).forEach(function (r) { im.inserted.push(r.id); });
         done += (res.data || []).length;
-        btn.textContent = t("im_progress", { a: done, b: p.orders.length });
+        btn.textContent = t("im_progress", { a: done, b: all.length });
       }
       $("#im-done-text").textContent = t("im_done", { n: done });
       $("#im-undo").classList.toggle("hidden", state.myRole === "staff");
@@ -568,16 +684,37 @@
       await c.reloadOrders();
     } catch (err) {
       c.handleError(err);
-      if (done) {   // часть уже загрузилась — показываем, сколько, чтобы можно было отменить
-        $("#im-done-text").textContent = t("im_partial", { n: done, b: p.orders.length });
+      if (!done) {
+        // ничего не сохранилось (одна транзакция): данные кабинета не изменились
+        $("#im-check-notes").innerHTML = "<p>" + esc(t("im_failed_none")) + "</p>";
+      } else if (await rollback()) {
+        $("#im-check-notes").innerHTML = "<p>" + esc(t("im_rolled_back", { n: done })) + "</p>";
+        await c.reloadOrders();
+      } else {
+        // удалить нельзя (помощник) — честно показываем, сколько загружено; отменить может владелец
+        $("#im-done-text").textContent = t("im_partial", { n: done, b: all.length });
         $("#im-undo").classList.toggle("hidden", state.myRole === "staff");
         show("done");
         await c.reloadOrders();
       }
     } finally {
       im.busy = false;
-      if (!$("#im-map").classList.contains("hidden")) renderPreview();
+      $("#im-back2").disabled = false;
+      if (!$("#im-check").classList.contains("hidden")) { btn.disabled = false; btn.textContent = t("im_go", { n: all.length }); }
     }
+  }
+
+  // Удалить уже загруженную часть после сбоя. true — удалено всё, кабинет как до загрузки.
+  async function rollback() {
+    if (!im.inserted.length || state.myRole === "staff") return false;
+    try {
+      for (var i = 0; i < im.inserted.length; i += 100) {
+        var res = await c.db().from("orders").delete().in("id", im.inserted.slice(i, i + 100));
+        if (res.error) return false;
+      }
+      im.inserted = [];
+      return true;
+    } catch (e) { return false; }
   }
 
   async function undo() {
@@ -653,6 +790,9 @@
       im.rows.splice(r, 1); im.unsure.splice(r, 1);
       renderPreview();
     });
+    $("#im-next").addEventListener("click", function () { renderCheck(); show("check"); });
+    $("#im-back2").addEventListener("click", function () { show("map"); });
+    $("#im-report").addEventListener("click", report);
     $("#im-go").addEventListener("click", go);
     $("#im-undo").addEventListener("click", undo);
     $("#im-finish").addEventListener("click", function () { c.closeModal("modal-import"); });
@@ -669,5 +809,5 @@
   function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
 
   U.importer = { bind: bind, open: open, _readXlsx: readXlsx, _readCsv: readCsv, _findHeader: findHeader, _autoMap: autoMap,
-    _toNum: toNum, _toDate: toDate, _toStatus: toStatus, _toPhone: toPhone };
+    _toNum: toNum, _toDate: toDate, _toStatus: toStatus, _toPhone: toPhone, _analyze: analyze, _safeText: safeText, ONE_SHOT: ONE_SHOT };
 })(window.ULA);

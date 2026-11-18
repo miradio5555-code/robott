@@ -141,12 +141,29 @@ pass("блок байера: только с файлом 64, значения �
 // 12. все фразы tk_* есть во всех словарях, во всех языках текст разный и заполненный
 const used = new Set((read("js/tracking.js") + read("js/client.js")).match(/"tk_[a-z_]+"/g).map((s) => s.slice(1, -1)));
 for (const k of TK.STAGES) { used.add("tk_s_" + k); used.add("tk_d_" + k); }
-["tk_done", "tk_current", "tk_todo", "tk_days_one", "tk_days_few", "tk_days_many", "tk_days_other"].forEach((k) => used.add(k));
-for (const l of ["ru", "en", "zh", "vi"]) for (const k of used) if (k !== "tk_days_" && k !== "tk_e_" && k !== "tk_s_" && k !== "tk_d_" && k !== "tk_")
+["tk_src_dates", "tk_src_days", "tk_src_usual", "tk_done", "tk_current", "tk_todo", "tk_days_one", "tk_days_few", "tk_days_many", "tk_days_other"].forEach((k) => used.add(k));
+for (const l of ["ru", "en", "zh", "vi"]) for (const k of used) if (k !== "tk_days_" && k !== "tk_e_" && k !== "tk_s_" && k !== "tk_d_" && k !== "tk_" && k !== "tk_src_")
   assert.ok(typeof I18N[l][k] === "string" && I18N[l][k].trim(), `нет фразы ${k} в словаре ${l}`);
 for (const l of ["en", "zh", "vi"]) { lang = l; assert.ok(!/[а-яё]/i.test(TK.clientHtml({ order_number: "L" + l, status: "in_transit", shipped_at: "2026-11-01" }) + TK.routeHtml({ status: "in_transit", shipped_at: "2026-11-01", ship_to: "Bishkek" })), "русский текст в языке " + l); }
 lang = "ru";
 pass("фразы во всех четырёх словарях, без русского текста в других языках");
+
+// 13. клиенту понятно, откуда срок, на сколько он прошёл, и есть безопасная связь
+{
+  const base = { status: "in_transit", shipped_at: "2026-11-01" };
+  assert.equal(TK.transit(base).src, "usual");
+  assert.equal(TK.transit({ ...base, transit_days_min: 5, transit_days_max: 7 }).src, "days");
+  assert.equal(TK.transit({ ...base, delivery_eta_from: "2026-11-05", delivery_eta_to: "2026-11-06" }).src, "dates");
+  const late = TK.transit({ ...base, delivery_eta_from: "2026-11-05", delivery_eta_to: "2026-11-06" });
+  assert.ok(late.late && late.over > 0, "срок по датам прошёл — задержка в днях");
+  assert.equal(TK.transit(base).over, 0, "обычный срок кабинета не делает заказ «опоздавшим»");
+  const html = TK.routeHtml({ ...base, delivery_eta_from: "2026-11-05", delivery_eta_to: "2026-11-06", contact: { telegram: "buyer_tg" } });
+  assert.ok(html.includes("tk-src") && html.includes(I18N.ru.tk_src_dates), "источник срока показан");
+  assert.ok(html.includes('href="#cab-contact-t"'), "кнопка связи ведёт к блоку «Связаться» на странице");
+  assert.ok(!TK.routeHtml({ ...base, delivery_eta_from: "2026-11-05", delivery_eta_to: "2026-11-06" }).includes("tk-ask"), "без способа связи кнопки нет");
+  assert.ok(!html.includes("buyer_tg"), "контакт байера не вставляется в этот блок напрямую");
+}
+pass("источник срока, задержка в днях и связь с байером");
 
 // 13. карта Китай → Бишкек (доставляем только в Бишкек): всегда один маршрут, грузовик смотрит в сторону Бишкека
 win.matchMedia = () => ({ matches: false });

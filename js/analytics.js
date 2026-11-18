@@ -157,6 +157,7 @@
     var N = d.now, P = d.prev, code = ui.cur;
     return '<div class="an-hero ' + (N.profit < 0 ? "neg" : "") + '"><span>' + esc(t("r_profit")) + "</span><b>" + esc(cur(N.profit, code)) + "</b>" +
         '<small>' + esc(t("r_orders", { n: N.n })) + " · " + esc(t("r_markup", { n: money(N.markup) })) + "</small>" + delta(N.profit, P && P.profit, true) + "</div>" +
+      '<p class="fine-print fin-approx">' + esc(t("fin_approx")) + "</p>" +   // docs/finance-model.md
       netHtml(d) +
       '<div class="an-kpis3">' +
         kpi(t("r_revenue"), esc(short(N.rev)) + " <small>" + esc(code) + "</small>", delta(N.rev, P && P.rev, true)) +

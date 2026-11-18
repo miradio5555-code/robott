@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261216c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261218a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -659,7 +659,8 @@
     updateScrollLock();
     setTimeout(function () {
       if (!m.classList.contains("open") || m.contains(document.activeElement)) return;
-      var f = focusables(m).filter(function (e) { return !e.hasAttribute("data-close"); })[0] || focusables(m)[0];
+      // первым получает фокус поле ввода, а не кнопка закрытия или быстрые шаблоны (data-skip-autofocus)
+      var f = focusables(m).filter(function (e) { return !e.hasAttribute("data-close") && !e.readOnly && !e.closest("[data-skip-autofocus]"); })[0] || focusables(m)[0];
       if (!f) { sheet.setAttribute("tabindex", "-1"); f = sheet; }
       try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
     }, 30);
@@ -1299,6 +1300,8 @@
     if (nbtn) nbtn.addEventListener("click", function () { state.clientsAll = !state.clientsAll; renderClients(); });
     $("#clients-export").addEventListener("click", exportClientsCsv);
     $("#clients").addEventListener("click", function (e) {
+      var cc = e.target.closest("[data-client-card]");
+      if (cc && ULA.clientcard) { ULA.clientcard.open(cc.getAttribute("data-client-card")); return; }
       var b = e.target.closest("[data-order-id]");
       if (b) openDetail(b.getAttribute("data-order-id"));
     });
@@ -1339,6 +1342,11 @@
 
     // новый заказ
     $("#new-order").addEventListener("click", function () { openOrderForm(null); });
+    $("#tpl-row").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-tpl]");
+      if (b) applyTemplate(b.getAttribute("data-tpl"));
+    });
+    $("#f-supplier_link").addEventListener("input", onSupplierLinkInput);
     $("#fab").addEventListener("click", function () { openOrderForm(null); });
     $("#bn-plus").addEventListener("click", function () { openOrderForm(null); });
 
@@ -1887,7 +1895,8 @@
       '<div class="money-cost"><dt>' + t("l_cost") + "</dt><dd>" + cur(o.cost_som, c) + "</dd></div>" +
       '<div class="money-total"><dt>' + t("l_client_price") + "</dt><dd>" + cur(o.total_som, c) + "</dd></div>" +
       '<div class="money-profit owner-only' + (pr < 0 ? " loss" : "") + '"><dt>' + t("l_profit") + "</dt><dd>" +
-        (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") + "</dd></div>" +
+        (hasPrice ? cur(pr, c) : '<span class="flag-missing">' + esc(t("no_price")) + "</span>") +
+        (hasPrice && full ? '<small class="fin-approx">' + esc(t("fin_approx_short")) + "</small>" : "") + "</dd></div>" +
       "<div><dt>" + t("l_paid") + "</dt><dd>" + cur(o.paid_amount, c) + "</dd></div>" +
       '<div class="money-balance ' + (bal > 0 ? "owe" : "clear") + '"><dt>' + t("l_balance") + "</dt><dd>" + cur(bal, c) + "</dd></div>" +
       "</dl>";
@@ -2566,7 +2575,8 @@
         '<div class="client-row-contacts">' + (c.phone ? phoneLink(c.phone) : "") + (c.telegram ? telegramLink(c.telegram) : "") +
           (ULA.wallet ? ULA.wallet.chip(ULA.wallet.keyOf(c.id), c.name) : "") + "</div>" +
         '<div class="client-row-place">' + (c.city ? "<b>" + esc(c.city) + "</b>" + place : '<span class="muted">' + esc(t("cl_nocard")) + "</span>") +
-          ' <button type="button" class="btn btn-light" data-write data-client-edit="' + esc(c.id) + '">' + esc(t("cl_edit")) + "</button></div>" +
+          ' <button type="button" class="btn btn-light" data-write data-client-edit="' + esc(c.id) + '">' + esc(t("cl_edit")) + "</button>" +
+          (ULA.clientcard ? ' <button type="button" class="btn btn-light" data-client-card="' + esc(c.id) + '">' + esc(t("cc_open")) + "</button>" : "") + "</div>" +
         '<div class="client-row-orders">' + orders.map(function (o) {
           return '<button type="button" class="order-tag st-' + esc(o.status) + '" data-order-id="' + esc(o.id) + '" title="' +
             esc(t("status_" + o.status)) + '"><span class="dot"></span>№ ' + esc(o.order_number) + "</button>";
@@ -3107,6 +3117,7 @@
       openOrderForm(o);
       focusField(act === "pay" ? "paid_amount" : act === "weight" ? "weight_kg" : "tracking_number");
     }
+    else if (act === "repeat") { closeModal("modal-detail"); openOrderRepeat(o); }
     else if (act === "status") openStatus(o);
     else if (act === "link") openLink(o);
     else if (act === "quote") ULA.quote.forOrder(o);
@@ -3164,6 +3175,7 @@
         '<div class="card-actions">' +
           '<button type="button" class="btn btn-primary" data-act="edit" data-write>' + t("edit") + "</button>" +
           '<button type="button" class="btn" data-act="status" data-write>' + t("change_status") + "</button>" +
+          '<button type="button" class="btn" data-act="repeat" data-write>' + t("tpl_repeat") + "</button>" +
           '<button type="button" class="btn" data-act="notify" data-write>' + t("client_notify") + "</button>" +
           '<button type="button" class="btn" data-act="link">' + t("client_link") + "</button>" +
           '<button type="button" class="btn" data-act="invoice">' + t("inv_btn") + "</button>" +
@@ -3555,6 +3567,11 @@
     $$("#order-form .invalid").forEach(clearFieldError);
 
     var set = function (id, v) { $("#f-" + id).value = v == null ? "" : v; };
+    // быстрые шаблоны — только для нового заказа; при правке существующего их нет
+    $("#tpl-row").classList.toggle("hidden", !!o);
+    setTemplateNote("");
+    markTemplate("");
+    $("#f-supplier_link").setAttribute("placeholder", "https://");
     $("#order-form-title").textContent = t(o ? "edit_order" : "new_order");
     setFormShort(!formFullPref());
     fillStatusSelect(o ? o.status : "new");
@@ -3621,6 +3638,80 @@
     openModal("modal-order");
     var body = $("#order-form .modal-body");
     if (body) body.scrollTop = 0;
+  }
+
+  // ---------- Быстрые шаблоны (js/templates.js): только подставляют значения в обычную форму ----------
+  function setTemplateNote(text) {
+    var n = $("#tpl-note");
+    n.textContent = text || "";
+    n.classList.toggle("hidden", !text);
+  }
+  function markTemplate(kind) {
+    form.template = kind || "";
+    $$("#tpl-row [data-tpl]").forEach(function (b) {
+      var on = b.getAttribute("data-tpl") === kind;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+  // «Заказ с 1688» / «Заказ с Taobao»: закупка в юанях, сегодняшний курс, название площадки в поставщике, поле ссылки
+  function applyTemplate(kind, quiet) {
+    if (form.editing || !ULA.templates) return;
+    var names = ULA.templates.kinds().map(function (k) { return ULA.templates.platform(k, {}).supplier; });
+    var sup = $("#f-supplier"), link = $("#f-supplier_link");
+    if (form.template === kind && !quiet) {   // повторное нажатие — снять шаблон
+      if (names.indexOf(sup.value.trim()) !== -1) sup.value = "";
+      link.setAttribute("placeholder", "https://");
+      markTemplate("");
+      setTemplateNote("");
+      return;
+    }
+    var d = ULA.templates.platform(kind, { ws: state.ws, rate: lastRateFor });
+    if (!d) return;
+    fillCurrencySelect($("#f-purchase_currency"), d.purchase_currency, PURCHASE_CURRENCIES);
+    if (d.exchange_rate) $("#f-exchange_rate").value = d.exchange_rate;
+    if (!sup.value.trim() || names.indexOf(sup.value.trim()) !== -1) sup.value = d.supplier;   // свой поставщик не затирается
+    link.setAttribute("placeholder", d.supplier_link_placeholder);
+    markTemplate(kind);
+    setTemplateNote(t("tpl_note_platform", { name: d.supplier }));
+    updateCurrencyLabels();
+    updateCalc();
+    if (!quiet) focusField(link.value.trim() ? "product_ru" : "supplier_link");
+  }
+  // вставили ссылку на товар — площадка определяется сама
+  function onSupplierLinkInput() {
+    if (form.editing || !ULA.templates) return;
+    var kind = ULA.templates.kindOfLink($("#f-supplier_link").value);
+    if (kind && kind !== form.template) applyTemplate(kind, true);
+  }
+
+  // «Повторить заказ»: новый заказ тому же клиенту с тем же товаром. Что переносится, а что нет — js/templates.js.
+  function openOrderRepeat(o) {
+    if (!o || !ULA.templates || state.readOnly) return;
+    var client = o.client_id ? ((state.clients || []).filter(function (x) { return x.id === o.client_id; })[0] || o.client || null) : null;
+    var dl = ULA.clientlinks && ULA.clientlinks.deliveryOf ? ULA.clientlinks.deliveryOf(o.id) : null;
+    var r = ULA.templates.repeat(o, { client: client, delivery: dl, rate: lastRateFor });
+    var f = r.fields;
+    openOrderForm(null);
+    var set = function (id, v) { $("#f-" + id).value = v == null ? "" : String(v); };
+    fillCurrencySelect($("#f-purchase_currency"), f.purchase_currency, PURCHASE_CURRENCIES);
+    fillCurrencySelect($("#f-client_currency"), f.client_currency);
+    fillCurrencySelect($("#f-delivery_currency"), f.delivery_currency, deliveryCurrencies(f.client_currency));
+    ["client_name", "client_phone", "client_wechat", "product_ru", "product_zh", "supplier", "supplier_link", "supplier_wechat", "delivery_info"]
+      .forEach(function (k) { set(k, f[k]); });
+    set("quantity", numStr(f.quantity));
+    set("unit_price_cny", f.unit_price_cny == null ? "" : numStr(f.unit_price_cny));
+    set("delivery_tariff", f.delivery_tariff == null ? "" : numStr(f.delivery_tariff));
+    set("exchange_rate", f.exchange_rate);
+    set("delivery_rate", f.delivery_rate);
+    setPickedClient(f.client_id || null);
+    $("#tpl-row").classList.add("hidden");
+    setFormShort(false);   // показываем все поля: человек должен видеть всё, что перенесено
+    setTemplateNote(t("tpl_note_repeat", { n: r.from || "—" }) + (r.addressSkipped ? " " + t("tpl_note_addr") : ""));
+    updateCurrencyLabels();
+    updateCalc();
+    form.snapshot = formSignature();   // перенесённое — исходное состояние формы: закрытие без правок ничего не спрашивает
+    focusField("product_ru");
   }
 
   // Открыть форму нового заказа, уже заполненную из «Расчёта цены» (js/quote.js)
@@ -3964,6 +4055,7 @@
     loadClients: loadClients, renderClients: renderClients,
     switchTab: switchTab, openSettings: openSettings, getTheme: getTheme, applyTheme: applyTheme, deliveryCurrencies: deliveryCurrencies, PURCHASE_CURRENCIES: PURCHASE_CURRENCIES,
     lastRateFor: lastRateFor, openOrderPrefill: openOrderPrefill, openOrderApply: openOrderApply, openDetail: openDetail,
+    openOrderForm: function (o) { openOrderForm(o || null); }, openOrderRepeat: openOrderRepeat, setPickedClient: setPickedClient,
     filteredOrders: function () { return filtered(); },
     tgNotify: tgNotify,
     openNotifyText: function (cfg) { ULA.notify.openText(cfg); },

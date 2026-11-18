@@ -101,7 +101,7 @@
       '<div class="ex-line"><span>' + esc(t("ex_orders_profit")) + "</span><b>" + esc(cur(op.profit, code)) + "</b></div>" +
       '<div class="ex-line minus"><span>' + esc(t("ex_spent")) + "</span><b>− " + esc(cur(spent, code)) + "</b></div>" +
       '<div class="ex-net ' + (net < 0 ? "neg" : "") + '"><span>' + esc(t("ex_net")) + "</span><b>" + esc(cur(net, code)) + "</b></div>" +
-      '<p class="fine-print">' + esc(t("ex_net_hint", { n: op.n })) + "</p></section>";
+      '<p class="fine-print">' + esc(t("ex_net_hint", { n: op.n })) + " " + esc(t("fin_approx")) + "</p></section>";
 
     if (items.length) {
       var by = {};

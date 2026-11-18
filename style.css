@@ -4857,3 +4857,84 @@ html[data-accent="gold"][data-accent]:not(.x-) { --accent: #8A6A12; --accent-hov
   .gm-alldone, .gm-lvup, .gm-lvup-card, .gm-focus { animation: none !important; }
   .gm-bar i { transition: none; }
 }
+
+/* ===== Быстрые шаблоны нового заказа (js/templates.js) ===== */
+.tpl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.tpl-row-t { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
+.tpl-row .chip { min-height: 44px; }
+.tpl-note { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); color: var(--text-2); font-size: var(--fs-sm); line-height: 1.45; }
+
+/* ===== Карточка клиента (js/clientcard.js) ===== */
+.cc-head { display: grid; gap: 10px; margin-bottom: 14px; }
+.cc-contact { display: flex; flex-wrap: wrap; gap: 8px; }
+.cc-contact .btn { min-height: 44px; }
+.cc-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+@media (min-width: 641px) { .cc-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cc-stat { padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); min-width: 0; }
+.cc-stat span { display: block; font-size: var(--fs-xs, 12px); color: var(--muted); }
+.cc-stat b { display: block; font-size: var(--fs-md, 16px); overflow-wrap: anywhere; }
+.cc-stat.warn b { color: var(--warning, #b7791f); }
+.cc-stat.bad b { color: var(--danger, #d92d20); }
+.cc-actions { margin: 6px 0 16px; }
+.cc-orders { display: grid; gap: 6px; }
+.cc-order { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; width: 100%; min-height: 44px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.cc-order .pill { grid-row: span 2; }
+.cc-order-p { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); min-width: 0; }
+.cc-order small { grid-column: 2; color: var(--muted); }
+.cc-order:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.cc-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
+.cc-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cc-list li small { margin-left: auto; color: var(--muted); }
+.cc-list b.neg { color: var(--danger, #d92d20); }
+
+/* ===== Импорт: шаги и проверка строк (js/import.js) ===== */
+.im-steps { display: flex; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; counter-reset: ims; flex-wrap: wrap; }
+.im-steps li { counter-increment: ims; display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); }
+.im-steps li::before { content: counter(ims); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-sunken); font-weight: 700; font-size: 12px; }
+.im-steps li + li::after { content: none; }
+.im-steps li.on { color: var(--text); font-weight: 600; }
+.im-steps li.on::before { background: var(--primary); color: var(--on-primary); }
+.im-steps li.done::before { content: "✓"; background: var(--success, #12b76a); color: #fff; }
+.im-check-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+@media (min-width: 641px) { .im-check-sum { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.im-stat { padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); }
+.im-stat b { display: block; font-size: 20px; }
+.im-stat span { font-size: var(--fs-sm); color: var(--muted); }
+.im-stat.ok b { color: var(--success, #12b76a); }
+.im-stat.warn b { color: var(--warning, #b7791f); }
+.im-stat.bad b { color: var(--danger, #d92d20); }
+.im-issues { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; max-height: 320px; overflow: auto; }
+.im-issues li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; border-left: 3px solid var(--line); background: var(--surface); }
+.im-issues li.warn { border-left-color: var(--warning, #b7791f); }
+.im-issues li.bad { border-left-color: var(--danger, #d92d20); }
+.im-issues li span { overflow-wrap: anywhere; }
+.im-issues li small { color: var(--text-2); }
+.im-allok { padding: 10px 12px; border-radius: 10px; background: var(--surface-sunken); }
+#im-report { margin-bottom: 8px; min-height: 44px; }
+
+/* ===== Подпись «прибыль приблизительная» (docs/finance-model.md) ===== */
+.fin-approx { color: var(--muted); }
+small.fin-approx { display: block; font-size: var(--fs-2xs, 11px); font-weight: 400; }
+p.fin-approx { margin: 6px 4px 10px; }
+
+/* ===== Путь заказа: откуда срок, на сколько задержка, связь (js/tracking.js) ===== */
+.tk-late { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.tk-late p { margin: 0; flex: 1 1 200px; }
+.tk-ask { min-height: 44px; }
+.tk-src { margin-bottom: 0; }
+
+/* ===== Доступность на телефоне: размер кнопок под палец (аудит 2026-11, tests/browser/smoke.mjs) =====
+   Минимум WCAG 2.2 — 24 px; на сенсорном экране кнопки доводим до 44 px (рекомендация Apple и Google).
+   Видимый размер почти не меняется: растёт область нажатия. */
+.mini-link { min-height: 44px; display: inline-flex; align-items: center; }
+@media (pointer: coarse), (max-width: 640px) {
+  .lang-switch button { min-width: 44px; min-height: 44px; }
+  #support-btn, .sheet-close { min-width: 44px; min-height: 44px; }
+  .gm-add, .wallet-chip, .order-tag, .chip { min-height: 44px; }
+  .client-row-contacts a, .phone-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .toolbar .btn-sm, .orders-tools .btn-sm, #req-link-btn, #bulk-btn, #import-btn { min-height: 44px; }
+}
+/* Видимый фокус для всех новых кнопок (карточка клиента, импорт, шаблоны) */
+.cc-order:focus-visible, .tpl-row .chip:focus-visible, #im-report:focus-visible, .tk-ask:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (max-width: 640px) { .tpl-row-t { flex-basis: 100%; } }

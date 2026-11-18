@@ -79,7 +79,7 @@
     m.className = "modal";
     m.setAttribute("aria-hidden", "true");
     m.innerHTML = '<div class="modal-backdrop" data-close></div><div class="modal-sheet" role="dialog" aria-modal="true">' +
-      '<div class="modal-head"><h2 id="admlog-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>' +
+      '<div class="modal-head"><h2 id="admlog-title"></h2><button class="icon-btn" type="button" data-close aria-label="' + esc(t("close")) + '">×</button></div>' +
       '<div class="modal-body"><div id="admlog-list" class="admlog"></div></div></div>';
     document.body.appendChild(m);
     return m;

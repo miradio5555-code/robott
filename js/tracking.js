@@ -80,7 +80,11 @@
     var late = idx >= SHIPPED && idx <= 7 &&
       (etaTo != null ? td > etaTo : ship != null && custom && days > hi);
     var p = idx < SHIPPED ? 0 : idx > SHIPPED ? 1 : days == null ? 0.5 : Math.min(0.9, Math.max(0.06, days / hi));
-    return { idx: idx, days: days, min: lo, max: hi, custom: custom, eta: eta, late: !!late, p: p, ship: ship != null ? isoOfDay(ship) : null };
+    // откуда срок: даты вписал байер / срок в днях от байера / обычный срок кабинета. Данных перевозчика здесь нет.
+    var src = o.delivery_eta_from && o.delivery_eta_to ? "dates" : custom ? "days" : "usual";
+    // на сколько дней позже названного срока (только когда срок действительно прошёл)
+    var over = !late ? 0 : etaTo != null ? td - etaTo : days - hi;
+    return { idx: idx, days: days, min: lo, max: hi, custom: custom, eta: eta, late: !!late, over: Math.max(0, over), src: src, p: p, ship: ship != null ? isoOfDay(ship) : null };
   }
 
   // ---------- иконки (тонкие линии, цвет — от текста) ----------
@@ -260,7 +264,10 @@
     return '<section class="client-block tk-route" aria-labelledby="tk-route-t"><h2 id="tk-route-t">' + esc(t(local ? "tk_route_local" : "tk_route")) + "</h2>" +
       picture +
       (rows ?'<dl class="tk-facts">' + rows + "</dl>" : "") +
-      (tr.late ? '<p class="tk-late" role="status">' + esc(t("tk_late")) + "</p>" : "") +
+      (tr.late ? '<div class="tk-late" role="status"><p>' + esc(t("tk_late")) + (tr.over > 0 ? " " + esc(t("tk_late_by", { n: tr.over })) : "") + "</p>" +
+        // связь — только если байер указал способ связи (тот же блок «Связаться», что ниже на странице)
+        (o.contact && (o.contact.telegram || o.contact.phone) ? '<a class="btn btn-sm tk-ask" href="#cab-contact-t">' + esc(t("tk_ask")) + "</a>" : "") + "</div>" : "") +
+      (!local ? '<p class="fine-print tk-src">' + esc(t("tk_src_" + tr.src)) + "</p>" : "") +
       '<p class="fine-print">' + esc(t("tk_approx")) + "</p></section>";
   }
 

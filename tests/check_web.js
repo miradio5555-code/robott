@@ -10,6 +10,8 @@
 //      Иначе у части людей останется старый файл из памяти телефона.
 //   4. Каждый скрипт и стиль, подключённый в index.html, есть в папке.
 //   5. Номера миграций без повторов и пропусков, отметка в schema_migrations совпадает с файлом.
+//   6. Документы не отстали: README.md, DATABASE.md и RELEASE_CHECKLIST.md знают последний файл базы
+//      и текущую версию сайта (поменять версию везде разом: node scripts/set_version.js НОВАЯ_ВЕРСИЯ).
 // =====================================================
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm");
@@ -49,6 +51,14 @@ var vers = {};
 var list = Object.keys(vers);
 if (!app) fail("В app.js нет APP_VERSION");
 else if (list.length !== 1 || list[0] !== app[1]) fail("Разные версии: index.html " + list.join(", ") + " / app.js " + app[1]);
+// те же файлы подключают страницы «Конфиденциальность» и «Условия»
+if (app) ["privacy.html", "terms.html"].forEach(function (f) {
+  var other = {};
+  (read(f).match(/\?v=[0-9a-zA-Z]+/g) || []).forEach(function (v) { if (v.slice(3) !== app[1]) other[v.slice(3)] = 1; });
+  if (Object.keys(other).length) fail("Разные версии: " + f + " " + Object.keys(other).join(", ") + " / app.js " + app[1]);
+});
+// «приложение» (sw.js) берёт версию из index.html — своей у него быть не должно, иначе появится второе место для ошибки
+if (/APP_VERSION|["']20\d{6}[a-z]*["']/.test(read("sw.js"))) fail("В sw.js записана версия: её нужно брать из index.html (versionOf)");
 
 // 4. подключённые файлы на месте
 var re = /(?:src|href)="([^"?#]+)(?:\?v=[^"]*)?"/g, m;
@@ -75,6 +85,20 @@ var nums = Object.keys(seen).map(Number).sort(function (a, b) { return a - b; })
 for (var i = 1; i <= nums[nums.length - 1]; i++) if (!seen[i]) fail("Пропущен номер миграции " + i);
 if (read("supabase_schema.sql").replace(/\s+/g, "").indexOf("schema_migrations(version,name)values(0,'supabase_schema.sql')") < 0)
   fail("supabase_schema.sql: нет отметки с номером 0");
+
+// 6. документы: последний файл базы и версия сайта
+var last = nums[nums.length - 1], lastFile = seen[last];
+var readme = read("README.md"), dbDoc = read("DATABASE.md"), rel = read("RELEASE_CHECKLIST.md");
+var now = /последний номер \(сейчас (\d+)\)/.exec(readme);
+if (!now) fail("README.md: нет строки «последний номер (сейчас NN)»");
+else if (Number(now[1]) !== last) fail("README.md: «последний номер (сейчас " + now[1] + ")», а файлов базы — до " + last);
+migs.forEach(function (f) { if (readme.indexOf("`" + f + "`") === -1) fail("README.md: в таблице файлов базы нет " + f); });
+if (dbDoc.indexOf(lastFile) === -1) fail("DATABASE.md: не описан последний файл базы " + lastFile);
+var free = /Следующий свободный номер — (\d+)/.exec(dbDoc);
+if (!free) fail("DATABASE.md: нет строки «Следующий свободный номер — NN»");
+else if (Number(free[1]) !== last + 1) fail("DATABASE.md: «Следующий свободный номер — " + free[1] + "», а должен быть " + (last + 1));
+if (rel.indexOf(lastFile) === -1) fail("RELEASE_CHECKLIST.md: не упомянут последний файл базы " + lastFile);
+if (app && rel.indexOf("`" + app[1] + "`") === -1) fail("RELEASE_CHECKLIST.md: не указана текущая версия сайта " + app[1] + " (node scripts/set_version.js " + app[1] + ")");
 
 if (fails.length) {
   console.error("❌ Найдены ошибки:\n  • " + fails.join("\n  • "));

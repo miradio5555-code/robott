@@ -118,7 +118,7 @@
     m.className = "modal modal-small";
     m.setAttribute("aria-hidden", "true");
     m.innerHTML = '<div class="modal-backdrop" data-close></div><div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="wl-title">' +
-      '<div class="modal-head"><h2 id="wl-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>' +
+      '<div class="modal-head"><h2 id="wl-title"></h2><button class="icon-btn" type="button" data-close aria-label="' + esc(t("close")) + '">×</button></div>' +
       '<div class="modal-body" id="wl-body"></div></div>';
     document.body.appendChild(m);
     m.addEventListener("submit", function (e) { if (e.target.id === "wl-form") { e.preventDefault(); save(); } });
