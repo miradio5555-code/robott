@@ -659,7 +659,8 @@
     updateScrollLock();
     setTimeout(function () {
       if (!m.classList.contains("open") || m.contains(document.activeElement)) return;
-      var f = focusables(m).filter(function (e) { return !e.hasAttribute("data-close"); })[0] || focusables(m)[0];
+      // первым получает фокус поле ввода, а не кнопка закрытия или быстрые шаблоны (data-skip-autofocus)
+      var f = focusables(m).filter(function (e) { return !e.hasAttribute("data-close") && !e.readOnly && !e.closest("[data-skip-autofocus]"); })[0] || focusables(m)[0];
       if (!f) { sheet.setAttribute("tabindex", "-1"); f = sheet; }
       try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
     }, 30);

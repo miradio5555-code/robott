@@ -390,6 +390,8 @@ const server = http.createServer(async (req, res) => {
     catch (e) { out = err(String(e && e.message)); }
     res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(out)); return;
   }
+  // сайт при входе спрашивает у Supabase, какие способы входа включены (app.js, «Войти через Google»)
+  if (u.pathname === "/auth/v1/settings") { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ external: {} })); return; }
   const rest = u.pathname.match(/^\/rest\/v1\/rpc\/([a-z_0-9]+)$/);
   if (rest && req.method === "POST") {
     let b = ""; for await (const d of req) b += d;

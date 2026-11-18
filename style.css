@@ -4923,3 +4923,18 @@ p.fin-approx { margin: 6px 4px 10px; }
 .tk-late p { margin: 0; flex: 1 1 200px; }
 .tk-ask { min-height: 44px; }
 .tk-src { margin-bottom: 0; }
+
+/* ===== Доступность на телефоне: размер кнопок под палец (аудит 2026-11, tests/browser/smoke.mjs) =====
+   Минимум WCAG 2.2 — 24 px; на сенсорном экране кнопки доводим до 44 px (рекомендация Apple и Google).
+   Видимый размер почти не меняется: растёт область нажатия. */
+.mini-link { min-height: 44px; display: inline-flex; align-items: center; }
+@media (pointer: coarse), (max-width: 640px) {
+  .lang-switch button { min-width: 44px; min-height: 44px; }
+  #support-btn, .sheet-close { min-width: 44px; min-height: 44px; }
+  .gm-add, .wallet-chip, .order-tag, .chip { min-height: 44px; }
+  .client-row-contacts a, .phone-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .toolbar .btn-sm, .orders-tools .btn-sm, #req-link-btn, #bulk-btn, #import-btn { min-height: 44px; }
+}
+/* Видимый фокус для всех новых кнопок (карточка клиента, импорт, шаблоны) */
+.cc-order:focus-visible, .tpl-row .chip:focus-visible, #im-report:focus-visible, .tk-ask:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (max-width: 640px) { .tpl-row-t { flex-basis: 100%; } }
