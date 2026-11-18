@@ -930,6 +930,13 @@
       </div>
 
       <div class="modal-body">
+        <!-- быстрые шаблоны нового заказа (js/templates.js): только подставляют значения в форму -->
+        <div id="tpl-row" class="tpl-row hidden" role="group" aria-labelledby="tpl-row-t">
+          <span id="tpl-row-t" class="tpl-row-t" data-i18n="tpl_title"></span>
+          <button type="button" class="chip" data-tpl="1688" aria-pressed="false" data-i18n="tpl_1688"></button>
+          <button type="button" class="chip" data-tpl="taobao" aria-pressed="false" data-i18n="tpl_taobao"></button>
+        </div>
+        <p id="tpl-note" class="tpl-note hidden" role="status"></p>
         <fieldset class="adv fstep" data-fs="main">
           <legend class="sr-only" data-i18n="sec_main"></legend>
           <div class="fstep-head"><i class="fstep-num fstep-ico" data-ico="file"></i><span class="fstep-t"><b data-i18n="sec_main"></b><small data-i18n="fs_main_sub"></small></span><em class="fstep-sum" data-fs-sum></em></div>
@@ -2045,6 +2052,7 @@
   <script src="js/clientlinks.js?v=20261216c"></script>
   <script src="js/profile.js?v=20261216c"></script>
   <script src="js/game.js?v=20261216c"></script>
+  <script src="js/templates.js?v=20261216c"></script>
   <script src="js/formsteps.js?v=20261216c"></script>
   <script src="js/quote.js?v=20261216c"></script>
   <script src="js/client.js?v=20261216c"></script>

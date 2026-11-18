@@ -302,5 +302,6 @@
     if (b) reviewDelivery(b.getAttribute("data-order"), b.getAttribute("data-odlv-act"));
   });
 
-  U.clientlinks = { refreshBadge: refreshBadge, open: open, editClient: editClient, deliveryHtml: deliveryHtml };
+  U.clientlinks = { refreshBadge: refreshBadge, open: open, editClient: editClient, deliveryHtml: deliveryHtml,
+    deliveryOf: function (id) { return dlv[id] || null; } };   // адрес заказа от клиента и его состояние (для «Повторить заказ»)
 })(window.ULA);

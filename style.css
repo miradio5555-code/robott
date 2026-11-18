@@ -4857,3 +4857,9 @@ html[data-accent="gold"][data-accent]:not(.x-) { --accent: #8A6A12; --accent-hov
   .gm-alldone, .gm-lvup, .gm-lvup-card, .gm-focus { animation: none !important; }
   .gm-bar i { transition: none; }
 }
+
+/* ===== Быстрые шаблоны нового заказа (js/templates.js) ===== */
+.tpl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.tpl-row-t { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
+.tpl-row .chip { min-height: 44px; }
+.tpl-note { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); color: var(--text-2); font-size: var(--fs-sm); line-height: 1.45; }

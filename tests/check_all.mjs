@@ -25,6 +25,7 @@ const STEPS = [
   { id: "web", name: "Сайт: синтаксис, словари, версия, файлы базы, документы", cmd: ["node", "tests/check_web.js"] },
   { id: "static", name: "Статический анализ: фразы, элементы, подписи", cmd: ["node", "tests/check_static.js"] },
   { id: "sw", name: "Память «приложения» (sw.js)", cmd: ["node", "tests/sw_test.mjs"] },
+  { id: "orders", name: "Шаблоны и повтор заказа", cmd: ["node", "tests/templates_test.mjs"] },
   { id: "tracking", name: "Путь заказа", cmd: ["node", "tests/tracking_test.mjs"] },
   { id: "whatsapp", name: "WhatsApp-интеграция", cmd: ["python3", "-m", "unittest", "discover", "-s", "integrations/whatsapp", "-p", "test_*.py"] },
   { id: "functions", name: "Серверные функции Supabase", cmd: ["bash", "tests/check_functions.sh"] },
