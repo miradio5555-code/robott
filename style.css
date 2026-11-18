@@ -4917,3 +4917,9 @@ html[data-accent="gold"][data-accent]:not(.x-) { --accent: #8A6A12; --accent-hov
 .fin-approx { color: var(--muted); }
 small.fin-approx { display: block; font-size: var(--fs-2xs, 11px); font-weight: 400; }
 p.fin-approx { margin: 6px 4px 10px; }
+
+/* ===== Путь заказа: откуда срок, на сколько задержка, связь (js/tracking.js) ===== */
+.tk-late { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.tk-late p { margin: 0; flex: 1 1 200px; }
+.tk-ask { min-height: 44px; }
+.tk-src { margin-bottom: 0; }
