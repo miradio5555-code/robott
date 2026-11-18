@@ -2,7 +2,7 @@
 // СТЕНД ДЛЯ ПРОВЕРКИ САЙТА В БРАУЗЕРЕ (ничего не отправляет наружу, настоящая база не нужна).
 //   node tests/browser/server.mjs [порт]      → http://127.0.0.1:8765/index.html?scn=veteran
 // Настоящий index.html, app.js и стили, но вместо Supabase — поддельный клиент (tests/browser/fake_supabase.js),
-// который обращается к этому серверу. Данные — в памяти, по сценариям: empty, new1, veteran, staff, fxoff, fxoff0, clients, no55, no54, nqfail.
+// который обращается к этому серверу. Данные — в памяти, по сценариям: empty, new1, veteran, staff, team, teamstaff, fxoff, fxoff0, clients, no55, no54, nqfail.
 // Правила сервера повторяют файлы 56–59 в нужных местах (клиент заказа, пояс, модули, профиль), но это МОДЕЛЬ, а не база:
 // настоящие правила проверяет tests/run_db_tests.sh.
 // =====================================================
@@ -10,6 +10,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { teamRpc } from "./team_model.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PORT = Number(process.argv[2] || 8765);
@@ -25,7 +26,7 @@ function build(scn) {
   const ws = { id: "ws1", name: "Тест-карго", order_prefix: "CN", warehouse_address: "Иу, склад 5", warehouse_contacts: "+86 100", logo_path: null, fx_on: false, fx_tiers: [], fx_note: null, fx_updated_at: null, fx_eta: null,
     default_purchase_currency: "CNY", default_client_currency: "KGS", default_delivery_currency: "USD", default_delivery_tariff: 3, custom_rates: null, request_token: "reqtok", profit_goals: null, country: "KG",
     time_zone: "Asia/Bishkek", time_zone_confirmed_at: null, module_shop: true, module_exchange: true };
-  const staff = scn === "staff";
+  const staff = scn === "staff" || scn === "teamstaff";   // teamstaff: закупщик в команде (файлы 67–68)
   const me = staff ? "u-staff" : "u-owner";
   const db = {
     scn, me, staff, has55: scn !== "no55" && scn !== "no54", has54: scn !== "no54",
@@ -249,6 +250,7 @@ function clientRpc(db, name, a) {
 function rpc(db, name, a) {
   db.rpc_log.push(name);
   { const r = clientRpc(db, name, a); if (r) return r; }
+  { const r = teamRpc(db, name, a); if (r) return r; }   // файлы 67–68: только сценарии team и teamstaff
   if (name === "ws_client_contact_get" || name === "ws_set_client_contact") {
     const w = db.workspaces[0];
     if (db.scn === "no56") return err(`Could not find the function public.${name}`, "PGRST202");
@@ -322,7 +324,7 @@ function embed(db, table, row, sel) {
     out.client = db.clients.find((c) => c.id === row.client_id) || null;
     out.order_photos = []; out.status_history = []; out.tg_subs = [];
   }
-  if (table === "workspace_members") out.workspace = db.workspaces.find((x) => x.id === row.workspace_id);
+  if (table === "workspace_members") out.workspace = db.scn === "teamstaff" ? null : db.workspaces.find((x) => x.id === row.workspace_id);   // файл 69: у закупщика нет доступа ко всему кабинету
   if (table === "clients") out.orders = db.orders.filter((o) => o.client_id === row.id).map((o) => ({ id: o.id, order_number: o.order_number, status: o.status, order_date: o.order_date }));
   return out;
 }

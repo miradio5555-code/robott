@@ -43,7 +43,7 @@
   }
   // обучение по шагам и окно разрешений мешают экрану: по умолчанию считаем их пройденными (?tour=1 — показать обучение)
   try {
-    var qs = new URLSearchParams(location.search), uidx = scn === "staff" ? "u-staff" : "u-owner";
+    var qs = new URLSearchParams(location.search), uidx = scn === "staff" || scn === "teamstaff" ? "u-staff" : "u-owner";
     if (!qs.get("tour")) { localStorage.setItem("ula_tour_done_" + uidx, "1"); localStorage.setItem("ula_perm_later", String(Date.now())); }
     if (qs.get("clear")) { localStorage.removeItem("ula_simple_" + uidx); localStorage.removeItem("ula_form_full"); }
   } catch (e) { /* ignore */ }
@@ -53,7 +53,7 @@
     if (window.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
   } catch (e) { /* ignore */ }
   var listeners = [];
-  var user = { id: scn === "staff" ? "u-staff" : "u-owner", email: "test@example.test", user_metadata: { full_name: "Тест" }, app_metadata: { providers: ["email"] } };
+  var user = { id: scn === "staff" || scn === "teamstaff" ? "u-staff" : "u-owner", email: "test@example.test", user_metadata: { full_name: "Тест" }, app_metadata: { providers: ["email"] } };
   var session = scn === "loggedout" ? null : { user: user, access_token: "fake" };
   var chan = { on: function () { return chan; }, subscribe: function () { return chan; }, unsubscribe: function () {} };
   var client = {
