@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261218a"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261218b"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
