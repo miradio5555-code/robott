@@ -35,7 +35,7 @@ function build(scn) {
     workspace_members: [{ workspace_id: "ws1", user_id: me, role: staff ? "staff" : "owner", created_at: "2026-01-01T00:00:00Z" }],
     orders: [], clients: [], exchange_requests: [], tz_log: [], rpc_log: [], writes: [],
     // файл 72: «Мои цели» — личные цели и доска (модель: без правил доступа, их проверяет tests/goals_test.sh)
-    my_goals: [], my_tasks: [], my_focus_days: [],
+    my_goals: [], my_tasks: [], my_focus_days: [], my_boards: [], my_lists: [],
   };
   if (scn === "fxoff") { ws.module_exchange = false; db.exchange_requests.push({ id: "fx1", workspace_id: "ws1", status: "sent", dispute: null }, { id: "fx2", workspace_id: "ws1", status: "paid", dispute: "open" }); }
   if (scn === "fxoff0") { ws.module_exchange = false; ws.module_shop = false; }

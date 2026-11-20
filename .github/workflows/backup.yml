@@ -39,12 +39,12 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - name: Сделать и проверить копию
         id: backup
         shell: bash
@@ -66,7 +66,7 @@ jobs:
             echo "### 🔴 ОШИБКА КОПИРОВАНИЯ — копия не создана" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ula-db-${{ github.run_id }}
           path: ${{ runner.temp }}/out/ula-*.tar.gz.gpg

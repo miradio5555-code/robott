@@ -20,8 +20,8 @@ jobs:
     name: Сайт
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - uses: denoland/setup-deno@v2
@@ -36,7 +36,7 @@ jobs:
     name: Приложение
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # копия для iPhone собирается одним скриптом и после сборки точно совпадает с сайтом;
       # заодно ловит файл, подключённый в index.html, но забытый в mobile/copy-web.sh
       - run: bash mobile/copy-web.sh
@@ -51,8 +51,8 @@ jobs:
     name: Экраны
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Экраны в Chrome
@@ -68,8 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || contains(join(github.event.commits.*.modified, ','), '.sql') || contains(join(github.event.commits.*.added, ','), '.sql') || contains(join(github.event.commits.*.modified, ','), 'supabase/') || contains(join(github.event.commits.*.modified, ','), 'tests/')
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - uses: denoland/setup-deno@v2
