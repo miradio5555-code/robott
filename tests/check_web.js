@@ -52,7 +52,7 @@ var list = Object.keys(vers);
 if (!app) fail("В app.js нет APP_VERSION");
 else if (list.length !== 1 || list[0] !== app[1]) fail("Разные версии: index.html " + list.join(", ") + " / app.js " + app[1]);
 // те же файлы подключают страницы «Конфиденциальность» и «Условия»
-if (app) ["privacy.html", "terms.html"].forEach(function (f) {
+if (app) ["privacy.html", "terms.html", "factory-map/index.html", "factory-map/styles.css"].forEach(function (f) {
   var other = {};
   (read(f).match(/\?v=[0-9a-zA-Z]+/g) || []).forEach(function (v) { if (v.slice(3) !== app[1]) other[v.slice(3)] = 1; });
   if (Object.keys(other).length) fail("Разные версии: " + f + " " + Object.keys(other).join(", ") + " / app.js " + app[1]);

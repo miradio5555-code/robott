@@ -3,7 +3,7 @@
 //
 //   node scripts/set_version.js 20261217a        (или: npm run version:set -- 20261217a)
 //
-// Версия — это «?v=…» у каждого файла в index.html, privacy.html, terms.html, APP_VERSION в app.js
+// Версия — это «?v=…» у каждого файла в index.html, privacy.html, terms.html, factory-map/ (карта фабрик), APP_VERSION в app.js
 // и строка в RELEASE_CHECKLIST.md. Она должна быть одна и та же везде: по ней телефон понимает,
 // что вышло обновление (sw.js читает её из index.html). Менять при каждой публикации сайта.
 // После запуска: node tests/check_web.js
@@ -24,7 +24,7 @@ function edit(f, fn) {
 var cur = /APP_VERSION\s*=\s*"([^"]+)"/.exec(fs.readFileSync(path.join(root, "app.js"), "utf8"));
 if (!cur) { console.error("В app.js нет APP_VERSION"); process.exit(1); }
 var changed = [];
-["index.html", "privacy.html", "terms.html"].forEach(function (f) {
+["index.html", "privacy.html", "terms.html", "factory-map/index.html", "factory-map/styles.css"].forEach(function (f) {
   if (edit(f, function (s) { return s.replace(/\?v=[0-9a-zA-Z]+/g, "?v=" + next); })) changed.push(f);
 });
 if (edit("app.js", function (s) { return s.replace(/(APP_VERSION\s*=\s*")[^"]+(")/, "$1" + next + "$2"); })) changed.push("app.js");

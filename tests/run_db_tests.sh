@@ -93,6 +93,8 @@ echo "▶ Регламенты, инциденты, календарь, свод
 bash tests/ops_test.sh
 echo "▶ Мои цели: личные цели, доска, фокус дня (файл 72)…"
 bash tests/goals_test.sh
+echo "▶ Карта фабрик у каждого байера своя (файл 73)…"
+bash tests/factory_maps_test.sh
 
 echo ""
 echo "🎉 Все проверки пройдены"

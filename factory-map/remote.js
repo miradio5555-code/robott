@@ -1,10 +1,14 @@
-/* Хранение карты в Supabase для раздела внутри ULA Factory. Подключается только на опубликованной странице. */
+/* Хранение карты в Supabase для раздела внутри ULA Factory. Подключается только на опубликованной странице.
+   Администратор работает со своей прежней картой (factory_map_data, строка 'main', factory-map/setup.sql).
+   Любой другой вошедший человек — со своей личной картой (factory_maps, файл 73): чужие карты база не отдаёт. */
 (function(){
   'use strict';
-  const TABLE='factory_map_data',NAME='main',HOME='../';
+  const ADMIN_TABLE='factory_map_data',NAME='main',OWN_TABLE='factory_maps',HOME='../';
   const cfg=window.CARGO_CONFIG||{};
   const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
-  let version=null;
+  let version=null,mode=null,uid=null;
+  const empty=()=>({factories:[],areas:[],tasks:[],news:[],visits:[],logs:[],cities:[]});
+  const missing=e=>!!e&&(e.code==='PGRST205'||e.code==='42P01');
 
   const BUTTON='display:block;padding:12px 16px;border-radius:12px;background:#151417;color:#fff;font-weight:600;text-align:center;text-decoration:none;border:0;cursor:pointer;font:inherit';
   const never=()=>new Promise(()=>{});
@@ -72,7 +76,7 @@
       try{
         const data=JSON.parse(await input.files[0].text());
         validate(data);
-        const{error}=await client.from(TABLE).insert({name:NAME,data});
+        const{error}=await client.from(ADMIN_TABLE).insert({name:NAME,data});
         if(error)throw Error(error.message);
         location.reload();
       }catch(e){
@@ -84,37 +88,64 @@
 
   async function load(){
     const{data:{session}}=await client.auth.getSession();
-    if(!session)return stop('Нужен вход','Войдите в ULA Factory как администратор и снова откройте карту.',[backHome]);
-    const{data,error}=await client.from(TABLE).select('data,version').eq('name',NAME);
-    if(error){
-      if(error.code==='PGRST205'||error.code==='42P01')return stop('Карта ещё не подключена','В базе нет таблицы карты. Запустите файл factory-map/setup.sql в Supabase.',[backHome]);
-      return stop('Карта не загрузилась',error.message,[reload,backHome]);
+    if(!session)return stop('Нужен вход','Войдите в ULA Factory и снова откройте карту.',[backHome]);
+    uid=session.user.id;
+    // Один заход в базу: роль, карта администратора (база отдаёт её только администратору) и своя карта.
+    const[admin,role,main,own]=await Promise.all([
+      client.rpc('is_admin'),
+      client.from('profiles').select('role').eq('user_id',uid).maybeSingle(),
+      client.from(ADMIN_TABLE).select('data,version').eq('name',NAME),
+      client.from(OWN_TABLE).select('data,version').eq('user_id',uid)
+    ]);
+    if(admin.data===true){
+      mode='admin';
+      if(main.error){
+        if(missing(main.error))return stop('Карта ещё не подключена','В базе нет таблицы карты. Запустите файл factory-map/setup.sql в Supabase.',[backHome]);
+        return stop('Карта не загрузилась',main.error.message,[reload,backHome]);
+      }
+      if(main.data.length){
+        version=main.data[0].version;
+        return{db:NAME,data:main.data[0].data};
+      }
+      return askImport();
     }
-    if(data.length){
-      version=data[0].version;
-      return{db:NAME,data:data[0].data};
+    // Администратор без входа с кодом: не подменять его карту пустой личной.
+    if(role.data?.role==='admin')return stop('Нужен вход с кодом','Карта администратора открывается после входа с кодом. Войдите в ULA Factory заново и снова откройте карту.',[backHome]);
+    mode='own';
+    if(own.error){
+      if(missing(own.error))return stop('Карта фабрик скоро появится','Раздел ещё подключается. Попробуйте позже.',[backHome]);
+      return stop('Карта не загрузилась',own.error.message,[reload,backHome]);
     }
-    const admin=await client.rpc('is_admin');
-    if(admin.error||admin.data!==true)return stop('Нет доступа','Карта фабрик открыта только администратору ULA Factory.',[backHome]);
-    return askImport();
+    if(own.data.length){
+      version=own.data[0].version;
+      return{db:`u-${uid}`,data:own.data[0].data};
+    }
+    // Первый вход: создать пустую личную карту. Если её только что создала другая вкладка — взять ту.
+    const made=await client.from(OWN_TABLE).insert({data:empty()}).select('data,version');
+    const row=made.data?.[0]||(made.error?.code==='23505'?(await client.from(OWN_TABLE).select('data,version').eq('user_id',uid)).data?.[0]:null);
+    if(!row)return stop('Карта не загрузилась',made.error?.message||'Нет ответа базы',[reload,backHome]);
+    version=row.version;
+    return{db:`u-${uid}`,data:row.data};
   }
 
   async function save(body){
     validate(body);
     body.updatedAt=new Date().toISOString().slice(0,10);
-    const{data,error}=await client.from(TABLE).update({data:body,version:version+1}).eq('name',NAME).eq('version',version).select('version');
+    const table=mode==='admin'?ADMIN_TABLE:OWN_TABLE;
+    const mine=q=>mode==='admin'?q.eq('name',NAME):q.eq('user_id',uid);
+    const{data,error}=await mine(client.from(table).update({data:body,version:version+1})).eq('version',version).select('version');
     if(error)throw Error(error.message);
     if(data.length){
       version=data[0].version;
       return{ok:true,updatedAt:body.updatedAt};
     }
     // Запись не прошла: либо данные уже новее, либо доступ закончился.
-    const now=await client.from(TABLE).select('version').eq('name',NAME);
+    const now=await mine(client.from(table).select('version'));
     if(now.data?.length&&now.data[0].version!==version){
       showScreen('Карта уже изменилась','Данные изменили в другой вкладке или на другом устройстве. Последняя правка не сохранена. Обновите страницу и повторите её.',[reload]);
       throw Error('данные уже изменились');
     }
-    showScreen('Нужен вход','Доступ закончился. Последняя правка не сохранена. Войдите в ULA Factory как администратор.',[backHome]);
+    showScreen('Нужен вход','Доступ закончился. Последняя правка не сохранена. Войдите в ULA Factory заново.',[backHome]);
     throw Error('нет доступа');
   }
 

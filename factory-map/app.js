@@ -64,7 +64,7 @@ const PROVINCES={
 
 /* ---------- Состояние ---------- */
 const dbName=new URLSearchParams(location.search).get('db')||'main';
-const STATE_KEY=`china-map-state-v2:${dbName}`;
+let STATE_KEY=`china-map-state-v2:${dbName}`; // на сайте уточняется после загрузки: у каждого человека своя карта
 const STACK_LIMIT=40;
 
 let db,map,provinceLayer,pinLayer,baseLayer;
@@ -180,7 +180,7 @@ function cityCenter(c){
 async function loadCities(){
   cities=[...db.cities];
   try{
-    const ref=await fetch(`${serverBase}/data/china-cities.json`).then(r=>r.json());
+    const ref=await REF.cities;
     const seen=new Set();
     const list=Object.entries(ref).flatMap(([province,rows])=>rows.map(([cn,ru,en,lat,lng])=>{
       let id=en.toLowerCase().replace(/[^a-z]/g,'');
@@ -197,7 +197,7 @@ async function loadCities(){
 async function loadAreas(){
   allAreas=[...db.areas];
   try{
-    const ref=await fetch(`${serverBase}/data/china-districts.json`).then(r=>r.json());
+    const ref=await REF.districts;
     Object.entries(ref).forEach(([city,rows])=>rows.forEach(([cn,ru,en,lat,lng])=>{
       if(!cityById(city)||areasOf(city).some(a=>shortCn(a.cn)===cn))return;
       allAreas.push({id:`${city}-${en.toLowerCase()}`,ru,cn,en,lat,lng,city,ref:true});
@@ -231,6 +231,14 @@ function counts(areaId){
 
 /* ---------- База ---------- */
 const serverBase=location.protocol==='file:'?'http://127.0.0.1:4173':'.';
+// Справочники и границы провинций — с версией сайта (их хранит sw.js) и запрашиваются сразу, параллельно с базой.
+const ASSET_V=(()=>{try{return new URL(document.currentScript.src).searchParams.get('v')||''}catch{return''}})();
+function refJSON(path){
+  const p=fetch(`${serverBase}/${path}${ASSET_V?`?v=${ASSET_V}`:''}`).then(r=>{if(!r.ok)throw Error(`${path}: ${r.status}`);return r.json()});
+  p.catch(()=>{}); // ошибку покажет тот, кто дождётся ответа
+  return p;
+}
+const REF={cities:refJSON('data/china-cities.json'),districts:refJSON('data/china-districts.json'),geo:refJSON('data/geo/china-adm1.geojson')};
 
 async function api(method='GET',body){
   if(window.FACTORY_MAP_REMOTE)return window.FACTORY_MAP_REMOTE.request(method,body);
@@ -487,7 +495,7 @@ async function initMap(){
   L.control.zoom({position:'bottomleft',zoomInTitle:'Приблизить',zoomOutTitle:'Отдалить'}).addTo(map);
   L.control.attribution({position:'topleft',prefix:false}).addTo(map);
   baseLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'});
-  const geo=await fetch(`${serverBase}/data/geo/china-adm1.geojson`).then(r=>r.json());
+  const geo=await REF.geo;
   provinceLayer=L.geoJSON(geo,{
     style:f=>provinceStyle(f.properties.shapeName),
     onEachFeature:(feature,layer)=>{
@@ -1509,7 +1517,9 @@ function renderAll(){
 }
 
 async function boot(){
-  db=(await api()).data;
+  const loaded=await api();
+  db=loaded.data;
+  if(loaded.db)STATE_KEY=`china-map-state-v2:${loaded.db}`;
   db.news||=[];
   db.visits||=[];
   db.logs||=[];
@@ -1534,5 +1544,5 @@ async function boot(){
 boot().catch(e=>{
   console.error(e);
   $('#sheetTitle').textContent='Не удалось загрузить данные';
-  $('#contextPanel').innerHTML=`<p>${esc(e.message)}</p><p>Запустите <code>npm start</code> в папке проекта и откройте <a href="http://127.0.0.1:4173">http://127.0.0.1:4173</a>.</p>`;
+  $('#contextPanel').innerHTML=window.FACTORY_MAP_REMOTE?`<p>${esc(e.message)}</p><p>Обновите страницу.</p>`:`<p>${esc(e.message)}</p><p>Запустите <code>npm start</code> в папке проекта и откройте <a href="http://127.0.0.1:4173">http://127.0.0.1:4173</a>.</p>`;
 });

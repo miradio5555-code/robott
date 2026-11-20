@@ -879,6 +879,32 @@
     if (!state.limited) ULA.tour.maybeStart();
     // устройство — для поддержки; окно «уведомления и местоположение» — после обучения
     if (ULA.device) ULA.device.afterLogin();
+    if (!state.limited) warmFactoryMap();
+  }
+
+  // «Карта фабрик» — отдельная страница (factory-map/). Пока сайт свободен, её файлы (≈0,6 МБ) заранее кладём в память
+  // телефона (sw.js хранит всё с ?v=), — тогда карта открывается сразу. Один раз на версию; при экономии трафика — нет.
+  // Данные карты (фабрики) сюда не попадают: их страница карты берёт из базы при открытии.
+  function warmFactoryMap() {
+    var c = navigator.connection;
+    if (c && (c.saveData || /2g/.test(c.effectiveType || ""))) return;
+    try { if (localStorage.getItem("ula_fmap_warm") === APP_VERSION) return; } catch (e) { /* ignore */ }
+    var run = function () {
+      var base = new URL("factory-map/", location.href);
+      fetch(base.href, { cache: "no-cache" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (html) {
+        var urls = [], m, re = /(?:src|href)="([^"]+\?v=[^"]+)"/g;
+        while ((m = re.exec(html))) urls.push(new URL(m[1], base).href);
+        if (!urls.length) return;
+        return Promise.all(urls.map(function (u) {
+          return fetch(u).then(function (r) { if (!r.ok) throw new Error(u); return r.arrayBuffer(); });
+        })).then(function () {
+          try { localStorage.setItem("ula_fmap_warm", APP_VERSION); } catch (e) { /* ignore */ }
+        });
+      }).catch(function () { /* нет сети — карта просто загрузится при открытии */ });
+    };
+    setTimeout(function () {
+      if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 8000 }); else run();
+    }, 3000);
   }
 
   // ---------- Завершение регистрации: телефон обязателен ----------

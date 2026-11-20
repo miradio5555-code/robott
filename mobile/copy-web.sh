@@ -35,7 +35,7 @@ complete() {   # complete <папка>
   local dst="$1" missing=0 ref
   while IFS= read -r ref; do
     ref="${ref%%\?*}"; ref="${ref%%#*}"
-    # factory-map/ — отдельная страница «Карта фабрик» для администратора: открывается по адресу сайта, в копию не входит
+    # factory-map/ — отдельная страница «Карта фабрик» (у каждого своя): открывается по адресу сайта, в копию не входит
     case "$ref" in ""|http:*|https:*|data:*|mailto:*|tel:*|sw.js|factory-map/) continue ;; esac
     if [ ! -e "$dst/$ref" ]; then echo "❌ index.html подключает $ref, а в копии для приложения его нет (добавьте в mobile/copy-web.sh)"; missing=1; fi
   done < <(grep -oE '(src|href)="[^"]+"' "$SRC/index.html" | sed -E 's/^(src|href)="//; s/"$//' | sort -u)
