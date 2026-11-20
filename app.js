@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261218c"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261220a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -2214,6 +2214,7 @@
     if (state.tab === "profile") ULA.profile.open();
     if (state.tab === "team" && ULA.teamwork) ULA.teamwork.open();
     if (state.tab === "goals" && ULA.goals && db) ULA.goals.open();
+    if (state.tab === "home" && ULA.goals && db) ULA.goals.home();   // «Фокус дня» на Главной
     if (ULA.profile) ULA.profile.refreshCard();
     if (state.tab === "exchange" && db) ULA.exchange.open();
     if (state.tab === "shop" && db && state.ws) ULA.shop.open();

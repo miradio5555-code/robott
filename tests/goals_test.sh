@@ -7,7 +7,8 @@
 # Личное остаётся личным: чужие цели, задачи и минуты не видны и не меняются; привязать задачу или подцель к чужой
 # цели нельзя. Большая цель — только крупнее горизонтом, без циклов. В фокусе дня не больше трёх задач. Минуты в фокусе
 # меняет только my_focus_add(), сайт не может их подделать. Посетителю без входа закрыто всё. Повторный запуск файла
-# ничего не ломает.
+# ничего не ломает. Доски: чужие доски и списки не видны; карточку нельзя положить в чужой список или в список другой
+# доски; список с карточками удалить нельзя; доска удаляется вместе со своими списками и карточками.
 # =====================================================
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -109,12 +110,55 @@ begin
   raise notice '   ✓ цели и задачи: только свои, большая цель крупнее и без циклов, фокус ≤ 3, минуты только через my_focus_add';
 end $$;
 
+do $$
+declare b1 uuid; b2 uuid; l1 uuid; l2 uuid; l3 uuid; ob uuid; ol uuid; c1 uuid; g uuid;
+begin
+  perform t.u('00000000-0000-0000-0000-0000000000c2');
+  insert into public.my_boards (title) values ('Чужая доска') returning id into ob;
+  insert into public.my_lists (board_id, title) values (ob, 'Чужой список') returning id into ol;
+
+  perform t.u('00000000-0000-0000-0000-0000000000c1');
+  assert (select count(*) from public.my_boards) = 0 and (select count(*) from public.my_lists) = 0, 'чужие доски не видны';
+  perform t.err(format('insert into public.my_lists (board_id, title) values (%L, %L)', ob, 'x'), 'bad_board');
+  insert into public.my_goals (title, horizon) values ('Цель доски', 'year') returning id into g;
+  insert into public.my_boards (title, color, goal_id, starred) values ('HSK 5', 'green', g, true) returning id into b1;
+  insert into public.my_boards (title) values ('Дневные задачи') returning id into b2;
+  perform t.err(format('insert into public.my_boards (title, color) values (%L, %L)', 'x', 'neon'), 'check');
+  insert into public.my_lists (board_id, title, pos) values (b1, 'Ноябрь', 1) returning id into l1;
+  insert into public.my_lists (board_id, title, pos) values (b1, 'Декабрь', 2) returning id into l2;
+  insert into public.my_lists (board_id, title, pos) values (b2, 'Утро', 1) returning id into l3;
+  perform t.err(format('update public.my_lists set board_id = %L where id = %L', b2, l1), 'forbidden');
+
+  insert into public.my_tasks (title, board_id, list_id) values ('Слова 1–50', b1, l1) returning id into c1;
+  perform t.err(format('insert into public.my_tasks (title, board_id, list_id) values (%L, %L, %L)', 'x', b1, l3), 'bad_list');
+  perform t.err(format('insert into public.my_tasks (title, board_id, list_id) values (%L, %L, %L)', 'x', ob, ol), 'bad_list');
+  perform t.err(format('insert into public.my_tasks (title, board_id) values (%L, %L)', 'x', b1), 'my_tasks_board_list_pair');
+  update public.my_tasks set list_id = l2 where id = c1;
+  update public.my_tasks set board_id = b2, list_id = l3 where id = c1;
+  update public.my_tasks set board_id = b1, list_id = l1 where id = c1;
+  perform t.err(format('delete from public.my_lists where id = %L', l1), 'foreign key');
+  delete from public.my_lists where id = l2;
+  update public.my_tasks set col = 'done' where id = c1;
+  assert (select done_at is not null from public.my_tasks where id = c1), 'карточка доски отмечается сделанной';
+
+  delete from public.my_goals where id = g;
+  assert (select goal_id is null from public.my_boards where id = b1), 'удалили цель — доска осталась';
+  delete from public.my_boards where id = b1;
+  assert (select count(*) from public.my_tasks where id = c1) = 0 and (select count(*) from public.my_lists where board_id = b1) = 0, 'доска удалена вместе со списками и карточками';
+
+  perform t.u('00000000-0000-0000-0000-0000000000c2');
+  assert (select count(*) from public.my_lists where id = ol) = 1, 'чужой список на месте';
+  raise notice '   ✓ доски: только свои, карточка — в список своей доски, список с карточками не удаляется';
+end $$;
+
 reset role;
 set role anon;
 do $$
 begin
   perform t.err('select count(*) from public.my_goals', 'permission denied');
   perform t.err('select count(*) from public.my_tasks', 'permission denied');
+  perform t.err('select count(*) from public.my_boards', 'permission denied');
+  perform t.err('select count(*) from public.my_lists', 'permission denied');
   perform t.err('select public.my_focus_add(null, 10, current_date)', 'permission denied');
   raise notice '   ✓ посетителю без входа закрыто всё';
 end $$;

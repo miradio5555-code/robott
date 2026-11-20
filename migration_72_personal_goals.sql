@@ -1,12 +1,17 @@
 -- =====================================================
--- ULA FACTORY — миграция 72: «Мои цели» — личные цели (5 лет → год → месяц → неделя), доска задач, фокус дня,
--- минуты в фокусе
+-- ULA FACTORY — миграция 72: «Мои цели» — личные цели (5 лет → год → месяц → неделя), доски задач (как в Trello),
+-- фокус дня, минуты в фокусе
 --
 -- КАК УСТРОЕНО
 --   • my_goals — цель человека: название, горизонт (5y / year / month / week), к какой большей цели ведёт (parent_id),
 --     сфера, срок, «зачем мне это», стратегия, статус (active / done).
---   • my_tasks — задача на личной доске: колонка (inbox → plan → doing → done), цель, срок, заметки, чек-лист (jsonb),
+--   • my_tasks — задача (карточка): статус (inbox → plan → doing → done), цель, срок, заметки, чек-лист (jsonb),
 --     фокус дня (focus_date + порядок), сколько минут было в фокусе.
+--     Без board_id задача лежит на основной доске «Мои задачи» (колонки = статус). С board_id — на своей доске человека,
+--     в одном из её списков (list_id); статус тогда только «сделано / не сделано».
+--   • my_boards — свои доски: название, цвет, цель доски, ★ отмечена, в архиве, когда открывалась последний раз.
+--   • my_lists — списки (колонки) доски: название и порядок. Список с карточками удалить нельзя (база не даст),
+--     доска удаляется вместе со списками и карточками — поэтому сайт сначала убирает доску в архив.
 --   • my_focus_days — сколько минут человек провёл в фокусе за день (одна строка на день). Пишется только функцией
 --     my_focus_add(): минуты прибавляются в одной транзакции к дню и к задаче, без «прочитал — прибавил — записал».
 --   • Фокус дня — не больше трёх задач на одну дату (проверяет база, а не только сайт).
@@ -16,8 +21,8 @@
 -- Посетителю без входа (anon) закрыто всё. Публичные ссылки клиента, витрина и заявки эти таблицы не читают.
 -- Заказы, клиенты, платежи и балансы этот файл НЕ меняет.
 --
--- Удаление аккаунта удаляет и его цели (on delete cascade). Удаление цели не удаляет задачи: у них просто пропадает
--- привязка к цели; у подцелей — к большей цели.
+-- Удаление аккаунта удаляет и его цели (on delete cascade). Удаление цели не удаляет задачи и доски: у них просто
+-- пропадает привязка к цели; у подцелей — к большей цели.
 --
 -- ПРЕДВАРИТЕЛЬНОЕ УСЛОВИЕ: в базе есть schema_migrations, и ни один файл новее 72 ещё не запущен.
 -- Как запустить: SQL Editor → вставить весь файл → Run (одной транзакцией; при ошибке откатывается всё). Можно запускать повторно.
@@ -55,6 +60,30 @@ create table if not exists public.my_goals (
 );
 create index if not exists my_goals_user_idx on public.my_goals (user_id, horizon);
 
+create table if not exists public.my_boards (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  title       text not null check (char_length(btrim(title)) between 1 and 100),
+  color       text not null default 'blue' check (color in ('blue', 'green', 'orange', 'red', 'purple', 'pink', 'teal', 'gray')),
+  goal_id     uuid references public.my_goals(id) on delete set null,
+  starred     boolean not null default false,
+  archived    boolean not null default false,
+  viewed_at   timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists my_boards_user_idx on public.my_boards (user_id);
+
+create table if not exists public.my_lists (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  board_id    uuid not null references public.my_boards(id) on delete cascade,
+  title       text not null check (char_length(btrim(title)) between 1 and 100),
+  pos         integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+create index if not exists my_lists_board_idx on public.my_lists (board_id, pos);
+
 create table if not exists public.my_tasks (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null default auth.uid() references auth.users(id) on delete cascade,
@@ -72,7 +101,16 @@ create table if not exists public.my_tasks (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+-- карточка своей доски: доска удаляется вместе с карточками; список с карточками удалить нельзя (no action)
+alter table public.my_tasks add column if not exists board_id uuid references public.my_boards(id) on delete cascade;
+alter table public.my_tasks add column if not exists list_id  uuid references public.my_lists(id);
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'my_tasks_board_list_pair') then
+    alter table public.my_tasks add constraint my_tasks_board_list_pair check ((board_id is null) = (list_id is null));
+  end if;
+end $$;
 create index if not exists my_tasks_user_idx  on public.my_tasks (user_id, col);
+create index if not exists my_tasks_list_idx  on public.my_tasks (list_id) where list_id is not null;
 create index if not exists my_tasks_focus_idx on public.my_tasks (user_id, focus_date) where focus_date is not null;
 
 create table if not exists public.my_focus_days (
@@ -87,7 +125,8 @@ create table if not exists public.my_focus_days (
 --    • цель и большая цель — того же человека (внешний ключ сам по себе этого не проверяет);
 --    • большая цель — горизонтом крупнее, без циклов;
 --    • в фокусе дня не больше трёх задач на одну дату;
---    • лимиты, чтобы одна учётная запись не забила базу: 500 целей, 5000 задач.
+--    • доска, список и карточка — одного человека; список карточки — с той же доски;
+--    • лимиты, чтобы одна учётная запись не забила базу: 500 целей, 5000 задач, 100 досок, 30 списков на доске.
 create or replace function public._my_goals_guard()
 returns trigger
 language plpgsql
@@ -144,6 +183,9 @@ begin
   if new.goal_id is not null and not exists (select 1 from public.my_goals g where g.id = new.goal_id and g.user_id = new.user_id) then
     raise exception 'bad_goal' using errcode = '22023';
   end if;
+  if new.list_id is not null and not exists (select 1 from public.my_lists l where l.id = new.list_id and l.board_id = new.board_id and l.user_id = new.user_id) then
+    raise exception 'bad_list' using errcode = '22023';
+  end if;
   if new.focus_date is not null and (tg_op = 'INSERT' or new.focus_date is distinct from old.focus_date)
      and (select count(*) from public.my_tasks t where t.user_id = new.user_id and t.focus_date = new.focus_date and t.id <> new.id) >= 3 then
     raise exception 'focus_full' using errcode = '23514';
@@ -156,15 +198,60 @@ $$;
 drop trigger if exists my_tasks_guard on public.my_tasks;
 create trigger my_tasks_guard before insert or update on public.my_tasks
 for each row execute function public._my_tasks_guard();
+
+create or replace function public._my_boards_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at := now();
+  if tg_op = 'UPDATE' and new.user_id <> old.user_id then raise exception 'forbidden' using errcode = '42501'; end if;
+  if tg_op = 'INSERT' and (select count(*) from public.my_boards where user_id = new.user_id) >= 100 then
+    raise exception 'too_many_boards' using errcode = '54000';
+  end if;
+  if new.goal_id is not null and not exists (select 1 from public.my_goals g where g.id = new.goal_id and g.user_id = new.user_id) then
+    raise exception 'bad_goal' using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists my_boards_guard on public.my_boards;
+create trigger my_boards_guard before insert or update on public.my_boards
+for each row execute function public._my_boards_guard();
+
+create or replace function public._my_lists_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if tg_op = 'UPDATE' and (new.user_id <> old.user_id or new.board_id <> old.board_id) then raise exception 'forbidden' using errcode = '42501'; end if;
+  if not exists (select 1 from public.my_boards b where b.id = new.board_id and b.user_id = new.user_id) then
+    raise exception 'bad_board' using errcode = '22023';
+  end if;
+  if tg_op = 'INSERT' and (select count(*) from public.my_lists where board_id = new.board_id) >= 30 then
+    raise exception 'too_many_lists' using errcode = '54000';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists my_lists_guard on public.my_lists;
+create trigger my_lists_guard before insert or update on public.my_lists
+for each row execute function public._my_lists_guard();
 -- служебные функции триггеров напрямую не вызываются (триггер работает и без этого права)
 revoke all on function public._my_goals_guard() from public, anon, authenticated;
 revoke all on function public._my_tasks_guard() from public, anon, authenticated;
+revoke all on function public._my_boards_guard() from public, anon, authenticated;
+revoke all on function public._my_lists_guard() from public, anon, authenticated;
 
 
 -- 3. Доступ: только свои строки
 alter table public.my_goals      enable row level security;
 alter table public.my_tasks      enable row level security;
 alter table public.my_focus_days enable row level security;
+alter table public.my_boards     enable row level security;
+alter table public.my_lists      enable row level security;
 
 drop policy if exists my_goals_own on public.my_goals;
 create policy my_goals_own on public.my_goals for all to authenticated
@@ -172,12 +259,18 @@ create policy my_goals_own on public.my_goals for all to authenticated
 drop policy if exists my_tasks_own on public.my_tasks;
 create policy my_tasks_own on public.my_tasks for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists my_boards_own on public.my_boards;
+create policy my_boards_own on public.my_boards for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists my_lists_own on public.my_lists;
+create policy my_lists_own on public.my_lists for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists my_focus_days_read on public.my_focus_days;
 create policy my_focus_days_read on public.my_focus_days for select to authenticated
   using (user_id = (select auth.uid()));
 
-revoke all on public.my_goals, public.my_tasks, public.my_focus_days from public, anon, authenticated;
-grant select, insert, update, delete on public.my_goals, public.my_tasks to authenticated;
+revoke all on public.my_goals, public.my_tasks, public.my_focus_days, public.my_boards, public.my_lists from public, anon, authenticated;
+grant select, insert, update, delete on public.my_goals, public.my_tasks, public.my_boards, public.my_lists to authenticated;
 grant select on public.my_focus_days to authenticated;   -- писать дни может только my_focus_add()
 
 
