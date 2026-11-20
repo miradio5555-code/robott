@@ -20,6 +20,17 @@ function toast(text){
 }
 
 /* ---------- Справочники ---------- */
+// Подсказки «что здесь производят» — только в карте администратора. Байер видит прежнюю карту без них.
+// Районы Хумэнь, Далан, Хоуцзе, Чанъань, Далиншань, Шипай и Суншаньху у администратора свои, в базе карты.
+const ADMIN_HINTS={
+  areas:{dongguan:{'石碣':['Электроника'],'横沥':['Пресс-формы и CNC'],'桥头':['Упаковка'],'常平':['Логистика, ж/д вокзал'],'樟木头':['Пластик и сырьё'],
+    '清溪':['Электроника'],'沙田':['Порт и логистика'],'麻涌':['Бумага','Зерно и масла'],'中堂':['Бумага'],'茶山':['Игрушки'],'南城':['Деловой центр'],'东城':['Центр города'],'莞城':['Старый центр']}},
+  cities:{guangzhou:['Одежда','Кожгалантерея','Косметика'],shenzhen:['Электроника','Гаджеты'],dongguan:['Одежда и свитера','Мебель','Электроника'],
+    foshan:['Мебель','Бытовая техника','Керамика'],zhongshan:['Освещение','Бытовая техника'],shantou:['Игрушки'],jiangmen:['Сантехника и смесители'],
+    chaozhou:['Керамика и посуда'],yiwu:['Мелкий опт: всё для дома, подарки'],ningbo:['Бытовая техника','Порт'],wenzhou:['Обувь','Электрооборудование'],
+    shaoxing:['Ткани'],huzhou:['Детская одежда'],jiaxing:['Кожа и меха'],jinhua:['Инструменты и металлоизделия'],nantong:['Домашний текстиль'],
+    quanzhou:['Обувь','Спортивная одежда'],putian:['Обувь'],linyi:['Оптовые рынки','Фанера']}
+};
 const STATUS_LABELS={not_started:'Изучение ещё не началось',collecting:'Идёт сбор данных',mapped:'Основные производства нанесены',complete:'План изучения выполнен'};
 const STATUS_DOT={not_started:'gray',collecting:'yellow',mapped:'blue',complete:'green'};
 const NEWS_THEMES={official:'Официальное объявление',logistics:'Логистика',exhibition:'Фабрики и выставки',work:'Моя работа'};
@@ -219,18 +230,22 @@ async function loadAreas(){
       allAreas.push({id:`${city}-${en.toLowerCase()}`,ru,cn,en,lat,lng,city,ref:true,industries:industries||[]});
     }));
   }catch(e){console.warn('Справочник районов не загружен',e)}
+  if(!isAdmin())return;
+  allAreas.forEach(a=>{const hint=a.ref&&ADMIN_HINTS.areas[a.city]?.[shortCn(a.cn)];if(hint)a.industries=hint});
+  cities.forEach(c=>{if(ADMIN_HINTS.cities[c.id]&&!c.industries?.length)c.industries=ADMIN_HINTS.cities[c.id]});
 }
 
 function statusInfo(status){
-  if(status==='посещена лично')return{label:'Посещена',cls:'green'};
-  if(status==='производство подтверждено источниками')return{label:'Подтверждена',cls:'blue'};
-  return{label:'Не проверена',cls:'orange'};
+  const admin=isAdmin();
+  if(status==='посещена лично')return{label:admin?'Посещена':'Посещена лично',cls:'green'};
+  if(status==='производство подтверждено источниками')return{label:admin?'Подтверждена':'Подтверждено источниками',cls:'blue'};
+  return{label:admin?'Не проверена':'Кандидат',cls:'orange'};
 }
 
 function productTerms(q){
   const key=q.toLowerCase().trim();
   if(!key)return[];
-  const group=TERM_GROUPS.find(g=>g.some(t=>key.includes(t)||(key.length>=2&&t.startsWith(key))));
+  const group=(isAdmin()?TERM_GROUPS:TERM_GROUPS.slice(0,1)).find(g=>g.some(t=>key.includes(t)||(key.length>=2&&t.startsWith(key))));
   return group?[...new Set([key,...group])]:[key];
 }
 
@@ -848,6 +863,11 @@ function chinaPanel(){
   // Города, где сосредоточены фабрики: одно нажатие — и вы в нужном городе с районами.
   const hubs=cities.filter(c=>c.industries?.length).sort((x,y)=>factoriesOfCity(y.id).length-factoriesOfCity(x.id).length||(y.id==='dongguan')-(x.id==='dongguan')).map(c=>row({action:'city',id:c.id,title:`${shortCn(c.cn)} ${c.ru}`,sub:c.industries.join(', '),count:factoriesOfCity(c.id).length||null})).join('');
   const add=`<div class="actions"><button type="button" class="primary" data-action="add-factory" data-id="">+ Добавить фабрику</button></div>`;
+  if(!isAdmin())return{
+    title:'Китай',
+    sub:'Выберите провинцию на карте',
+    html:group(list,'Провинции с данными')+`<details class="more"><summary>Все провинции</summary><div class="group">${others}</div></details>`
+  };
   return{
     title:'Китай',
     sub:db.factories.length?`Ваших фабрик: ${db.factories.length}`:'Добавьте первую фабрику или выберите город',
@@ -892,7 +912,7 @@ function cityPanel(){
   return{
     title:shortCn(city.cn),
     sub:[city.ru,all.length?`фабрик: ${all.length}`:'',STATUS_LABELS[city.status]||''].filter(Boolean).join(' · '),
-    html:(list.length?`<div class="actions"><button type="button" class="primary" data-action="add-factory" data-id="${esc(city.id)}">+ Добавить фабрику</button></div>`:'')+areaBlock+factoryBlock+((cityAreas.length?loose:list).some(f=>!coordsOf(f))?APPROX_LEGEND:'')
+    html:(list.length&&isAdmin()?`<div class="actions"><button type="button" class="primary" data-action="add-factory" data-id="${esc(city.id)}">+ Добавить фабрику</button></div>`:'')+areaBlock+factoryBlock+((cityAreas.length?loose:list).some(f=>!coordsOf(f))?APPROX_LEGEND:'')
   };
 }
 
@@ -904,9 +924,9 @@ function areaPanel(){
   return{
     title:shortCn(a.cn),
     sub:`${a.ru} · ${cityById(nav.city)?.ru||''}`,
-    html:`${c.found?`<div class="stats">${stat(c.found,'найдено')}${stat(c.verified,'проверено')}${stat(c.planned,'в поездке')}</div>`:''}
+    html:`${c.found||!isAdmin()?`<div class="stats">${stat(c.found,'найдено')}${stat(c.verified,'проверено')}${stat(c.planned,'в поездке')}</div>`:''}
       <div class="chips">${(a.industries||[]).map(i=>`<span>${esc(i)}</span>`).join('')}</div>
-      ${list.length?group(list.map(f=>factoryRow(f)).join(''),`Фабрики · ${list.length}`):(hidden?'<p class="empty">Фабрики скрыты фильтрами.</p>':`<p class="empty">Здесь пока нет ваших фабрик.</p><div class="actions"><button type="button" class="primary" data-action="add-factory" data-id="${esc(a.id)}">Добавить фабрику</button></div>`)}
+      ${list.length?group(list.map(f=>factoryRow(f)).join(''),`Фабрики · ${list.length}`):(hidden?'<p class="empty">Фабрики скрыты фильтрами.</p>':`<p class="empty">${isAdmin()?'Здесь пока нет ваших фабрик.':'Фабрик пока нет. Нужны юрлицо, адрес цеха и подтверждение операций.'}</p><div class="actions"><button type="button" class="primary" data-action="add-factory" data-id="${esc(a.id)}">Добавить фабрику</button></div>`)}
       ${list.some(f=>!coordsOf(f))?APPROX_LEGEND:''}
       ${hidden&&list.length?`<p class="meta center">Скрыто фильтрами: ${hidden}</p>`:''}
       ${a.ref?`<p class="meta center">${(a.industries||[]).length?'Отрасли — ориентир, уточняйте у фабрики. ':''}Центр района указан примерно.</p>`:`<details class="more"><summary>Что проверить</summary><p>${esc(a.needs||'Уточнить')}</p><p class="meta">${esc(STATUS_LABELS[a.status]||'')}. Обновлено: ${esc(a.updatedAt||db.updatedAt||'')}${source?` · <a href="${esc(source)}" target="_blank" rel="noopener">Источник</a>`:''}</p></details>`}`
@@ -926,7 +946,7 @@ function factoryPanel(){
       ${f.nameLanguage==='en'?'<p class="note">Название из каталога. Китайское юрлицо ещё не подтверждено.</p>':''}
       <div class="group">
         <div class="row row-static"><span class="row-main"><small>Адрес ${f.nameLanguage==='en'?'из каталога':''}</small><b class="address">${esc(f.address_cn||'Уточнить')}</b></span>${f.address_cn?`<button type="button" class="mini" data-action="copy" data-text="${esc(f.address_cn)}">Копировать</button>`:''}</div>
-        ${f.contact?`<div class="row row-static"><span class="row-main"><small>Контакт</small><b>${esc(f.contact)}</b></span><button type="button" class="mini" data-action="copy" data-text="${esc(f.contact)}">Копировать</button></div>`:''}
+        ${f.contact&&isAdmin()?`<div class="row row-static"><span class="row-main"><small>Контакт</small><b>${esc(f.contact)}</b></span><button type="button" class="mini" data-action="copy" data-text="${esc(f.contact)}">Копировать</button></div>`:''}
         <div class="row row-static"><span class="row-main"><small>На карте</small><b>${point?(f.pointSource?'Точка поставлена вручную':'Точка по координатам'):a?'Примерно: известен только район':nav.city?'Примерно: известен только город':'Координат и района нет. Точки на карте нет.'}</b></span></div>
       </div>
       <div class="actions">
@@ -941,6 +961,7 @@ function factoryPanel(){
         <p><b>${processLabel}:</b> ${esc(f.process||'уточнить')}</p>
         <p><b>Следующий шаг:</b> ${esc(f.next||'уточнить')}</p>
         ${f.terms?`<p><b>Условия:</b> ${esc(f.terms)}</p>`:''}
+        ${f.contact&&!isAdmin()?`<p><b>Контакт:</b> ${esc(f.contact)}</p>`:''}
         <p class="meta">Проверено: ${esc(f.checkedOn||'не указано')}</p>
         <button type="button" data-action="edit" data-id="${esc(f.id)}">Изменить карточку</button>
       </details>`
@@ -1041,6 +1062,7 @@ $$('#tabbar button').forEach(b=>{b.onclick=()=>showPage(b.dataset.page)});
 
 $('#backBtn').onclick=goBack;
 $('#addHere').onclick=()=>addFactoryHere('');
+$('#allChina').onclick=()=>navigate(toChina());
 function toggleSheetByUser(){
   // Развернуть шторку во время установки точки значит передумать.
   if(cancelPicking())return renderNav();
@@ -1370,7 +1392,7 @@ function openFactory(f){
   $('#formTitle').textContent=f?'Карточка фабрики':'Новая фабрика';
   Object.entries(f||{}).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v});
   // Дополнительные поля раскрыты, только если в них уже что-то записано.
-  $('#factoryMore').open=!!f&&['process','lat','lng','terms','evidence','visitNotes','next'].some(k=>String(f[k]??'').trim())||!!f&&f.status!=='кандидат';
+  $('#factoryMore').open=!isAdmin()||!!f&&['process','lat','lng','terms','evidence','visitNotes','next'].some(k=>String(f[k]??'').trim())||!!f&&f.status!=='кандидат';
   $('#factoryDialog').showModal();
 }
 $('#addFactory').onclick=()=>openFactory();
@@ -1396,7 +1418,7 @@ $('#factoryForm').onsubmit=async e=>{
   $('#factoryDialog').close();
   renderAll();
   // Новая фабрика сразу открывается на карте: видно, где она и что дальше (поставить точку, добавить в поездку).
-  if(index<0)openOnMap(toFactory(f.id));
+  if(index<0&&isAdmin())openOnMap(toFactory(f.id));
   else renderNav();
 };
 
@@ -1555,6 +1577,13 @@ async function boot(){
   const loaded=await api();
   db=loaded.data;
   document.body.classList.toggle('buyer',!isAdmin());
+  if(isAdmin()){
+    // Новые подписи — только у администратора; у байера в разметке прежние.
+    $('#globalSearch').placeholder='Товар, город';
+    $$('option[value="кандидат"]').forEach(o=>{o.textContent='Не проверена'});
+    $$('option[value="производство подтверждено источниками"]').forEach(o=>{o.textContent=o.closest('#factoryForm')?'Подтверждена (есть источник)':'Подтверждена'});
+    $$('option[value="посещена лично"]').forEach(o=>{o.textContent='Посещена'});
+  }
   if(loaded.db)STATE_KEY=`china-map-state-v2:${loaded.db}`;
   db.news||=[];
   db.visits||=[];

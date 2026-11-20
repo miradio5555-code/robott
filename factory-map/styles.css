@@ -323,3 +323,4 @@ dialog .form{background:transparent}
 #factoryMore{padding:0 14px}
 #factoryMore[open]{display:grid;gap:12px;padding-bottom:14px}
 #factoryMore>*+*{margin-top:0}
+body:not(.buyer) .buyer-only{display:none!important}

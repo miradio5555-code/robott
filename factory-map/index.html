@@ -46,10 +46,11 @@
     <div class="chrome-search">
       <label class="search">
         <svg class="icon"><use href="#i-search"/></svg>
-        <input id="globalSearch" type="search" placeholder="Товар, город" autocomplete="off" aria-label="Поиск: товар, фабрика, город или район">
+        <input id="globalSearch" type="search" placeholder="Поиск товара" autocomplete="off" aria-label="Поиск: товар, фабрика, город или район">
       </label>
       <button id="filtersBtn" type="button" class="chip-btn"><svg class="icon"><use href="#i-filter"/></svg>Фильтры<span id="filterCount" class="filter-count" hidden></span></button>
-      <button id="addHere" type="button" class="chip-btn primary" aria-label="Добавить фабрику">+ Фабрика</button>
+      <button id="allChina" type="button" class="chip-btn buyer-only">Весь Китай</button>
+      <button id="addHere" type="button" class="chip-btn primary admin-only" aria-label="Добавить фабрику">+ Фабрика</button>
     </div>
   </div>
 
@@ -82,7 +83,7 @@
     <select id="areaFilter"></select>
     <select id="statusFilter">
       <option value="">Все статусы</option>
-      <option value="кандидат">Не проверена</option>
+      <option value="кандидат">кандидат</option>
       <option value="производство подтверждено источниками">Подтверждена</option>
       <option value="посещена лично">Посещена</option>
     </select>
@@ -185,7 +186,7 @@
     <label>Статус
       <select id="mapStatus">
         <option value="">Все статусы</option>
-        <option value="кандидат">Не проверена</option>
+        <option value="кандидат">кандидат</option>
         <option value="производство подтверждено источниками">Подтверждена</option>
         <option value="посещена лично">Посещена</option>
       </select>
@@ -217,7 +218,7 @@
   <label>Адрес<textarea name="address_cn" rows="2" placeholder="Адрес цеха, можно по-китайски"></textarea></label>
   <label>Контакт<input name="contact" placeholder="Имя, телефон, WeChat" autocomplete="off"></label>
   <details id="factoryMore" class="more"><summary>Ещё поля: статус, условия, заметки</summary>
-    <label>Статус<select name="status"><option value="кандидат">Не проверена</option><option value="производство подтверждено источниками">Подтверждена (есть источник)</option><option value="посещена лично">Посещена</option></select></label>
+    <label>Статус<select name="status"><option value="кандидат">кандидат</option><option value="производство подтверждено источниками">производство подтверждено источниками</option><option value="посещена лично">Посещена</option></select></label>
     <label>MOQ, образец, срок<textarea name="terms"></textarea></label>
     <label>Что делают на месте (операции)<textarea name="process"></textarea></label>
     <label>Источник: ссылка и дата проверки<textarea name="evidence"></textarea></label>
