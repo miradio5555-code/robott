@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://raw.githubusercontent.com/miradio5555-code/robott/daily-news/; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,13 +11,13 @@
 <title>ULA Factory · Карта фабрик Китая</title>
 <link rel="icon" href="vendor/ula/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="vendor/ula/apple-touch-icon.png">
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261221a">
-<link rel="stylesheet" href="styles.css?v=20261221a">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261222a">
+<link rel="stylesheet" href="styles.css?v=20261222a">
 <!-- справочники и границы провинций начинают грузиться сразу, вместе со скриптами -->
-<link rel="preload" as="fetch" crossorigin href="data/geo/china-adm1.geojson?v=20261221a">
-<link rel="preload" as="fetch" crossorigin href="data/china-cities.json?v=20261221a">
-<link rel="preload" as="fetch" crossorigin href="data/china-districts.json?v=20261221a">
-<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/ula/fonts/onest-cyrillic.woff2?v=20261221a">
+<link rel="preload" as="fetch" crossorigin href="data/geo/china-adm1.geojson?v=20261222a">
+<link rel="preload" as="fetch" crossorigin href="data/china-cities.json?v=20261222a">
+<link rel="preload" as="fetch" crossorigin href="data/china-districts.json?v=20261222a">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/ula/fonts/onest-cyrillic.woff2?v=20261222a">
 </head>
 <body class="buyer"><!-- админские разделы открываются после загрузки, если это администратор -->
 
@@ -110,6 +110,27 @@
       <label class="file">Импорт подборки<input id="importNews" type="file" accept=".json"></label>
     </div>
   </div>
+  <div id="dailyNews" class="daily-news admin-only">
+    <div class="daily-head"><h3>Свежие новости</h3><p id="dailyMeta" class="meta"></p></div>
+    <div class="filters daily-filters">
+      <select id="dailyTheme" aria-label="Тема">
+        <option value="">Все темы</option>
+        <option value="ecommerce">Электронная торговля</option>
+        <option value="economy">Экономика</option>
+      </select>
+      <select id="dailyRegion" aria-label="Регион">
+        <option value="">Все регионы</option>
+        <option value="china">Китай</option>
+        <option value="europe">Европа</option>
+        <option value="usa">США</option>
+        <option value="central-asia">Средняя Азия</option>
+        <option value="sea">Юго-Восточная Азия</option>
+      </select>
+    </div>
+    <div id="dailyList" class="daily-list"></div>
+    <button id="dailyMore" type="button" hidden>Показать ещё</button>
+  </div>
+  <h3 class="saved-head admin-only">Проверенные новости и журнал работы</h3>
   <div class="filters news-filters">
     <select id="newsTheme">
       <option value="">Все темы</option>
@@ -256,10 +277,10 @@
 </form></dialog>
 
 <div id="toast" role="status"></div>
-<script src="vendor/leaflet/leaflet.js?v=20261221a"></script>
-<script src="../config.js?v=20261221a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261222a"></script>
+<script src="../config.js?v=20261222a"></script>
 <script src="../supabase.js"></script>
-<script src="remote.js?v=20261221a"></script>
-<script src="app.js?v=20261221a"></script>
+<script src="remote.js?v=20261222a"></script>
+<script src="app.js?v=20261222a"></script>
 </body>
 </html>
