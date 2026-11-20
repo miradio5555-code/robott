@@ -149,7 +149,8 @@
     throw Error('нет доступа');
   }
 
-  window.FACTORY_MAP_REMOTE={request:(method,body)=>method==='PUT'?save(body):load()};
+  // mode: 'admin' — карта администратора, 'own' — личная карта байера (известно после загрузки).
+  window.FACTORY_MAP_REMOTE={request:(method,body)=>method==='PUT'?save(body):load(),get mode(){return mode}};
 
   // Обратный путь в основное приложение: логотип на компьютере и строка в «Ещё» на телефоне.
   document.addEventListener('DOMContentLoaded',()=>{
