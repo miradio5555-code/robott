@@ -36,6 +36,9 @@ function build(scn) {
     orders: [], clients: [], exchange_requests: [], tz_log: [], rpc_log: [], writes: [],
     // файл 72: «Мои цели» — личные цели и доска (модель: без правил доступа, их проверяет tests/goals_test.sh)
     my_goals: [], my_tasks: [], my_focus_days: [], my_boards: [], my_lists: [],
+    // файл 73: «Карта фабрик» — своя карта человека (модель: строка с user_id = я; правила проверяет tests/factory_maps_test.sh).
+    // Чужая карта лежит рядом, чтобы видеть, что страница её не берёт. Сценарий nofmap — файл 73 ещё не запущен.
+    factory_maps: scn === "nofmap" ? undefined : [{ user_id: "u-other", version: 4, data: { factories: [{ id: "x1", company_cn: "别人的工厂有限公司" }], areas: [], tasks: [] } }],
   };
   if (scn === "fxoff") { ws.module_exchange = false; db.exchange_requests.push({ id: "fx1", workspace_id: "ws1", status: "sent", dispute: null }, { id: "fx2", workspace_id: "ws1", status: "paid", dispute: "open" }); }
   if (scn === "fxoff0") { ws.module_exchange = false; ws.module_shop = false; }
@@ -350,6 +353,23 @@ function match(row, f) {
 }
 function query(db, q) {
   const t = db[q.table];
+  if (q.table === "factory_maps") {
+    if (!t) return err("Could not find the table 'public.factory_maps' in the schema cache", "PGRST205");
+    const mine = t.filter((r) => r.user_id === db.me);
+    const pick = (rows) => rows.filter((r) => (q.filters || []).every((f) => match(r, f)));
+    if (q.method === "insert") {
+      if (mine.length) return err("duplicate key value violates unique constraint \"factory_maps_pkey\"", "23505");
+      const row = { user_id: db.me, version: 1, data: q.payload.data };
+      t.push(row); db.writes.push("fmap-insert"); return ok([row]);
+    }
+    if (q.method === "update") {
+      const rows = pick(mine);
+      rows.forEach((r) => { if (q.payload.version !== r.version + 1) throw new Error("stale_version"); Object.assign(r, q.payload); });
+      db.writes.push("fmap-update:" + rows.length); return ok(rows.map((r) => ({ version: r.version, data: r.data })));
+    }
+    return ok(pick(mine).map((r) => ({ version: r.version, data: r.data })));
+  }
+  if (q.table === "factory_map_data") return err("permission denied for table factory_map_data", "42501");
   if (!Array.isArray(t)) return ok(q.single || q.maybe ? null : []);
   let rows = t.filter((r) => (q.filters || []).every((f) => match(r, f)));
   if (q.method === "insert") {
@@ -422,14 +442,17 @@ const server = http.createServer(async (req, res) => {
   if (u.pathname.startsWith("/functions/v1/")) { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false })); return; }
   if (u.pathname.startsWith("/storage/")) { res.writeHead(404); res.end("no"); return; }
   if (u.pathname === "/__reset") { DBS.delete(u.searchParams.get("scn") || "veteran"); res.writeHead(200); res.end("ok"); return; }
-  if (u.pathname === "/__state") { const db = get(u.searchParams.get("scn") || "veteran"); res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ profile: db.profiles[0], ws: db.workspaces[0], writes: db.writes, tz_log: db.tz_log, orders: db.orders.length })); return; }
-  let p = decodeURIComponent(u.pathname); if (p === "/") p = "/index.html";
+  if (u.pathname === "/__state") { const db = get(u.searchParams.get("scn") || "veteran"); res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ profile: db.profiles[0], ws: db.workspaces[0], writes: db.writes, tz_log: db.tz_log, orders: db.orders.length, fmaps: db.factory_maps })); return; }
+  let p = decodeURIComponent(u.pathname); if (p === "/") p = "/index.html"; if (p === "/factory-map/") p = "/factory-map/index.html";
   const file = path.join(ROOT, p);
   if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end("not found"); return; }
   let body = fs.readFileSync(file);
   if (p === "/index.html") {
     // вместо настоящей библиотеки Supabase — поддельный клиент
     body = Buffer.from(body.toString("utf8").replace(/<script src="supabase\.js[^"]*"><\/script>/, '<script src="/tests/browser/fake_supabase.js"></script>'));
+  }
+  if (p === "/factory-map/index.html") {
+    body = Buffer.from(body.toString("utf8").replace(/<script src="\.\.\/supabase\.js[^"]*"><\/script>/, '<script src="/tests/browser/fake_supabase.js"></script>'));
   }
   res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-store" });
   res.end(body);
