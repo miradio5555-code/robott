@@ -34,6 +34,8 @@ function build(scn) {
     workspaces: [ws],
     workspace_members: [{ workspace_id: "ws1", user_id: me, role: staff ? "staff" : "owner", created_at: "2026-01-01T00:00:00Z" }],
     orders: [], clients: [], exchange_requests: [], tz_log: [], rpc_log: [], writes: [],
+    // файл 72: «Мои цели» — личные цели и доска (модель: без правил доступа, их проверяет tests/goals_test.sh)
+    my_goals: [], my_tasks: [], my_focus_days: [],
   };
   if (scn === "fxoff") { ws.module_exchange = false; db.exchange_requests.push({ id: "fx1", workspace_id: "ws1", status: "sent", dispute: null }, { id: "fx2", workspace_id: "ws1", status: "paid", dispute: "open" }); }
   if (scn === "fxoff0") { ws.module_exchange = false; ws.module_shop = false; }
@@ -248,6 +250,13 @@ function clientRpc(db, name, a) {
   return null;
 }
 function rpc(db, name, a) {
+  if (name === "my_focus_add") {   // файл 72: минуты к дню и к задаче
+    const m = Number(a.p_minutes); if (!(m >= 1 && m <= 240)) return err("bad_minutes", "22023");
+    let d = db.my_focus_days.find((x) => x.day === a.p_day); if (!d) { d = { day: a.p_day, minutes: 0 }; db.my_focus_days.push(d); }
+    d.minutes = Math.min(1440, d.minutes + m);
+    const t = a.p_task ? db.my_tasks.find((x) => x.id === a.p_task) : null; if (t) t.focus_min = (t.focus_min || 0) + m;
+    return ok({ day_minutes: d.minutes, task_minutes: t ? t.focus_min : null });
+  }
   db.rpc_log.push(name);
   { const r = clientRpc(db, name, a); if (r) return r; }
   { const r = teamRpc(db, name, a); if (r) return r; }   // файлы 67–68: только сценарии team и teamstaff

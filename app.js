@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261218b"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261218c"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -2153,8 +2153,8 @@
   function switchTab(name) {
     var isAdmin = state.me && state.me.role === "admin";
     if (state.limited && name !== "profile") name = "team";   // файл 69: сотрудник только со своими заказами
-    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || (name === "team" && ULA.teamwork && ULA.teamwork.isOn()) || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
-    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business") state.tab = isAdmin ? "buyers" : "orders";
+    state.tab = name === "home" || name === "inbox" || name === "clients" || name === "shop" || name === "expenses" || name === "shipments" || name === "debts" || name === "report" || name === "analytics" || name === "suppliers" || name === "quote" || name === "exchange" || name === "profile" || (name === "goals" && !!ULA.goals) || (name === "team" && ULA.teamwork && ULA.teamwork.isOn()) || ((name === "buyers" || name === "support" || name === "business") && isAdmin) ? name : "orders";
+    if (!state.ws && state.tab !== "buyers" && state.tab !== "quote" && state.tab !== "exchange" && state.tab !== "support" && state.tab !== "business" && state.tab !== "goals") state.tab = isAdmin ? "buyers" : "orders";
     $("#tab-home").classList.toggle("hidden", state.tab !== "home");
     $("#tab-orders").classList.toggle("hidden", state.tab !== "orders");
     $("#tab-clients").classList.toggle("hidden", state.tab !== "clients");
@@ -2173,6 +2173,7 @@
     $("#tab-inbox").classList.toggle("hidden", state.tab !== "inbox");
     $("#tab-profile").classList.toggle("hidden", state.tab !== "profile");
     $("#tab-team").classList.toggle("hidden", state.tab !== "team");
+    $("#tab-goals").classList.toggle("hidden", state.tab !== "goals");
     if (state.tab !== shownTab) { shownTab = state.tab; playIn($("#tab-" + state.tab), "tab-in"); }
     $("#fab").classList.toggle("hidden", state.tab !== "orders");
     // нижнее меню: у байера — Главная, Заказы, «+», Клиенты (Долги и Витрина — в «Ещё»); у админа — Главная, Байеры, «+», Поддержка (Обмен — в «Ещё»)
@@ -2212,6 +2213,7 @@
     if (state.tab === "quote") ULA.quote.open();
     if (state.tab === "profile") ULA.profile.open();
     if (state.tab === "team" && ULA.teamwork) ULA.teamwork.open();
+    if (state.tab === "goals" && ULA.goals && db) ULA.goals.open();
     if (ULA.profile) ULA.profile.refreshCard();
     if (state.tab === "exchange" && db) ULA.exchange.open();
     if (state.tab === "shop" && db && state.ws) ULA.shop.open();
@@ -2238,7 +2240,7 @@
     if (ico && ULA.icon) {
       var tab = state.tab === "report" ? "analytics" : state.tab;
       var ICONS = { home: "home", exchange: "swap", orders: "package", clients: "users", shop: "store", debts: "wallet", analytics: "chart", expenses: "receipt", quote: "calc",
-        suppliers: "factory", shipments: "truck", buyers: "id", business: "pie", inbox: "message", support: "lifebuoy", profile: "id" };
+        suppliers: "factory", shipments: "truck", buyers: "id", business: "pie", inbox: "message", support: "lifebuoy", profile: "id", goals: "target" };
       ico.innerHTML = ULA.icon(ICONS[tab] || "package", 17);
       ico.className = "section-menu-ico g-" + ((active && active.getAttribute("data-group")) || "main");
     }
@@ -2296,7 +2298,7 @@
   // Кто уже работает (15+ заказов), у того меню не меняется. У админа простого режима нет.
   // Выбор хранится в профиле (файл 55) и действует на всех устройствах; в браузере остаётся копия на случай, если базы нет.
   // Решение «по числу заказов» принимается ОДИН раз, только пока ничего не выбрано, и явный выбор не заменяет.
-  var SIMPLE_TABS = ["home", "orders", "clients", "team", "shop", "debts", "profile"];   // team — задачи команды (файлы 67–68), без них пункт скрыт
+  var SIMPLE_TABS = ["home", "orders", "clients", "team", "goals", "shop", "debts", "profile"];   // team — задачи команды (файлы 67–68), без них пункт скрыт
   function simpleKey() { return "ula_simple_" + ((state.me && state.me.id) || ""); }
   function isSimple() {
     if (!state.me || state.me.role === "admin") return false;
