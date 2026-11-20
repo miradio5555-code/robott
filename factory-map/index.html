@@ -11,15 +11,15 @@
 <title>ULA Factory · Карта фабрик Китая</title>
 <link rel="icon" href="vendor/ula/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="vendor/ula/apple-touch-icon.png">
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261220b">
-<link rel="stylesheet" href="styles.css?v=20261220b">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261221a">
+<link rel="stylesheet" href="styles.css?v=20261221a">
 <!-- справочники и границы провинций начинают грузиться сразу, вместе со скриптами -->
-<link rel="preload" as="fetch" crossorigin href="data/geo/china-adm1.geojson?v=20261220b">
-<link rel="preload" as="fetch" crossorigin href="data/china-cities.json?v=20261220b">
-<link rel="preload" as="fetch" crossorigin href="data/china-districts.json?v=20261220b">
-<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/ula/fonts/onest-cyrillic.woff2?v=20261220b">
+<link rel="preload" as="fetch" crossorigin href="data/geo/china-adm1.geojson?v=20261221a">
+<link rel="preload" as="fetch" crossorigin href="data/china-cities.json?v=20261221a">
+<link rel="preload" as="fetch" crossorigin href="data/china-districts.json?v=20261221a">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/ula/fonts/onest-cyrillic.woff2?v=20261221a">
 </head>
-<body>
+<body class="buyer"><!-- админские разделы открываются после загрузки, если это администратор -->
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ula-mark" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#151417"/><path d="M19.5 18 V32 a12.5 12.5 0 0 0 12.5 12.5" fill="none" stroke="#FF6A3D" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 44.5 a12.5 12.5 0 0 0 12.5 -12.5 V18" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -46,10 +46,11 @@
     <div class="chrome-search">
       <label class="search">
         <svg class="icon"><use href="#i-search"/></svg>
-        <input id="globalSearch" type="search" placeholder="Поиск товара" autocomplete="off" aria-label="Поиск товара">
+        <input id="globalSearch" type="search" placeholder="Поиск товара" autocomplete="off" aria-label="Поиск: товар, фабрика, город или район">
       </label>
       <button id="filtersBtn" type="button" class="chip-btn"><svg class="icon"><use href="#i-filter"/></svg>Фильтры<span id="filterCount" class="filter-count" hidden></span></button>
-      <button id="allChina" type="button" class="chip-btn">Весь Китай</button>
+      <button id="allChina" type="button" class="chip-btn buyer-only">Весь Китай</button>
+      <button id="addHere" type="button" class="chip-btn primary admin-only" aria-label="Добавить фабрику">+ Фабрика</button>
     </div>
   </div>
 
@@ -74,17 +75,17 @@
     <p class="meta">Кандидат и подтверждённое производство — разные статусы.</p>
     <div class="page-actions">
       <button id="addFactory" type="button" class="primary">Добавить фабрику</button>
-      <label class="file">Предпросмотр CSV<input id="importCsv" type="file" accept=".csv"></label>
+      <label class="file">Загрузить CSV<input id="importCsv" type="file" accept=".csv"></label>
     </div>
   </div>
   <div class="filters">
-    <input id="factorySearch" type="search" placeholder="товар, технология, район, название / 中文">
+    <input id="factorySearch" type="search" placeholder="Товар, район, название / 中文">
     <select id="areaFilter"></select>
     <select id="statusFilter">
       <option value="">Все статусы</option>
-      <option>кандидат</option>
-      <option>производство подтверждено источниками</option>
-      <option>посещена лично</option>
+      <option value="кандидат">кандидат</option>
+      <option value="производство подтверждено источниками">Подтверждена</option>
+      <option value="посещена лично">Посещена</option>
     </select>
   </div>
   <div id="importPreview" class="notice"></div>
@@ -133,8 +134,8 @@
 <section id="more" class="page">
   <div class="page-head"><h2>Ещё</h2></div>
   <div class="group">
-    <button type="button" class="row" data-action="page" data-id="progress"><span class="row-main"><b>План и прогресс</b><small>Задачи и статусы районов</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
-    <button type="button" class="row" data-action="page" data-id="request"><span class="row-main"><b>Запросы клиентов</b><small>Подбор и логистика</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
+    <button type="button" class="row admin-only" data-action="page" data-id="progress"><span class="row-main"><b>План и прогресс</b><small>Задачи и статусы районов</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
+    <button type="button" class="row admin-only" data-action="page" data-id="request"><span class="row-main"><b>Запросы клиентов</b><small>Подбор и логистика</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
     <button id="exportBtn" type="button" class="row"><span class="row-main"><b>Экспорт CSV</b><small>Копия текущей базы фабрик</small></span><svg class="icon chevron"><use href="#i-next"/></svg></button>
   </div>
   <p class="map-credit">Границы ADM1: <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a>, China 2019, 34 единицы, Public Domain по метаданным набора. Leaflet © contributors, BSD-2-Clause.</p>
@@ -148,7 +149,7 @@
     <div class="page-actions"><button id="areaStatusBtn" type="button">Изменить статус района</button></div>
   </div>
   <div id="taskList"></div>
-  <article class="notice"><h3>Ежедневная задача Codex</h3><pre>Открой data/db/main.json и progress.md. Проверь после последней даты news.lastChecked первичные источники: таможню КНР, ЕЭК/Кыргызстан, власти Дунгуаня и Гуандуна, организаторов выставок и перевозчиков. Отбери только изменения, важные для закупок, фабрик, поездок или маршрута Китай → Кыргызстан. У каждой карточки сохрани ссылку, дату публикации, дату проверки, область действия и краткое влияние. Не выдавай условие перевозчика за официальное правило и не отправляй сообщения фабрикам. Затем обнови страницу сайта и кратко отчитайся.</pre></article>
+  <div id="adminNote"></div>
 </section>
 
 <section id="request" class="page">
@@ -174,7 +175,7 @@
   <button type="button" data-page="map" class="active"><svg class="icon tab-icon-map"><use href="#i-map"/></svg><svg class="tab-mark" aria-hidden="true"><use href="#ula-mark"/></svg>Карта</button>
   <button type="button" data-page="factories"><svg class="icon"><use href="#i-factory"/></svg>Фабрики</button>
   <button type="button" data-page="trips"><svg class="icon"><use href="#i-route"/></svg>Поездка</button>
-  <button type="button" data-page="news"><svg class="icon"><use href="#i-news"/></svg>Новости</button>
+  <button type="button" data-page="news" class="admin-only"><svg class="icon"><use href="#i-news"/></svg>Новости</button>
   <button type="button" data-page="more"><svg class="icon"><use href="#i-more"/></svg>Ещё</button>
 </nav>
 
@@ -185,7 +186,7 @@
     <label>Статус
       <select id="mapStatus">
         <option value="">Все статусы</option>
-        <option value="кандидат">Кандидат</option>
+        <option value="кандидат">кандидат</option>
         <option value="производство подтверждено источниками">Подтверждена</option>
         <option value="посещена лично">Посещена</option>
       </select>
@@ -203,26 +204,29 @@
     <button id="searchMapArea" type="button" class="row"><span class="row-main"><b>Искать в этой области</b></span></button>
     <button id="showVisits" type="button" class="row"><span class="row-main"><b>Маршрут визитов</b></span></button>
   </div>
-  <p class="group-title">Статусы районов</p>
-  <div class="legend"><span><i class="gray"></i>Не начато</span><span><i class="yellow"></i>Сбор данных</span><span><i class="blue"></i>Нанесены</span><span><i class="green"></i>План выполнен</span></div>
+  <p class="group-title admin-only">Статусы районов</p>
+  <div class="legend admin-only"><span><i class="gray"></i>Не начато</span><span><i class="yellow"></i>Сбор данных</span><span><i class="blue"></i>Нанесены</span><span><i class="green"></i>План выполнен</span></div>
   <button id="clearMapFilters" type="button" class="reset">Сбросить фильтры</button>
 </dialog>
 
 <dialog id="factoryDialog"><form id="factoryForm" class="form" method="dialog">
   <div class="dialog-head"><h2 id="formTitle">Фабрика</h2><button type="button" class="close" aria-label="Закрыть">×</button></div>
   <input name="id" type="hidden">
-  <label>Название компании (китайское юрлицо, если известно)<input name="company_cn" required></label>
-  <label>Товар (RU / 中文)<input name="product" required></label>
-  <label>Технологии и операции на площадке<textarea name="process"></textarea></label>
+  <label>Название фабрики<input name="company_cn" required placeholder="东莞市…有限公司 или как в каталоге" autocomplete="off"></label>
+  <label>Что производит<input name="product" required placeholder="Свитера / 毛衣" autocomplete="off"></label>
   <label>Район<select name="area"></select></label>
-  <label>Адрес производства<textarea name="address_cn"></textarea></label>
-  <label>Координаты, только проверенные: широта / долгота<input name="lat" placeholder="22.948" inputmode="decimal"><input name="lng" placeholder="113.927" inputmode="decimal"></label>
-  <label>Контакт<input name="contact"></label>
-  <label>MOQ / образец / срок<textarea name="terms"></textarea></label>
-  <label>Статус<select name="status"><option>кандидат</option><option>производство подтверждено источниками</option><option>посещена лично</option></select></label>
-  <label>Источник и дата проверки<textarea name="evidence"></textarea></label>
-  <label>Заметка о визите<textarea name="visitNotes"></textarea></label>
-  <label>Следующее действие<textarea name="next"></textarea></label>
+  <label>Адрес<textarea name="address_cn" rows="2" placeholder="Адрес цеха, можно по-китайски"></textarea></label>
+  <label>Контакт<input name="contact" placeholder="Имя, телефон, WeChat" autocomplete="off"></label>
+  <details id="factoryMore" class="more"><summary>Ещё поля: статус, условия, заметки</summary>
+    <label>Статус<select name="status"><option value="кандидат">кандидат</option><option value="производство подтверждено источниками">производство подтверждено источниками</option><option value="посещена лично">Посещена</option></select></label>
+    <label>MOQ, образец, срок<textarea name="terms"></textarea></label>
+    <label>Что делают на месте (операции)<textarea name="process"></textarea></label>
+    <label>Источник: ссылка и дата проверки<textarea name="evidence"></textarea></label>
+    <label>Заметка о визите<textarea name="visitNotes"></textarea></label>
+    <label>Следующий шаг<textarea name="next"></textarea></label>
+    <label>Координаты, если точно известны: широта и долгота<input name="lat" placeholder="22.948" inputmode="decimal"><input name="lng" placeholder="113.927" inputmode="decimal"></label>
+    <p class="meta">Точку можно поставить и пальцем: после сохранения нажмите «Поставить точку».</p>
+  </details>
   <button class="primary">Сохранить</button>
 </form></dialog>
 
@@ -252,10 +256,10 @@
 </form></dialog>
 
 <div id="toast" role="status"></div>
-<script src="vendor/leaflet/leaflet.js?v=20261220b"></script>
-<script src="../config.js?v=20261220b"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261221a"></script>
+<script src="../config.js?v=20261221a"></script>
 <script src="../supabase.js"></script>
-<script src="remote.js?v=20261220b"></script>
-<script src="app.js?v=20261220b"></script>
+<script src="remote.js?v=20261221a"></script>
+<script src="app.js?v=20261221a"></script>
 </body>
 </html>
