@@ -1057,6 +1057,7 @@ function showPage(page){
   const tab=page==='progress'||page==='request'?'more':page;
   $$('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.page===tab));
   $$('.page.active').forEach(p=>{p.scrollTop=0});
+  if(page==='news')loadDailyNews();
 }
 $$('#tabbar button').forEach(b=>{b.onclick=()=>showPage(b.dataset.page)});
 
@@ -1234,6 +1235,52 @@ function newsCard(n){
     ${n.mapTarget?`<button type="button" data-action="news-map" data-id="${esc(n.mapTarget)}">Показать на карте</button>`:''}
   </div></article>`;
 }
+
+/* ---------- Свежие новости дня (только администратор) ----------
+   Подборку раз в день собирает GitHub (.github/workflows/news.yml → scripts/fetch_news.mjs) и кладёт в ветку daily-news.
+   Это заголовки и ссылки из открытых лент, их никто не проверял; в базу карты они не записываются. */
+const DAILY_NEWS_URL='https://raw.githubusercontent.com/miradio5555-code/robott/daily-news/news.json';
+const DAILY_STEP=20;
+let daily=null,dailyLoading=false,dailyShown=DAILY_STEP;
+const dailyDate=iso=>{
+  const d=new Date(iso),days=Math.round((new Date().setHours(0,0,0,0)-new Date(iso).setHours(0,0,0,0))/864e5);
+  const time=d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  return days===0?`сегодня, ${time}`:days===1?`вчера, ${time}`:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+};
+async function loadDailyNews(){
+  if(!isAdmin()||daily||dailyLoading)return;
+  dailyLoading=true;
+  $('#dailyMeta').textContent='Загружаю…';
+  try{
+    const res=await fetch(DAILY_NEWS_URL,{cache:'no-cache'});
+    if(!res.ok)throw Error('HTTP '+res.status);
+    const data=await res.json();
+    if(!Array.isArray(data.items))throw Error('нет списка');
+    daily=data;
+  }catch(e){
+    console.warn('Свежие новости не загрузились',e);
+  }finally{dailyLoading=false}
+  renderDaily();
+}
+function renderDaily(){
+  if(!daily){
+    $('#dailyMeta').textContent='Свежие новости не загрузились. Проверьте интернет и откройте раздел снова.';
+    $('#dailyList').innerHTML='';$('#dailyMore').hidden=true;return;
+  }
+  const theme=$('#dailyTheme').value,region=$('#dailyRegion').value;
+  const list=daily.items.filter(n=>(!theme||n.theme===theme)&&(!region||n.region===region));
+  const age=Math.floor((Date.now()-new Date(daily.updatedAt))/864e5);
+  $('#dailyMeta').textContent=(age>=2?`⚠ Подборка не обновлялась ${age} дн. · `:`Обновлено ${dailyDate(daily.updatedAt)} · `)+
+    'Заголовки из открытых лент Google Новостей за 2–3 дня, не проверены. Полный текст — по ссылке у источника.';
+  $('#dailyList').innerHTML=list.length?list.slice(0,dailyShown).map(n=>{
+    const url=safeUrl(n.url);
+    return `<a class="daily-item" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><b>${esc(n.title)}</b>
+      <span class="meta">${esc(n.source||'источник не указан')} · ${esc(dailyDate(n.publishedAt))} · ${esc(daily.regions?.[n.region]||n.region)} · ${esc(daily.themes?.[n.theme]||n.theme)}</span></a>`;
+  }).join(''):'<p class="notice">По этому выбору сегодня новостей нет.</p>';
+  $('#dailyMore').hidden=list.length<=dailyShown;
+}
+['dailyTheme','dailyRegion'].forEach(id=>{$('#'+id).oninput=()=>{dailyShown=DAILY_STEP;renderDaily()}});
+$('#dailyMore').onclick=()=>{dailyShown+=DAILY_STEP;renderDaily()};
 
 function renderNews(){
   const external=[...db.news].sort((a,b)=>(b.publishedAt||'').localeCompare(a.publishedAt||''));

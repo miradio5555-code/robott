@@ -1,0 +1,46 @@
+# Свежие новости дня для карты фабрик (видит только администратор, раздел «Новости»).
+# Каждый день в 07:00 по Бишкеку: scripts/fetch_news.mjs собирает заголовки и ссылки из открытых лент Google Новостей
+# (электронная торговля и экономика: Китай, Европа, США, Средняя Азия, Юго-Восточная Азия)
+# и кладёт файл news.json в отдельную ветку daily-news. Ветка каждый раз перезаписывается одной правкой —
+# история main не засоряется, сайт пересобирать не нужно. Ключи и секреты не нужны, рабочую базу не трогает.
+# Запустить вручную: Actions → «Новости дня» → Run workflow.
+name: Новости дня
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-news
+  cancel-in-progress: false
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Собрать новости
+        run: |
+          mkdir -p "$RUNNER_TEMP/news"
+          node scripts/fetch_news.mjs "$RUNNER_TEMP/news/news.json"
+      - name: Положить в ветку daily-news
+        working-directory: ${{ runner.temp }}/news
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q -b daily-news
+          git add news.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Новости дня $(date -u +%Y-%m-%d)"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" daily-news
+          echo "Готово: $(node -e 'console.log(require("./news.json").items.length)') новостей" >> "$GITHUB_STEP_SUMMARY"
