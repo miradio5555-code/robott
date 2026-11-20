@@ -21,7 +21,7 @@
   var COLORS = ["blue", "green", "orange", "red", "purple", "pink", "teal", "gray"];
   var TPL = [["goal", "green"], ["kanban", "blue"], ["day", "orange"], ["study", "purple"], ["kaizen", "teal"], ["year", "red"]];
   var FOCUS_MAX = 3, UNDO_MS = 8000;
-  var S = { goals: [], tasks: [], boards: [], lists: [], days: {}, loaded: false, loading: false, missing: false, view: "today", board: null, q: "",
+  var S = { goals: [], tasks: [], boards: [], lists: [], days: {}, loaded: false, loading: false, missing: false, view: "today", board: null, q: "", compose: null,
     boardCol: "plan", goalFilter: "", calMonth: null, calSel: null, dlg: null, uid: null, bound: false };
 
   function db() { return c.db(); }
@@ -394,6 +394,17 @@
       (b.main ? '<select id="gl-filter" class="input" data-gl-change="filter" aria-label="' + esc(t("gl_all_goals")) + '"><option value="">' + esc(t("gl_all_goals")) + "</option>" + goalOptions(S.goalFilter) + "</select>" : '<button type="button" class="btn btn-sm" data-gl="edit-board" data-id="' + b.id + '">' + esc(t("gl_board_settings")) + "</button>") +
       '<button type="button" class="btn btn-primary btn-sm" data-gl="new-task" data-col="plan"' + (b.main ? "" : ' data-board="' + b.id + '"') + ">" + esc(t("gl_new_task")) + "</button></div>";
   }
+  // «+ Добавить карточку» как в Trello: кнопка внизу списка, по нажатию — поле, которое растёт вниз по мере набора
+  function composer(key) {
+    if (S.compose !== key) return '<button type="button" class="gl-addc" data-gl="compose" data-k="' + esc(key) + '">' + esc(t("gl_add_card")) + "</button>";
+    return '<form class="gl-addf" data-gl-form="addcard" data-k="' + esc(key) + '"><textarea id="' + composeId(key) + '" class="input gl-grow" rows="3" maxlength="200" placeholder="' + esc(t("gl_add_card_ph")) + '" aria-label="' + esc(t("gl_add_card_ph")) + '"></textarea>' +
+      '<div class="gl-addact"><button type="submit" class="btn btn-primary btn-sm">' + esc(t("gl_add_card_btn")) + '</button><button type="button" class="gl-x" data-gl="compose-close" title="' + esc(t("gl_cancel")) + '" aria-label="' + esc(t("gl_cancel")) + '">✕</button></div></form>';
+  }
+  function composeId(key) { return "gl-ac-" + String(key).replace(/[^A-Za-z0-9_-]/g, "_"); }
+  function focusCompose() {
+    setTimeout(function () { var el = S.compose && document.getElementById(composeId(S.compose)); if (!el) return; el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "nearest" }); }, 30);
+  }
+  function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; }
   function renderMainBoard() {
     var gf = S.goalFilter, list = boardCards("main").filter(function (x) { return !gf || x.goal_id === gf; });
     var by = {}; COLS.forEach(function (k) { by[k] = []; });
@@ -407,7 +418,7 @@
         return '<section class="gl-col" data-col="' + k + '"' + (S.boardCol === k ? " data-active" : "") + '><div class="gl-colh"><h3>' + esc(t("gl_c_" + k)) + '</h3><span class="gl-meta">' + arr.length + "</span></div>" +
           (k !== "done" ? '<div class="gl-colhint">' + esc(t("gl_h_" + k)) + "</div>" : "") + shown.map(function (x) { return card(x); }).join("") +
           (arr.length > shown.length ? '<span class="gl-meta">' + esc(t("gl_hidden", { n: arr.length - shown.length })) + "</span>" : "") +
-          (k !== "done" ? '<button type="button" class="gl-addc" data-gl="new-task" data-col="' + k + '">' + esc(t("gl_add_card")) + "</button>" : "") + "</section>";
+          (k !== "done" ? composer("c:" + k) : "") + "</section>";
       }).join("") + '</div><p class="gl-meta gl-foot">' + esc(t("gl_board_hint")) + "</p>";
   }
 
@@ -421,7 +432,7 @@
       var open = cs.filter(function (x) { return x.col !== "done"; }).sort(byDue), done = cs.filter(function (x) { return x.col === "done"; }).sort(function (a, z) { return String(z.done_at || "").localeCompare(String(a.done_at || "")); });
       return '<section class="gl-col gl-lcol" data-list="' + l.id + '"><div class="gl-colh"><button type="button" class="gl-lt" data-gl="edit-list" data-id="' + l.id + '" title="' + esc(t("gl_list")) + '">' + esc(l.title) + '</button><span class="gl-meta">' + cs.length + "</span></div>" +
         open.concat(done).map(function (x) { return card(x, true); }).join("") +
-        '<form class="gl-addf" data-gl-form="addcard" data-list="' + l.id + '"><input id="gl-ac-' + l.id + '" class="input" maxlength="200" autocomplete="off" placeholder="' + esc(t("gl_add_card_ph")) + '" aria-label="' + esc(t("gl_add_card_ph")) + '"></form></section>';
+        composer("l:" + l.id) + "</section>";
     }).join("") +
       '<form class="gl-col gl-newlist" data-gl-form="addlist"><input id="gl-al" class="input" maxlength="100" autocomplete="off" placeholder="' + esc(t("gl_add_list_ph")) + '" aria-label="' + esc(t("gl_add_list_ph")) + '"><button type="submit" class="btn btn-sm">' + esc(t("gl_add")) + "</button></form></div>" +
       '<p class="gl-meta gl-foot">' + esc(t("gl_cboard_hint")) + "</p>";
@@ -554,7 +565,7 @@
     var d = dlg(), f = d.querySelector("form");
     S.dlg = { kind: "task", id: id || null, x: x, list: x.list_id, check: (x.checklist || []).map(function (i) { return { t: i.t, d: !!i.d }; }) };
     f.innerHTML = "<h2>" + esc(t(id ? "gl_task" : "gl_task_new")) + "</h2>" +
-      '<label class="gl-fld"><span>' + esc(t("gl_f_title")) + '</span><input id="glf-title" class="input" maxlength="200" autocomplete="off" value="' + esc(x.title) + '"></label>' +
+      '<label class="gl-fld"><span>' + esc(t("gl_f_title")) + '</span><textarea id="glf-title" class="input gl-grow" rows="1" maxlength="200">' + esc(x.title) + '</textarea></label>' +
       '<div class="gl-fr"><label class="gl-fld"><span>' + esc(t("gl_f_board")) + '</span><select id="glf-board" class="input">' + boardOptions(x.board_id) + "</select></label>" +
       '<label class="gl-fld"><span id="glf-col-l"></span><select id="glf-col" class="input"></select></label></div>' +
       '<div class="gl-fr"><label class="gl-fld"><span>' + esc(t("gl_f_due")) + '</span><input id="glf-due" class="input" type="date" value="' + esc(x.due || "") + '"></label>' +
@@ -566,7 +577,7 @@
       (x.focus_min ? '<p class="gl-meta">' + esc(t("gl_f_total", { n: x.focus_min })) + "</p>" : "") +
       '<div class="gl-dacts">' + (id ? '<button type="button" class="btn gl-danger" data-gd="delete">' + esc(t("gl_delete")) + "</button>" : "") + (id && x.due ? '<button type="button" class="btn" data-gd="ics">' + esc(t("gl_ics_btn")) + "</button>" : "") +
       '<span class="gl-sp"></span><button type="button" class="btn" data-gd="cancel">' + esc(t("gl_cancel")) + '</button><button type="submit" class="btn btn-primary">' + esc(t("gl_save")) + '</button></div><p class="gl-msg" id="glf-msg"></p>';
-    fillCols(); renderCheck(); d.showModal();
+    fillCols(); renderCheck(); d.showModal(); f.querySelectorAll(".gl-grow").forEach(grow);
     if (!id) setTimeout(function () { var i = document.getElementById("glf-title"); if (i) i.focus(); }, 30);
   }
   function renderCheck() {
@@ -575,7 +586,7 @@
   }
   function err(msg) { var m = $("#glf-msg"); m.textContent = msg; m.className = "gl-msg err"; }
   async function submitTask(d) {
-    var title = $("#glf-title").value.trim(), day = today();
+    var title = $("#glf-title").value.replace(/\s+/g, " ").trim(), day = today();
     if (!title) { err(t("gl_need_title")); return; }
     var id = S.dlg.id, old = id ? task(id) : null, wantFocus = $("#glf-focus").checked, bid = $("#glf-board").value || null, cv = $("#glf-col").value;
     if (bid && !cv) { err(t("gl_no_lists")); return; }
@@ -755,14 +766,25 @@
     else if (!S.loaded) body.innerHTML = '<p class="state-box">' + esc(t("loading")) + "</p>";
     else body.innerHTML = S.view === "boards" ? renderBoards() : S.view === "goals" ? renderGoals() : S.view === "calendar" ? renderCal() : renderToday();
     if (keep) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); } }
+    body.querySelectorAll(".gl-grow").forEach(grow);
   }
   function bind() {
     if (S.bound) return; S.bound = true;
+    // поле карточки растёт вниз по мере набора; Enter — добавить (Shift+Enter не нужен: в названии одна строка), Esc — закрыть
+    document.addEventListener("input", function (e) { if (e.target.classList && e.target.classList.contains("gl-grow")) grow(e.target); });
+    document.addEventListener("keydown", function (e) {
+      var el = e.target; if (!el.classList || !el.classList.contains("gl-grow")) return;
+      if (e.isComposing || e.keyCode === 229) return;   // китайский ввод: Enter выбирает иероглиф
+      if (e.key === "Enter") { e.preventDefault(); var f = el.form; if (f && f.getAttribute("data-gl-form")) f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); else if (f && f.requestSubmit) f.requestSubmit(); }
+      else if (e.key === "Escape" && el.form && el.form.getAttribute("data-gl-form") === "addcard") { e.preventDefault(); S.compose = null; render(); }
+    });
     var root = $("#tab-goals"); if (!root) return;
     root.addEventListener("click", function (e) {
       var b = e.target.closest("[data-gl]"); if (!b || !root.contains(b)) return;
       var a = b.getAttribute("data-gl"), id = b.getAttribute("data-id"), x;
       if (a === "view") { var v = b.getAttribute("data-v"); if (v === "boards" && S.view === "boards") S.board = null; S.view = v; render(); }
+      else if (a === "compose") { S.compose = b.getAttribute("data-k"); render(); focusCompose(); }
+      else if (a === "compose-close") { S.compose = null; render(); }
       else if (a === "pick") openPicker();
       else if (a === "done") toggleDone(id);
       else if (a === "focus") setFocus(id).then(function (r) { if (r) toast(t("gl_focused")); });
@@ -796,9 +818,15 @@
     root.addEventListener("input", function (e) { if (e.target.getAttribute("data-gl-input") === "q") { S.q = e.target.value; render(); } });
     root.addEventListener("submit", function (e) {
       var kind = e.target.getAttribute("data-gl-form"); if (!kind) return; e.preventDefault();
-      var i = e.target.querySelector("input"), v = i.value.trim(); if (!v) return; i.value = "";
+      var i = e.target.querySelector("input, textarea"), v = i.value.replace(/\s+/g, " ").trim(); if (!v) { i.focus(); return; } i.value = "";
+      if (i.classList.contains("gl-grow")) grow(i);
       if (kind === "quick") saveTask(null, { title: v.slice(0, 200), col: "inbox" }).then(function (r) { if (r) toast(t("gl_quick_ok")); });
-      else if (kind === "addcard") { var l = lst(e.target.getAttribute("data-list")), b = l && brd(l.board_id); if (l) saveTask(null, { title: v.slice(0, 200), col: "plan", board_id: l.board_id, list_id: l.id, goal_id: (b && b.goal_id) || null }); }
+      else if (kind === "addcard") {
+        var k = e.target.getAttribute("data-k") || "", job = null;
+        if (k.indexOf("l:") === 0) { var l = lst(k.slice(2)), b = l && brd(l.board_id); if (l) job = saveTask(null, { title: v.slice(0, 200), col: "plan", board_id: l.board_id, list_id: l.id, goal_id: (b && b.goal_id) || null }); }
+        else if (k.indexOf("c:") === 0) job = saveTask(null, { title: v.slice(0, 200), col: k.slice(2), goal_id: S.goalFilter || null });
+        if (job) Promise.resolve(job).then(focusCompose, focusCompose); else focusCompose();   // поле остаётся открытым для следующей карточки
+      }
       else if (kind === "addlist" && S.board && S.board !== "main") addList(S.board, v);
     });
     root.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.classList && e.target.classList.contains("gl-card")) { e.preventDefault(); openTask(e.target.getAttribute("data-id")); } });

@@ -3,6 +3,9 @@
 //
 //   • После входа — одно окно «Настройте ULA»: уведомления и местоположение, каждое своей кнопкой.
 //     Показывается, пока что-то не включено, и не чаще раза в 3 дня («Не сейчас»).
+//   • Местоположение спрашиваем один раз: ответ человека запоминается в этом браузере, и окно про место больше не
+//     показывается. На iPhone и iPad браузер и приложение забывают разрешение сайта между заходами, и каждый запрос
+//     места снова показывает системный вопрос — поэтому там место берём только по кнопке, а не при каждом входе.
 //   • Сайт записывает в базу, с чего человек заходит (файл 47): система, браузер, модель,
 //     приложение или браузер, версия сайта, уведомления, язык, часовой пояс, сеть, экран,
 //     и место — только если человек сам разрешил. Обновляется при входе и раз в полчаса.
@@ -13,7 +16,7 @@
   "use strict";
   var c = U.core;
   var $ = c.$, esc = c.esc, state = c.state;
-  var KEY_ID = "ula_device_id", KEY_LATER = "ula_perm_later";
+  var KEY_ID = "ula_device_id", KEY_LATER = "ula_perm_later", KEY_GEO = "ula_geo_answer";   // "1" — разрешил, "0" — запретил
   var EVERY = 30 * 60 * 1000, LATER = 3 * 24 * 3600 * 1000;
   var last = 0, geo = null, geoState = "unknown", hints = null, sheetTried = false, noTable = false;
 
@@ -128,12 +131,14 @@
 
   // ---------- Местоположение ----------
   function geoSupported() { return !!navigator.geolocation; }
+  function appleTouch() { var ua = navigator.userAgent || ""; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
   function checkGeo() {
     if (!geoSupported()) { geoState = "none"; return Promise.resolve(geoState); }
     if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(geoState);
     return navigator.permissions.query({ name: "geolocation" }).then(function (p) {
       geoState = p.state;   // granted | prompt | denied
-      p.onchange = function () { geoState = p.state; if (p.state === "granted") locate(); };
+      if (p.state === "granted") put(KEY_GEO, "1");
+      p.onchange = function () { geoState = p.state; };
       return geoState;
     }).catch(function () { return geoState; });
   }
@@ -145,10 +150,11 @@
         var k = pos.coords;
         geo = { lat: Math.round(k.latitude * 1e5) / 1e5, lon: Math.round(k.longitude * 1e5) / 1e5, acc: Math.round(k.accuracy || 0), at: new Date().toISOString() };
         geoState = "granted";
+        put(KEY_GEO, "1");
         ping(true);
         done(true);
       }, function (err) {
-        if (err && err.code === 1) geoState = "denied";
+        if (err && err.code === 1) { geoState = "denied"; put(KEY_GEO, "0"); }
         ping(true);
         done(false);
       }, { enableHighAccuracy: false, timeout: 20000, maximumAge: 10 * 60 * 1000 });
@@ -160,7 +166,12 @@
     var s = U.alerts && U.alerts.status ? U.alerts.status() : "none";
     return s === "off" || s === "ios";
   }
-  function geoNeed() { return geoState === "prompt" || (geoState === "unknown" && geoSupported()); }
+  // человек уже ответил на вопрос про место (здесь или раньше) — больше не напоминаем
+  function geoNeed() { return !get(KEY_GEO) && (geoState === "prompt" || (geoState === "unknown" && geoSupported())); }
+  function geoRow() {
+    if (geoState === "granted" || get(KEY_GEO) === "1") return "on";
+    return geoState === "denied" || get(KEY_GEO) === "0" ? "denied" : "ask";
+  }
   function busy() { return document.querySelector(".modal.open") || document.body.classList.contains("touring"); }
 
   function ensureSheet() {
@@ -206,7 +217,7 @@
         ? row("🔔", t("perm_push"), t("push_d_ios"), "", "push")
         : row("🔔", t("perm_push"), t("perm_push_d"), ps === "on" ? "on" : ps === "denied" ? "denied" : "ask", "push");
     }
-    if (geoSupported()) h += row("📍", t("perm_geo"), t("perm_geo_d"), geoState === "granted" ? "on" : geoState === "denied" ? "denied" : "ask", "geo");
+    if (geoSupported()) h += row("📍", t("perm_geo"), t("perm_geo_d"), geoRow(), "geo");
     $("#perm-rows").innerHTML = h;
     var all = !pushNeed() && !geoNeed();
     $("#perm-later").classList.toggle("hidden", all);
@@ -225,7 +236,8 @@
 
   function afterLogin() {
     checkGeo().then(function (s) {
-      if (s === "granted") locate(); else ping(true);   // уже разрешено — место обновляем без вопросов
+      // уже разрешено — место обновляем без вопросов; на iPhone/iPad это снова вызвало бы вопрос, поэтому там не трогаем
+      if (s === "granted" && !appleTouch()) locate(); else ping(true);
     });
     setTimeout(maybeSheet, 2500);   // подписка на push успевает проверить себя
   }
