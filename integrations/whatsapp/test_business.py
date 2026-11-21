@@ -24,9 +24,12 @@ class BusinessTests(unittest.TestCase):
         self.assertIn('личную ссылку',self.say('1'));self.assertFalse(self.calls)
     def test_only_official_cabinet_link(self):
         self.assertIsNone(Business.cabinet_token('https://evil.example/?c='+'a'*32))
+        self.assertEqual(Business.cabinet_token('https://ulafactory.com/?c='+'a'*32),'a'*32)
         self.assertEqual(Business.cabinet_token('https://miradio5555-code.github.io/robott/?c='+'a'*32),'a'*32)
+        self.assertIsNone(Business.cabinet_token('https://ulafactory.com.evil.example/?c='+'a'*32))
+        self.assertIsNone(Business.cabinet_token('https://miradio5555-code.github.io/other/?c='+'a'*32))
     def test_other_workspace_token_rejected(self):
-        self.assertIn('не найдена',self.say('https://miradio5555-code.github.io/robott/?c='+'a'*32))
+        self.assertIn('не найдена',self.say('https://ulafactory.com/?c='+'a'*32))
         self.assertIn('workspace_id=eq.own',self.calls[0][0]);self.assertNotIn('cabinet',self.bot.load('996555000000'))
     def test_request_ids_are_workspace_scoped(self):
         ids=[]

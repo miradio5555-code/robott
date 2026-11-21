@@ -1,9 +1,9 @@
 #!/bin/bash
 # =====================================================
-# Папка с сайтом для выкладки на ulafactory.com (Cloudflare Pages).
+# Папка с сайтом для выкладки на ulafactory.com (Cloudflare).
 #
 #   bash scripts/build_site.sh        собрать заново в dist/
-#   npx wrangler pages deploy dist --project-name ulafactory --branch main   выложить (после проверки)
+#   npx wrangler@4 deploy             выложить dist/ на ulafactory.com (настройки — wrangler.jsonc)
 #
 # В папку попадают только файлы, которые открывает браузер: страницы, скрипты, стили, картинки,
 # шрифты и «Карта фабрик». Файлы базы (migration_*.sql, factory-map/setup.sql), функции Supabase,

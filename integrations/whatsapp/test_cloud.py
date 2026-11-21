@@ -10,8 +10,8 @@ class CloudTests(unittest.TestCase):
         self.c.call=lambda *a,**k:(_ for _ in ()).throw(AssertionError('offline claim'))
         self.c.tick();self.assertFalse(self.b.sent)
     def test_redact_secret_cabinet_link(self):
-        value='https://miradio5555-code.github.io/robott/?c='+'a'*32
-        self.assertNotIn('a'*32,Cloud.redact(value))
+        for value in ('https://ulafactory.com/?c='+'a'*32,'https://miradio5555-code.github.io/robott/?c='+'a'*32):
+            self.assertNotIn('a'*32,Cloud.redact(value))
     def test_receipt_does_not_downgrade_read(self):
         self.c.receipt({'data':{'Type':'delivered','MessageIDs':['WA1']}})
         self.assertEqual(self.patches[0][1]['workspace_id'],'eq.own');self.assertEqual(self.patches[0][1]['state'],'in.(sending,sent)')

@@ -3,7 +3,7 @@ import base64, json, re, uuid
 from urllib.parse import parse_qs, urlparse, urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-SITE='https://miradio5555-code.github.io/robott/'
+SITE='https://ulafactory.com/'
 MENU=('Здравствуйте! Помогу с заказом, новой заявкой или вопросом менеджеру.\nULA Factory · помощник\n1 — Мои заказы\n2 — Новая заявка (фото или ссылка)\n3 — Менеджер\n4 — Условия работы\nМЕНЮ — начать заново · СТОП — отключить сообщения')
 
 class Business:
@@ -102,7 +102,8 @@ class Business:
     def cabinet_token(text):
         try:
             u=urlparse(text)
-            if u.scheme!='https' or u.netloc!='miradio5555-code.github.io' or u.path!='/robott/':return None
+            # новый адрес и старый (ссылки, выданные клиентам до переезда на ulafactory.com)
+            if u.scheme!='https' or (u.netloc,u.path) not in (('ulafactory.com','/'),('miradio5555-code.github.io','/robott/')):return None
             t=parse_qs(u.query).get('c',[''])[0]
             return t if re.fullmatch('[a-f0-9]{32}',t) else None
         except ValueError:return None
