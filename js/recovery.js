@@ -42,6 +42,13 @@
       if (res.error && /rate|seconds|limit/i.test(res.error.message || "")) {
         err.textContent = t("reset_wait"); err.classList.remove("hidden"); btn.disabled = false; return;
       }
+      // Письмо не ушло (капча, сбой) — не пишем «отправлено». Незарегистрированный адрес ошибкой не считается
+      // (Supabase отвечает одинаково), так что по ответу всё равно нельзя узнать, есть ли такой кабинет.
+      if (res.error) {
+        console.warn("reset", res.error.message);
+        err.textContent = /captcha/i.test(res.error.message || "") ? t("captcha_err") : t("error_generic");
+        err.classList.remove("hidden"); btn.disabled = false; return;
+      }
       // одинаковый ответ в любом случае: нельзя узнать, зарегистрирован ли адрес
       $("#reset-msg").textContent = t("reset_sent", { e: email });
       $("#reset-msg").classList.remove("hidden");

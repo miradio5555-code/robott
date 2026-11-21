@@ -347,7 +347,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261222g"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261222h"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1236,6 +1236,7 @@
         var fTok = await ULA.captcha.get("cf-settings");
         var fr = await db.auth.resetPasswordForEmail(state.me.email, { redirectTo: location.origin + location.pathname, captchaToken: fTok || undefined });
         if (fr.error && /rate|seconds|limit/i.test(fr.error.message || "")) { toast(t("reset_wait"), "error"); return; }
+        if (fr.error) { console.warn("reset", fr.error.message); toast(t(/captcha/i.test(fr.error.message || "") ? "captcha_err" : "error_generic"), "error"); return; }
         toast(t("reset_sent", { e: state.me.email }), "ok");
       } catch (err) {
         console.error(err);
