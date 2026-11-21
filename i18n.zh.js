@@ -1490,7 +1490,7 @@ I18N.zh = {
   fx_msg_label: "给客户的留言（可选）",
   fx_msg_ph: "例如：15:00 后转到支付宝",
   fx_wa_status: "{name}，您的兑换申请状态：{url}",
-  fx_track: "查看申请状态",
+  fx_track: "申请状态与聊天",
   fx_my_reqs: "我的申请",
   fx_req_from: "{d} 的申请",
   fx_status_title: "兑换申请状态",
@@ -3182,3 +3182,50 @@ I18N.zh.lp_rate_at = "汇率 {r}";
 I18N.zh.lp_rate_cta = "兑换人民币";
 I18N.zh.lp_rate_note = "免费注册后即可兑换。ULA 汇率每天更新。";
 I18N.zh.lp_rate_note_fx = "无需注册：输入金额 → 查看收款信息 → 上传付款截图。可在网站上查看申请状态。";
+
+// чат по заявке на обмен (файл 76)
+I18N.zh.xc_title = "申请聊天";
+I18N.zh.xc_sub = "我们在这里回复";
+I18N.zh.xc_sub_eta = "通常在 {n} 内回复";
+I18N.zh.xc_hello_title = "您好！";
+I18N.zh.xc_hello = "这是您申请的聊天。可以询问兑换进度或再发一张付款凭证——我们会在这里回复。";
+I18N.zh.xc_q_status = "我的申请进展如何？";
+I18N.zh.xc_q_paid = "我已付款，请查收";
+I18N.zh.xc_q_when = "人民币什么时候到账？";
+I18N.zh.xc_ph_client = "输入消息…";
+I18N.zh.xc_ph_buyer = "回复客户…";
+I18N.zh.xc_note_client = "请只在这里沟通。不要向私信中发来的账户付款。";
+I18N.zh.xc_closed = "聊天已关闭";
+I18N.zh.xc_closed_hint = "聊天已关闭：申请已完成超过 3 天。如需帮助，请提交新申请。";
+I18N.zh.xc_today = "今天";
+I18N.zh.xc_yesterday = "昨天";
+I18N.zh.xc_photo = "照片";
+I18N.zh.xc_photo_open = "查看照片";
+I18N.zh.xc_sending = "发送中";
+I18N.zh.xc_delivered = "已送达";
+I18N.zh.xc_read = "已读";
+I18N.zh.xc_failed = "未发送";
+I18N.zh.xc_retry = "点击重新发送";
+I18N.zh.xc_attach = "附上照片或凭证";
+I18N.zh.xc_send = "发送";
+I18N.zh.xc_e_fast = "发送太频繁，请稍等一分钟";
+I18N.zh.xc_e_many = "此聊天消息过多";
+I18N.zh.xc_e_send = "发送失败。请检查网络，点击消息重试";
+I18N.zh.xc_new_msg = "新消息";
+I18N.zh.xc_new_title = "申请已提交";
+I18N.zh.xc_new_text = "这里显示兑换状态以及与兑换方的聊天。请保存此页面链接以便返回。";
+I18N.zh.xc_copy_link = "复制链接";
+I18N.zh.xc_link_copied = "链接已复制";
+I18N.zh.xc_sys_dispute_me = "您发起了争议";
+I18N.zh.xc_sys_dispute_client = "客户发起了争议";
+I18N.zh.xc_sys_dispute_buyer = "卖家发起了争议";
+I18N.zh.xc_sys_resolved = "争议裁决";
+I18N.zh.xc_dispute_hint = "请在下方聊天中留言并附上截图——ULA Factory 管理员可以看到全部对话。";
+I18N.zh.xc_dispute_hint_buyer = "争议沟通在申请聊天中进行。ULA Factory 管理员可以看到全部内容。";
+I18N.zh.xc_btn = "聊天";
+I18N.zh.xc_unread = "未读：{n}";
+I18N.zh.xc_with = "与客户聊天：{name}";
+I18N.zh.xc_client_page = "客户页面";
+I18N.zh.xc_empty_buyer = "暂无消息。客户在申请页面可以看到聊天。";
+I18N.zh.xc_ping = "客户发来新消息";
+I18N.zh.xc_go_chat = "联系兑换方";

@@ -5740,3 +5740,118 @@ html[data-theme="dark"] .lp-rate-calc { background: #26232B; border: 1px solid r
 /* Страницы клиента (?fx, ?shop, ?xr): заголовок «Название кабинета + подсказка».
    Класс sp-head есть и у шапки чата поддержки (тёмная, белый текст) — здесь он обычный заголовок страницы. */
 #shop-content .sp-head { display: block; min-height: 0; padding: 0; margin: 6px 0 16px; background: none; border: 0; box-shadow: none; color: inherit; }
+
+/* ===== Чат по заявке на обмен (клиент ↔ обменник, файл 76) =====
+   Страница заявки клиента (?xr=…): шапка с логотипом обменника, переписка, поле ввода.
+   В кабинете обменника — та же переписка внутри карточки заявки. */
+.xc { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+#fxs-chat.xc { margin-top: 16px; }
+.xc-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.xc-head > div { display: grid; gap: 2px; min-width: 0; }
+.xc-head b { font-size: var(--fs-lg); line-height: var(--lh-tight); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xc-head small { color: var(--muted); font-size: var(--fs-xs); }
+.xc-ava { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+  background: var(--brand-ink); color: #fff; font-weight: 800; font-size: var(--fs-lg); }
+.xc-ava img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+.xc-ava.lg { width: 64px; height: 64px; font-size: 26px; box-shadow: var(--shadow-sm); }
+
+.xc-log { display: flex; flex-direction: column; gap: 2px; min-height: 220px; max-height: min(56vh, 460px); overflow-y: auto;
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 12px; background: var(--paper); }
+.xc-panel .xc-log { min-height: 140px; max-height: 360px; }
+.xc-day { display: flex; justify-content: center; margin: 8px 0 6px; }
+.xc-day span { padding: 3px 10px; border-radius: var(--r-pill); background: var(--surface); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; box-shadow: var(--shadow-sm); }
+.xc-sys { display: flex; align-items: flex-start; justify-content: center; gap: 6px; margin: 6px auto; max-width: 92%; padding: 6px 12px;
+  border-radius: var(--r-md); background: var(--warning-tint); color: var(--warning-text); font-size: var(--fs-sm); text-align: center; }
+.xc-sys.ok { background: var(--success-tint); color: var(--success-text); }
+.xc-sys .ico { flex: none; margin-top: 2px; }
+
+.xc-row { display: flex; max-width: 100%; }
+.xc-row.mine { justify-content: flex-end; }
+.xc-row.tail { margin-bottom: 6px; }
+.xc-row.xc-new { animation: xc-in .3s cubic-bezier(.34, 1.56, .64, 1) backwards; }
+@keyframes xc-in { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: none; } }
+.xc-bubble { display: grid; gap: 4px; max-width: min(82%, 440px); padding: 7px 10px 6px 12px; border-radius: 18px;
+  font-size: var(--fs-lg); line-height: var(--lh-snug); overflow-wrap: anywhere; }
+.xc-row.mine .xc-bubble { background: var(--info); color: #fff; }
+.xc-row.theirs .xc-bubble { background: var(--surface); color: var(--ink); box-shadow: 0 1px 1px rgba(0, 0, 0, .06); }
+.xc-row.admin .xc-bubble { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.xc-row.mine.tail .xc-bubble { border-bottom-right-radius: 6px; }
+.xc-row.theirs.tail .xc-bubble { border-bottom-left-radius: 6px; }
+.xc-row[data-xc-retry] { cursor: pointer; }
+.xc-row[data-xc-retry] .xc-bubble { opacity: .75; }
+.xc-who { font-size: var(--fs-xs); color: var(--accent-text); }
+.xc-text { white-space: pre-wrap; }
+.xc-meta { justify-self: end; display: inline-flex; align-items: center; gap: 3px; margin-top: -2px; font-size: var(--fs-2xs, 11px);
+  opacity: .7; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.xc-tick { display: inline-flex; font-style: normal; }
+.xc-tick .ico { width: 13px; height: 13px; stroke-width: 2.6; }
+.xc-tick .ico + .ico { margin-left: -8px; }
+.xc-tick.read { opacity: 1; }
+.xc-tick.wait { width: 11px; height: 11px; border: 1.6px solid currentColor; border-radius: 50%; border-right-color: transparent; animation: spin 1s linear infinite; }
+.xc-tick.fail { width: 15px; height: 15px; border-radius: 50%; background: var(--error); color: #fff; font-size: 11px; font-weight: 800; justify-content: center; align-items: center; }
+.xc-img { display: block; padding: 0; border: 0; background: none; cursor: zoom-in; margin: 2px -4px 0 -6px; }
+.xc-img img { display: block; max-width: 100%; width: 240px; max-height: 300px; border-radius: 12px; object-fit: cover; background: var(--surface-sunken); }
+.xc-file { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--r-sm); border: 0;
+  background: rgba(0, 0, 0, .06); color: inherit; font: inherit; font-size: var(--fs-sm); }
+button.xc-file { cursor: pointer; }
+.xc-row.mine .xc-file { background: rgba(255, 255, 255, .18); }
+
+.xc-hello { margin: auto; display: grid; justify-items: center; gap: 8px; max-width: 360px; padding: 18px 8px; text-align: center; }
+.xc-hello b { font-size: var(--fs-xl); }
+.xc-hello p { margin: 0; color: var(--muted); font-size: var(--fs-md); line-height: var(--lh-normal); }
+.xc-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 6px; }
+.xc-quick .chip { white-space: normal; text-align: left; }
+.xc-empty { margin: auto; max-width: 320px; text-align: center; color: var(--muted); font-size: var(--fs-sm); }
+
+.xc-compose { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.xc-panel .xc-compose { padding-bottom: 10px; }
+.xc-form { display: flex; align-items: flex-end; gap: 8px; }
+.xc-form textarea { flex: 1; min-width: 0; min-height: var(--tap); max-height: 150px; resize: none; padding: 10px 14px;
+  border: 1px solid var(--border-field); border-radius: 22px; background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-lg); line-height: 1.4; }
+.xc-form textarea:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; border-color: var(--info); }
+.xc-attach, .xc-send { flex: none; display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); border-radius: 50%;
+  border: 0; cursor: pointer; transition: background .15s, transform .1s; }
+.xc-attach { background: transparent; color: var(--muted); }
+.xc-attach:hover { background: var(--hover); color: var(--ink); }
+.xc-send { background: var(--info); color: #fff; }
+.xc-send:hover { filter: brightness(1.08); }
+.xc-attach:active, .xc-send:active { transform: scale(.94); }
+.xc-attach:focus-visible, .xc-send:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.xc-note { display: flex; align-items: flex-start; gap: 6px; margin: 8px 4px 0; color: var(--muted); font-size: var(--fs-xs); line-height: var(--lh-snug); }
+.xc-note .ico { flex: none; margin-top: 1px; }
+.xc-compose > .xc-note:first-child { margin-top: 0; }
+
+/* «Заявка отправлена» над статусом */
+.xc-done { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 14px; padding: 14px 16px; border-radius: var(--r-lg);
+  background: var(--success-tint); color: var(--success-text); animation: xc-in .4s ease backwards; }
+.xc-done > .ico { flex: none; width: 28px; height: 28px; padding: 4px; border-radius: 50%; background: var(--success); color: #fff; }
+.xc-done b { display: block; color: var(--ink); font-size: var(--fs-lg); }
+.xc-done p { margin: 2px 0 10px; color: var(--ink); font-size: var(--fs-md); line-height: var(--lh-normal); }
+
+/* в кабинете обменника */
+.xc-panel { margin-top: 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.xc-panel-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.xc-panel-head b { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: var(--fs-md); line-height: var(--lh-snug); }
+.xc-link { font-size: var(--fs-xs); color: var(--accent-text); white-space: nowrap; }
+.xc-btn { position: relative; }
+.xc-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: var(--r-pill);
+  background: #fff; color: var(--accent-text); font-size: var(--fs-xs); font-weight: 800; line-height: 1; }
+.fx-row.has-unread { box-shadow: inset 3px 0 0 var(--info); }
+.xc-preview { display: flex; align-items: center; gap: 6px; width: 100%; margin: 6px 0 0; padding: 8px 10px; border: 0; border-radius: var(--r-sm);
+  background: var(--info-tint); color: var(--info-text); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.xc-preview span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xc-preview .ico { flex: none; }
+
+html[data-theme="dark"] .xc-row.theirs .xc-bubble { background: #262628; }
+html[data-theme="dark"] .xc-file { background: rgba(255, 255, 255, .08); }
+
+@media (max-width: 560px) {
+  .xc-log { max-height: 62vh; padding: 10px 8px; }
+  .xc-bubble { max-width: 88%; }
+  .xc-head { padding: 12px; }
+  .xc-compose { padding-left: 8px; padding-right: 8px; }
+  .xc-form { gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .xc-row.xc-new, .xc-done { animation: none; } .xc-tick.wait { animation: none; } }
+.xc-go { margin-top: 12px; gap: 8px; }

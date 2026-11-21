@@ -71,7 +71,8 @@
     },
     storage: { from: function () { return {
       upload: function () { return Promise.resolve({ data: {}, error: null }); }, remove: function () { return Promise.resolve({ data: [], error: null }); },
-      getPublicUrl: function (p) { return { data: { publicUrl: "/img/" + p } }; }, createSignedUrl: function () { return Promise.resolve({ data: { signedUrl: "" }, error: null }); } }; } },
+      getPublicUrl: function (p) { return { data: { publicUrl: "/img/" + p } }; }, createSignedUrl: function () { return Promise.resolve({ data: { signedUrl: "" }, error: null }); },
+        createSignedUrls: function () { return Promise.resolve({ data: [], error: null }); } }; } },
     functions: { invoke: function () { return Promise.resolve({ data: null, error: null }); } },
     channel: function () { return chan; }, removeChannel: function () {}
   };
