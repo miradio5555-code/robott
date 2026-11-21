@@ -28,7 +28,9 @@
   var MAX_TIERS = 10;
   var fx = { platform: null, list: [], filter: "active", loading: false, rcpt: { file: null, local: "" }, qrEdit: {},
     kyc: undefined, kycFiles: {}, kycBusy: false, kycList: [], kycFilter: "pending",
-    events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {}, sub: "", sent: false, setOpen: undefined };
+    events: {}, disputes: [], dFilter: "open", fileFor: null, busyId: null, keep: {}, sub: "", sent: false, setOpen: undefined,
+    // чат по заявке (файл 76): открытая переписка, ещё отправляются, ссылки на закрытые фото клиента
+    chatOk: false, chatId: null, chatPending: [], chatUrls: {}, chatTimer: null, chatN: 0, chatFresh: {}, unread: null };
 
   function isAdmin() { return !!(state.me && state.me.role === "admin"); }
   function canOwn() { return !state.readOnly && state.myRole === "owner"; }
@@ -106,6 +108,91 @@
           : '<button type="button" class="btn btn-sm" data-fx-proof="' + esc(file) + '">' + U.icon("clip", 16) + esc(t("fx_d_photo")) + "</button>") : "") +
         "</div>";
     }).join("") + "</div>";
+  }
+
+  // ---------- Чат по заявке: клиент ↔ обменник (файл 76) ----------
+  // Сообщения — те же события заявки (msg), что и переписка спора; события спора показываются строкой посередине.
+  // me — кто смотрит ('client' | 'buyer'); o.seen — до какого номера прочитала другая сторона (✓✓);
+  // o.pending — ещё отправляются; o.photo(e) — адрес картинки или "" (тогда плашка «Фото»);
+  // o.proofBtn — закрытое фото клиента открывается кнопкой (у обменника, пока нет готовой ссылки).
+  function dayName(d) {
+    var x = new Date(d), now = new Date(), y = new Date(now.getTime() - 864e5), p2 = function (n) { return ("0" + n).slice(-2); };
+    if (x.toDateString() === now.toDateString()) return t("xc_today");
+    if (x.toDateString() === y.toDateString()) return t("xc_yesterday");
+    return c.fmtDate(x.getFullYear() + "-" + p2(x.getMonth() + 1) + "-" + p2(x.getDate()));
+  }
+  function chatEvents(events) {
+    return (events || []).filter(function (e) { return e.kind === "msg" || e.kind === "dispute" || e.kind === "resolved"; });
+  }
+  function chatListHtml(events, me, o) {
+    o = o || {};
+    var list = chatEvents(events).concat(o.pending || []), html = "", lastDay = "";
+    list.forEach(function (e, i) {
+      var at = e.at || e.created_at, day = new Date(at).toDateString();
+      if (day !== lastDay) { html += '<div class="xc-day"><span>' + esc(dayName(at)) + "</span></div>"; lastDay = day; }
+      if (e.kind !== "msg") {
+        var key = e.kind === "resolved" ? "xc_sys_resolved" : e.author === me ? "xc_sys_dispute_me" : "xc_sys_dispute_" + e.author;
+        html += '<div class="xc-sys' + (e.kind === "resolved" ? " ok" : "") + '">' + U.icon("scale", 14) + "<span>" + esc(t(key)) +
+          (e.body ? ": " + esc(e.body) : "") + "</span></div>";
+        return;
+      }
+      var mine = e.author === me, next = list[i + 1];
+      var tail = !next || next.kind !== "msg" || next.author !== e.author || new Date(next.at || next.created_at).toDateString() !== day;
+      var path = e.file || e.file_path || "", img = "";
+      if (path || e.photo || e.local) {
+        var src = e.local || (o.photo ? o.photo(e) : "");
+        img = src
+          ? '<button type="button" class="xc-img" data-xc-img="' + esc(src) + '" aria-label="' + esc(t("xc_photo")) + '"><img alt="" loading="lazy" src="' + esc(src) + '"></button>'
+          : (o.proofBtn && path
+            ? '<button type="button" class="xc-file" data-fx-proof="' + esc(path) + '">' + U.icon("camera", 16) + esc(t("xc_photo_open")) + "</button>"
+            : '<span class="xc-file">' + U.icon("camera", 16) + esc(t("xc_photo")) + "</span>");
+      }
+      var tick = "";
+      if (mine) {
+        tick = e.fail ? '<i class="xc-tick fail" aria-label="' + esc(t("xc_failed")) + '">!</i>'
+          : e.wait ? '<i class="xc-tick wait" aria-label="' + esc(t("xc_sending")) + '"></i>'
+          : o.seen != null && Number(e.id) <= Number(o.seen)
+            ? '<i class="xc-tick read" aria-label="' + esc(t("xc_read")) + '">' + U.icon("check", 13) + U.icon("check", 13) + "</i>"
+            : '<i class="xc-tick" aria-label="' + esc(t("xc_delivered")) + '">' + U.icon("check", 13) + "</i>";
+      }
+      var who = !mine && e.author === "admin" ? '<b class="xc-who">' + esc(t("fx_who_admin")) + "</b>" : "";
+      html += '<div class="xc-row ' + (mine ? "mine" : "theirs") + (e.author === "admin" ? " admin" : "") + (tail ? " tail" : "") +
+        (o.fresh && e.id && o.fresh[e.id] ? " xc-new" : "") + '"' + (e.fail ? ' data-xc-retry="' + esc(e.tmp) + '" title="' + esc(t("xc_retry")) + '"' : "") + ">" +
+        '<div class="xc-bubble">' + who + img + (e.body ? '<span class="xc-text">' + esc(e.body) + "</span>" : "") +
+        '<span class="xc-meta">' + esc(hhmm(new Date(at))) + tick + "</span></div></div>";
+    });
+    return html;
+  }
+  // поле ввода: скрепка (фото), текст, «Отправить»
+  function composerHtml(key, ph) {
+    return '<form class="xc-form" data-xc-form="' + esc(key) + '" novalidate>' +
+      '<button type="button" class="xc-attach" data-xc-attach="' + esc(key) + '" aria-label="' + esc(t("xc_attach")) + '" title="' + esc(t("xc_attach")) + '">' + U.icon("clip", 20) + "</button>" +
+      '<textarea rows="1" maxlength="1000" data-xc-input="' + esc(key) + '" placeholder="' + esc(ph) + '" aria-label="' + esc(ph) + '"></textarea>' +
+      '<button type="submit" class="xc-send" aria-label="' + esc(t("xc_send")) + '" title="' + esc(t("xc_send")) + '">' + U.icon("send", 20) + "</button>" +
+      "</form>";
+  }
+  function chatErr(err) {
+    var m = String((err && err.message) || "");
+    return /too_fast/.test(m) ? t("xc_e_fast") : /too_many/.test(m) ? t("xc_e_many") : /chat_closed/.test(m) ? t("xc_closed")
+      : /bad_type/.test(m) ? t("logo_err_type") : /too_big/.test(m) ? t("logo_err_size") : t("xc_e_send");
+  }
+  // поле растёт вместе с текстом (до 6 строк)
+  function growInput(ta) {
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 150) + "px";
+  }
+  // прокрутить переписку вниз, если человек и так внизу (или force)
+  function logUpdate(log, html, force) {
+    if (!log) return;
+    var atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 90;
+    if (log.innerHTML !== html) log.innerHTML = html;
+    if (force || atBottom) log.scrollTop = log.scrollHeight;
+  }
+  // Enter — отправить, Shift+Enter — новая строка (на телефоне Enter — всегда новая строка)
+  var coarse = window.matchMedia ? window.matchMedia("(pointer: coarse)") : { matches: false };
+  function enterSends(e) {
+    return e.key === "Enter" && !e.shiftKey && !e.isComposing && !coarse.matches && e.target.hasAttribute && e.target.hasAttribute("data-xc-input");
   }
 
   // Обмен «только для Кыргызстана»: курс ULA показываем байерам из Кыргызстана.
@@ -194,13 +281,15 @@
       .order("created_at", { ascending: false }).limit(300);
     fx.loading = false;
     fx.list = res.error ? [] : (res.data || []);
-    await loadEvents(fx.list.filter(function (r) { return r.dispute; }).map(function (r) { return r.id; }));
-    setBadge(countActive());
+    if (fx.list.length) fx.chatOk = Object.prototype.hasOwnProperty.call(fx.list[0], "chat_buyer_seen");   // файл 76 запущен
+    await loadEvents(fx.list.filter(function (r) { return r.dispute || (fx.chatOk && chatAlive(r)); }).map(function (r) { return r.id; }));
+    await signChatPhotos(fx.chatId);
+    setBadge(badgeCount());
   }
   async function loadEvents(ids) {
     fx.events = {};
     if (!ids.length) return;
-    var res = await c.db().from("exchange_events").select("request_id, kind, author, body, file_path, file_pub, created_at")
+    var res = await c.db().from("exchange_events").select("id, request_id, kind, author, body, file_path, file_pub, created_at")
       .in("request_id", ids).order("id", { ascending: true });
     (res.data || []).forEach(function (e) { (fx.events[e.request_id] = fx.events[e.request_id] || []).push(e); });
   }
@@ -228,8 +317,22 @@
   }
   function kycOk() { return isAdmin() || !!(fx.kyc && fx.kyc.status === "approved"); }   // администратору (самой ULA) проверка не нужна (файл 45)
 
-  function isActive(r) { return ["new", "paid", "confirmed", "sent"].indexOf(r.status) !== -1 || r.dispute === "open"; }
-  function countActive() { return fx.list.filter(function (r) { return isActive(r) && r.status !== "sent"; }).length; }
+  function inWork(r) { return ["new", "paid", "confirmed", "sent"].indexOf(r.status) !== -1 || r.dispute === "open"; }
+  function isActive(r) { return inWork(r) || unreadOf(r) > 0; }   // в списке «Активные» — и завершённые с новым сообщением
+  function countActive() { return fx.list.filter(function (r) { return inWork(r) && r.status !== "sent"; }).length; }
+  // чат заявки открыт: пока заявка в работе или идёт спор, и ещё 3 дня после завершения (как в базе, файл 76)
+  function chatAlive(r) {
+    var now = Date.now(), made = new Date(r.created_at).getTime(), at = new Date(r.status_at || r.created_at).getTime();
+    return made > now - 60 * 864e5 && (["done", "cancelled"].indexOf(r.status) === -1 || r.dispute === "open" || at > now - 3 * 864e5);
+  }
+  // непрочитанные сообщения клиента (и администратора в споре)
+  function unreadOf(r) {
+    if (!fx.chatOk) return 0;
+    var seen = Number(r.chat_buyer_seen) || 0;
+    return (fx.events[r.id] || []).filter(function (e) { return e.kind === "msg" && e.author !== "buyer" && Number(e.id) > seen; }).length;
+  }
+  // значок «Обмена»: заявки в работе + непрочитанные сообщения
+  function badgeCount() { return countActive() + fx.list.reduce(function (n, r) { return n + unreadOf(r); }, 0); }
   function setBadge(n) {
     ["#fx-badge", "#bn-fx-badge"].forEach(function (sel) {
       var b = $(sel);
@@ -260,7 +363,19 @@
     }
     if (fx.cnt != null && n > fx.cnt && U.alerts) U.alerts.ping({ title: t("fx_new_req"), tag: "fx" });
     fx.cnt = n;
-    setBadge(n);
+    // непрочитанные сообщения клиентов в чатах заявок (файл 76; без него — просто 0)
+    var un = 0;
+    if (state.ws && !fx.noUnread) {
+      var ur = await c.db().rpc("fx_chat_unread", { p_ws: state.ws.id });
+      if (ur.error && /PGRST202|42883|schema cache|does not exist/i.test(String(ur.error.code || "") + " " + String(ur.error.message || ""))) fx.noUnread = true;   // файл 76 ещё не запущен
+      un = ur.error ? 0 : (Number(ur.data) || 0);
+      if (fx.unread != null && un > fx.unread) {
+        if (U.alerts) U.alerts.ping({ title: t("xc_ping"), tag: "fxchat" });
+        refreshIfIdle();
+      }
+      fx.unread = un;
+    }
+    setBadge(n + un);
     // заявки клиентов приходят сами: проверяем раз в 10 секунд, пока сайт открыт
     if (!fx.cntTimer) fx.cntTimer = setInterval(function () { if (!document.hidden) loadCount(); }, 10000);
   }
@@ -387,12 +502,13 @@
     var ula = kgBuyer(), mine = !!state.ws;
     if (!ula) return "mine";
     if (!mine) return "ula";
-    return fx.sub || "ula";
+    // есть заявки в работе или новые сообщения клиентов — сразу открываем «Мой обмен»
+    return fx.sub || (badgeCount() > 0 ? "mine" : "ula");
   }
 
   function subTabsHtml(sub) {
     if (!kgBuyer() || !state.ws) return "";
-    var n = countActive();
+    var n = badgeCount();
     return '<div class="fx-subtabs" role="tablist">' +
       '<button type="button" role="tab" data-fx-sub="ula" class="' + (sub === "ula" ? "on" : "") + '">' + esc(t("fx_tab_ula")) + "</button>" +
       '<button type="button" role="tab" data-fx-sub="mine" class="' + (sub === "mine" ? "on" : "") + '">' + esc(t("fx_tab_mine")) +
@@ -646,7 +762,11 @@
     var disp = r.dispute === "open", work = ["new", "paid", "confirmed"].indexOf(r.status) !== -1;
     var can = !state.readOnly && !disp && fx.confirming !== r.id && fx.busyId !== r.id;
     var waText = t("fx_wa_status", { name: r.client_name, url: statusUrl(r.id) });
-    return '<div class="fx-row st-' + esc(r.status) + (disp ? " st-dispute" : "") + '">' +
+    var un = unreadOf(r), open = fx.chatId === r.id;
+    var msgs = (fx.events[r.id] || []).filter(function (e) { return e.kind === "msg"; });
+    var withChat = fx.chatOk && (chatAlive(r) || msgs.length > 0);
+    var lastIn = un && !open ? msgs.filter(function (e) { return e.author !== "buyer"; }).pop() : null;
+    return '<div class="fx-row st-' + esc(r.status) + (disp ? " st-dispute" : "") + (un ? " has-unread" : "") + '" data-fx-row="' + esc(r.id) + '">' +
       '<div class="fx-row-top"><b>' + esc(r.client_name) + '</b><span class="fx-st">' + esc(disp ? t("fx_st_dispute") : t("fx_st_" + r.status)) + "</span></div>" +
       (r.client_flag ? '<div class="fx-flag">' + U.icon("alert", 14) + esc(t("fx_flag")) + "</div>" : "") +
       '<div class="fx-row-sum"><b>¥ ' + esc(money(r.cny)) + "</b> = " + esc(money(r.som)) + " " + esc(t("fx_som_short")) + " <small>(" + esc(rateStr(r.rate)) + ")</small></div>" +
@@ -656,10 +776,14 @@
       (r.status === "sent" && r.sent_at && !disp ? '<div class="fx-row-eta">' + esc(t("fx_wait_client", { t: when(new Date(new Date(r.sent_at).getTime() + 864e5)) })) + "</div>" : "") +
       (r.status === "done" && r.rating ? '<div class="fx-stars-line">' + "★★★★★".slice(0, r.rating) + '<span class="off">' + "★★★★★".slice(r.rating) + "</span></div>" : "") +
       (r.buyer_note && (work || r.status === "sent") ? '<div class="fx-row-note">' + U.icon("message", 14) + esc(r.buyer_note) + "</div>" : "") +
+      (lastIn ? '<button type="button" class="xc-preview" data-xc-open="' + esc(r.id) + '">' + U.icon("message", 14) +
+        "<span>" + esc(lastIn.body || t("xc_photo")) + "</span></button>" : "") +
       (r.dispute ? disputeHtml(r) : "") +
       (fx.confirming === r.id ? confirmHtml(r) : "") +
       (fx.busyId === r.id ? '<div class="fx-row-eta">' + esc(t("fx_uploading")) + "</div>" : "") +
       '<div class="fx-row-act">' +
+        (withChat ? '<button type="button" class="btn btn-sm xc-btn' + (un || open ? " btn-primary" : "") + '" data-xc-open="' + esc(r.id) + '" aria-expanded="' + open + '">' +
+          U.icon("message", 16) + esc(t("xc_btn")) + (un ? '<span class="xc-badge" aria-label="' + esc(t("xc_unread", { n: un })) + '">' + un + "</span>" : "") + "</button>" : "") +
         (r.proof_path ? '<button type="button" class="btn btn-sm" data-fx-proof="' + esc(r.proof_path) + '">' + esc(t("fx_proof_btn")) + "</button>" : "") +
         (r.sent_proof ? '<button type="button" class="btn btn-sm" data-fx-img="' + esc(sentUrl(r.sent_proof)) + '">' + esc(t("fx_sent_proof_btn")) + "</button>" : "") +
         '<a class="btn btn-sm" href="tel:' + esc(phone) + '">' + esc(c.fmtPhone(phone)) + "</a>" +
@@ -673,7 +797,144 @@
               ? '<button type="button" class="btn btn-sm btn-ghost" data-fx-st="cancelled" data-fx-id="' + esc(r.id) + '">' + esc(t("fx_cancel_btn")) + "</button>"
               : '<button type="button" class="btn btn-sm btn-ghost" data-fx-dopen="' + esc(r.id) + '">' + U.icon("alert", 16) + esc(t("fx_d_btn")) + "</button>")
           : "") +
-      "</div></div>";
+      "</div>" +
+      (open && withChat ? chatPanelHtml(r) : "") +
+      "</div>";
+  }
+
+  // ---------- Чат заявки у обменника ----------
+  function chatPanelHtml(r) {
+    return '<div class="xc xc-panel" data-xc-box="' + esc(r.id) + '">' +
+      '<div class="xc-panel-head">' + U.icon("message", 16) + "<b>" + esc(t("xc_with", { name: r.client_name })) + "</b>" +
+        '<a class="xc-link" target="_blank" rel="noopener" href="' + esc(statusUrl(r.id)) + '">' + esc(t("xc_client_page")) + "</a></div>" +
+      '<div class="xc-log" data-xc-log="' + esc(r.id) + '" role="log" aria-live="polite">' + buyerLogHtml(r) + "</div>" +
+      (chatAlive(r) && !state.readOnly
+        ? '<div class="xc-compose">' + composerHtml(r.id, t("xc_ph_buyer")) + "</div>"
+        : '<p class="xc-note">' + esc(t("xc_closed")) + "</p>") +
+      "</div>";
+  }
+  function buyerLogHtml(r) {
+    var pend = fx.chatPending.filter(function (p) { return p.rid === r.id; });
+    if (!chatEvents(fx.events[r.id]).length && !pend.length) return '<p class="xc-empty">' + esc(t("xc_empty_buyer")) + "</p>";
+    return chatListHtml(fx.events[r.id], "buyer", {
+      seen: r.chat_client_seen, pending: pend, fresh: fx.chatFresh, proofBtn: true,
+      photo: function (e) { return e.file_pub ? sentUrl(e.file_path) : (fx.chatUrls[e.file_path] || ""); }
+    });
+  }
+  function rowById(id) { return fx.list.filter(function (r) { return r.id === id; })[0] || null; }
+  // закрытые фото клиента — ссылки на час (одним запросом)
+  async function signChatPhotos(id) {
+    if (!id) return;
+    var paths = (fx.events[id] || []).filter(function (e) { return e.file_path && !e.file_pub && !fx.chatUrls[e.file_path]; })
+      .map(function (e) { return e.file_path; });
+    if (!paths.length) return;
+    try {
+      var sg = await c.db().storage.from("fx-proofs").createSignedUrls(paths, 3600);
+      (sg.data || []).forEach(function (x) { if (x.signedUrl && x.path) fx.chatUrls[x.path] = x.signedUrl; });
+    } catch (e) { console.error(e); }   // без ссылок фото откроются кнопкой «Открыть фото»
+  }
+  // обменник прочитал переписку
+  function markSeenBuyer(r) {
+    if (!r || document.hidden || state.readOnly) return false;
+    var max = (fx.events[r.id] || []).reduce(function (m, e) { return Math.max(m, Number(e.id) || 0); }, 0);
+    if (max <= (Number(r.chat_buyer_seen) || 0)) return false;
+    r.chat_buyer_seen = max;
+    c.db().rpc("fx_chat_seen", { p_id: r.id }).then(function () { loadCount(); }, function () {});
+    return true;
+  }
+  // перерисовать только переписку открытого чата (поле ввода не трогаем)
+  function paintChat(id, force) {
+    var r = rowById(id), log = $('[data-xc-log="' + id + '"]');
+    if (r && log) logUpdate(log, buyerLogHtml(r), force);
+    fx.chatFresh = {};
+  }
+  async function openChat(id) {
+    if (fx.chatId === id) { closeChat(); render(); return; }
+    fx.chatId = id;
+    render();
+    paintChat(id, true);
+    var ta = $('[data-xc-input="' + id + '"]');
+    if (ta && !coarse.matches) ta.focus();
+    await refreshChat(id, true);
+    clearInterval(fx.chatTimer);
+    fx.chatTimer = setInterval(function () {
+      if (state.tab !== "exchange" || !fx.chatId) { closeChat(); return; }
+      if (!document.hidden) refreshChat(fx.chatId, false);
+    }, 5000);
+  }
+  function closeChat() {
+    clearInterval(fx.chatTimer);
+    fx.chatTimer = null;
+    fx.chatId = null;
+  }
+  // подтянуть новые сообщения и «прочитано» клиента для одной заявки
+  async function refreshChat(id, first) {
+    var r = rowById(id);
+    if (!r) return;
+    var have = fx.events[id] || [];
+    var last = have.reduce(function (m, e) { return Math.max(m, Number(e.id) || 0); }, 0);
+    var q = c.db().from("exchange_events").select("id, request_id, kind, author, body, file_path, file_pub, created_at")
+      .eq("request_id", id).order("id", { ascending: true });
+    if (last) q = q.gt("id", last);
+    var res = await Promise.all([q, c.db().from("exchange_requests").select("chat_client_seen, status, status_at, dispute").eq("id", id).maybeSingle()]);
+    if (fx.chatId !== id) return;
+    var fresh = (res[0].data || []);
+    var ids = {};
+    have.forEach(function (e) { ids[e.id] = true; });
+    fresh = fresh.filter(function (e) { return !ids[e.id]; });
+    if (!first) fresh.forEach(function (e) { if (e.author !== "buyer") fx.chatFresh[e.id] = true; });
+    fx.events[id] = have.concat(fresh);
+    var changed = fresh.length > 0;
+    if (res[1].data) {
+      if (Number(res[1].data.chat_client_seen) !== Number(r.chat_client_seen)) changed = true;
+      Object.assign(r, res[1].data);
+    }
+    // отправленные и уже пришедшие с сервера — убрать из «отправляются»
+    var all = {};
+    fx.events[id].forEach(function (e) { all[e.id] = true; });
+    fx.chatPending = fx.chatPending.filter(function (p) { return !(p.id && all[p.id]); });
+    await signChatPhotos(id);
+    var seenNow = markSeenBuyer(r);
+    if (first || seenNow) { render(); fx.chatFresh = {}; }
+    else if (changed) paintChat(id, fresh.some(function (e) { return e.author === "buyer"; }));
+  }
+  async function buyerSend(id, text, file) {
+    text = String(text || "").trim();
+    if (!text && !file) return;
+    var item = { tmp: "b" + (++fx.chatN), rid: id, kind: "msg", author: "buyer", body: text || null, at: new Date().toISOString(),
+      wait: true, local: file ? URL.createObjectURL(file) : "", src: file || null };
+    fx.chatPending.push(item);
+    paintChat(id, true);
+    try {
+      var path = file ? await uploadSent(id, file) : null;
+      var res = await c.db().rpc("fx_chat_post", { p_id: id, p_body: text || null, p_file: path });
+      if (res.error) throw res.error;
+      item.id = res.data; item.wait = false;
+      notifyEvent(id);
+      await refreshChat(id, false);
+      paintChat(id, true);
+    } catch (err) {
+      console.error(err);
+      item.wait = false; item.fail = true;
+      paintChat(id, true);
+      toast(chatErr(err), "error");
+    }
+  }
+  function buyerSendTyped(id) {
+    var ta = $('[data-xc-input="' + id + '"]');
+    if (!ta) return;
+    var text = ta.value.trim();
+    if (!text) { ta.focus(); return; }
+    ta.value = ""; growInput(ta);
+    delete fx.keep["xc:" + id];
+    buyerSend(id, text, null);
+  }
+  // пришло новое сообщение, а раздел «Обмен» открыт: обновить список, если человек ничего не набирает
+  function refreshIfIdle() {
+    if (state.tab !== "exchange" || !state.ws) return;
+    var a = document.activeElement;
+    if (a && a.closest && a.closest("#fx-body") && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    loadRequests().then(render, function () {});
   }
 
   // спор в заявке: у байера (me = 'buyer') и у администратора (me = 'admin')
@@ -686,8 +947,10 @@
     return '<div class="fx-dispute' + (open ? " open" : "") + '">' +
       "<b>" + U.icon("scale", 16) + esc(title) + "</b>" +
       (r.dispute_result ? '<p class="fx-d-res">' + esc(t(r.dispute_result === "client" ? "fx_d_res_client" : "fx_d_res_buyer")) + (r.dispute_note ? ": " + esc(r.dispute_note) : "") + "</p>" : "") +
-      threadHtml(events || fx.events[r.id], me) +
-      (open && !state.readOnly
+      (me === "buyer" && fx.chatOk
+        ? (open ? '<p class="fine-print">' + esc(t("xc_dispute_hint_buyer")) + "</p>" : "")
+        : threadHtml(events || fx.events[r.id], me)) +
+      (open && !state.readOnly && !(me === "buyer" && fx.chatOk)
         ? '<div class="fx-d-form"><textarea rows="2" maxlength="1000" data-fx-dmsg="' + esc(key) + '" placeholder="' + esc(t("fx_d_msg_ph")) + '"></textarea>' +
           '<div class="fx-row-act"><button type="button" class="btn btn-sm btn-primary" data-fx-dsend="' + esc(key) + '">' + esc(t("fx_d_send")) + "</button>" +
           (me === "buyer" ? '<button type="button" class="btn btn-sm" data-fx-dattach="' + esc(r.id) + '">' + U.icon("clip", 16) + esc(t("fx_d_attach")) + "</button>" : "") +
@@ -753,6 +1016,13 @@
     var ff = fx.fileFor;
     fx.fileFor = null;
     if (!ff || !file) return;
+    if (ff.kind === "chat") {
+      var cta = $('[data-xc-input="' + ff.id + '"]'), cap = cta ? cta.value.trim() : "";
+      if (cta) { cta.value = ""; growInput(cta); }
+      delete fx.keep["xc:" + ff.id];
+      buyerSend(ff.id, cap, file);
+      return;
+    }
     fx.busyId = ff.id; render();
     try {
       var path = await uploadSent(ff.id, file);
@@ -852,12 +1122,20 @@
     if (!box) return;
     // набранный текст в спорах не теряется при перерисовке
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { fx.keep[ta.getAttribute("data-fx-dmsg")] = ta.value; });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-xc-input]"), function (ta) { fx.keep["xc:" + ta.getAttribute("data-xc-input")] = ta.value; });
+    var focusChat = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute("data-xc-input");
     var keepCny = $("#fxp-cny") ? $("#fxp-cny").value : "";
     var sub = buyerSub();
     box.innerHTML = '<input id="fx-file" type="file" accept="image/*" hidden>' + (isAdmin()
       ? disputesAdminHtml() + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? kycAdminHtml() : "") + (state.ws ? requestsHtml() : "") + (canOwn() ? myHtml() : "") + (fx.kycList.some(function (k) { return k.status === "pending"; }) ? "" : kycAdminHtml()) + (kgBuyer() ? platformHtml() : "")
       : subTabsHtml(sub) + (sub === "ula" ? ulaHtml() : (state.ws ? requestsHtml() + myHtml() : "")));
     Array.prototype.forEach.call(box.querySelectorAll("[data-fx-dmsg]"), function (ta) { var v = fx.keep[ta.getAttribute("data-fx-dmsg")]; if (v) ta.value = v; });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-xc-input]"), function (ta) {
+      var v = fx.keep["xc:" + ta.getAttribute("data-xc-input")];
+      if (v) { ta.value = v; growInput(ta); }
+      if (focusChat && focusChat === ta.getAttribute("data-xc-input")) ta.focus();
+    });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-xc-log]"), function (log) { log.scrollTop = log.scrollHeight; });
     if (keepCny && $("#fxp-cny")) $("#fxp-cny").value = keepCny;   // набранная сумма не теряется при перерисовке
     updateCalc();
   }
@@ -876,6 +1154,7 @@
 
   async function open() {
     fx.sent = false;
+    closeChat();
     if (fx.prefill) fx.sub = "ula";
     render();
     await Promise.all([loadPlatform(), state.ws ? loadRequests() : Promise.resolve(), loadKyc(),
@@ -1016,7 +1295,7 @@
     var res = await c.db().from("exchange_requests").update({ status: status }).eq("id", id);
     if (res.error) { dealErr(res.error); return; }
     fx.list.forEach(function (r) { if (r.id === id) r.status = status; });
-    setBadge(countActive());
+    setBadge(badgeCount());
     render();
   }
 
@@ -1033,12 +1312,18 @@
     var box = $("#fx-body");
     box.addEventListener("input", function (e) {
       if (e.target.id === "fxp-cny") updateCalc();
+      else if (e.target.hasAttribute && e.target.hasAttribute("data-xc-input")) growInput(e.target);
     });
     // «toggle» не всплывает — ловим на спуске; запоминаем, раскрыты ли настройки «Моего обмена»
     box.addEventListener("toggle", function (e) {
       if (e.target.classList && e.target.classList.contains("fx-set")) fx.setOpen = e.target.open;
     }, true);
+    box.addEventListener("keydown", function (e) {
+      if (enterSends(e)) { e.preventDefault(); buyerSendTyped(e.target.getAttribute("data-xc-input")); }
+    });
     box.addEventListener("submit", function (e) {
+      var xf = e.target.closest && e.target.closest("[data-xc-form]");
+      if (xf) { e.preventDefault(); buyerSendTyped(xf.getAttribute("data-xc-form")); return; }
       if (e.target.id === "fxm-form") saveMine(e);
       else if (e.target.id === "fxa-form") saveAdmin(e);
       else if (e.target.id === "kyc-form") { e.preventDefault(); if (!fx.kycBusy) submitKyc(); }
@@ -1076,6 +1361,14 @@
       if (e.target.closest("[data-fx-rdel]")) { rcptDrop(fx.rcpt); render(); return; }
       if (e.target.closest("[data-fx-copyreq]")) { c.copyText(splitNote(fx.platform && fx.platform.note).text).then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); return; }
       var el;
+      if ((el = e.target.closest("[data-xc-open]"))) { openChat(el.getAttribute("data-xc-open")); return; }
+      if ((el = e.target.closest("[data-xc-attach]"))) { pickFile("chat", el.getAttribute("data-xc-attach")); return; }
+      if ((el = e.target.closest("[data-xc-img]"))) { c.openLightbox([el.getAttribute("data-xc-img")], 0); return; }
+      if ((el = e.target.closest("[data-xc-retry]"))) {
+        var tmp = el.getAttribute("data-xc-retry"), it = fx.chatPending.filter(function (p) { return p.tmp === tmp; })[0];
+        if (it) { fx.chatPending = fx.chatPending.filter(function (p) { return p !== it; }); buyerSend(it.rid, it.body, it.src); }
+        return;
+      }
       if ((el = e.target.closest("[data-fx-send]"))) { toast(t("fx_send_pick"), "ok"); pickFile("sent", el.getAttribute("data-fx-send")); return; }
       if ((el = e.target.closest("[data-fx-dattach]"))) { pickFile("msg", el.getAttribute("data-fx-dattach")); return; }
       if ((el = e.target.closest("[data-fx-dopen]"))) { openDisputeBuyer(el.getAttribute("data-fx-dopen")); return; }
@@ -1276,6 +1569,8 @@
       if (r.id) {
         try { await sendProof(r.id, pub.file); pub.step = "done"; rcptDrop(pub); }
         catch (e2) { console.error(e2); pub.error = proofErr(e2); }
+        // страница обмена: сразу на страницу заявки — там статус и чат с обменником
+        if (pub.step === "done" && pub.kind === "shop") { location.assign(statusUrl(r.id) + "&new=1"); return; }
       }
     } catch (err) {
       console.error(err);
@@ -1326,7 +1621,9 @@
   }
 
   // ---------- Отдельная страница обмена (?fx=ТОКЕН) ----------
-  var page = { mode: "fx", token: "", data: null, state: "loading", id: "", st: null, busy: false, error: "", timer: null };
+  var page = { mode: "fx", token: "", data: null, state: "loading", id: "", st: null, busy: false, error: "", timer: null,
+    // чат: pending — ещё отправляются; local — свои фото этой вкладки (номер сообщения → адрес); seen — что уже отмечено прочитанным
+    chat: { pending: [], local: {}, seen: 0, n: 0, last: null, fresh: {}, bottom: true }, isNew: false, mainHtml: "", composeKey: "" };
 
   async function initPage(token) {
     c.showView("shop");
@@ -1363,10 +1660,17 @@
     page.mode = "status";
     page.id = String(id || "").toLowerCase();
     page.state = "loading";
+    // пришли сразу после отправки заявки (?xr=…&new=1): показать «Заявка отправлена», а из адреса метку убрать
+    var qs = new URLSearchParams(location.search);
+    if (qs.get("new") === "1") {
+      page.isNew = true;
+      try { history.replaceState(null, "", location.pathname + "?xr=" + encodeURIComponent(page.id)); } catch (e) { /* ignore */ }
+    }
     renderPage();
     bindStatus();
     await loadStatus();
   }
+  function hasChat(s) { return !!s && Object.prototype.hasOwnProperty.call(s, "chat_open"); }   // файл 76 запущен
 
   async function loadStatus() {
     if (!/^[0-9a-f-]{36}$/.test(page.id)) { page.state = "notfound"; renderPage(); return; }
@@ -1379,10 +1683,27 @@
       console.error(err);
       if (!page.st) page.state = "error";
     }
+    noteNew();
     renderPage();
-    // пока заявка не завершена — обновляем сами каждые 30 секунд
+    // пока заявка не завершена — обновляем сами каждые 30 секунд; пока открыт чат — каждые 5 секунд
     clearTimeout(page.timer);
-    if (page.st && live(page.st)) page.timer = setTimeout(loadStatus, 30000);
+    var chatOn = page.st && page.st.chat_open;
+    if (page.st && (live(page.st) || chatOn)) page.timer = setTimeout(loadStatus, chatOn && !document.hidden ? 5000 : 30000);
+  }
+  // новое сообщение от обменника: подсветить, а если вкладка в фоне — показать это в заголовке
+  function noteNew() {
+    var s = page.st;
+    if (!hasChat(s)) return;
+    var theirs = chatEvents(s.events).filter(function (e) { return e.author !== "client"; });
+    var max = theirs.reduce(function (m, e) { return Math.max(m, Number(e.id) || 0); }, 0);
+    if (page.chat.last != null && max > page.chat.last) {
+      theirs.forEach(function (e) { if (Number(e.id) > page.chat.last) page.chat.fresh[e.id] = true; });
+      if (document.hidden) {
+        if (!page.titleWas) page.titleWas = document.title;
+        document.title = "💬 " + t("xc_new_msg");
+      }
+    }
+    page.chat.last = max;
   }
 
   var STEPS = ["new", "paid", "confirmed", "sent", "done"];
@@ -1394,7 +1715,8 @@
       '<p class="fx-status-label">' + esc(t("fx_status_title")) + "</p>" +
       "<h1>" + esc(title) + "</h1>" +
       '<div class="fx-sumbox"><span>¥ ' + esc(money(s.cny)) + "</span><b>" + esc(money(s.som)) + " " + esc(t("fx_som_short")) + "</b>" +
-        "<small>" + esc(t("fx_rate_line", { r: rateStr(s.rate) })) + "</small></div>";
+        "<small>" + esc(t("fx_rate_line", { r: rateStr(s.rate) })) + "</small></div>" +
+      (hasChat(s) && s.chat_open ? '<button type="button" class="btn btn-block xc-go" id="fxs-tochat">' + U.icon("message", 18) + esc(t("xc_go_chat")) + "</button>" : "");
     if (s.status === "confirmed" && s.eta_until && !disp) {
       var late = new Date(s.eta_until) < new Date();
       html += '<div class="fx-eta-big' + (late ? " late" : "") + '">' + esc(late ? t("fx_late") : untilText(s.eta_until)) + "</div>";
@@ -1434,8 +1756,8 @@
       var by = s.dispute_by === "client" ? t("fx_d_open_me") : t("fx_d_open_buyer");
       html += '<div class="fx-dispute' + (disp ? " open" : "") + '"><b>' + U.icon("scale", 16) + esc(disp ? by : t("fx_d_closed")) + "</b>" +
         (s.dispute_result ? '<p class="fx-d-res">' + esc(t(s.dispute_result === "client" ? "fx_d_res_client" : "fx_d_res_buyer")) + (s.dispute_note ? ": " + esc(s.dispute_note) : "") + "</p>" : "") +
-        threadHtml(s.events, "client") +
-        (disp
+        (hasChat(s) ? (disp ? '<p class="fine-print">' + esc(t("xc_dispute_hint")) + "</p>" : "") : threadHtml(s.events, "client")) +
+        (disp && !hasChat(s)
           ? '<div class="fx-d-form"><textarea id="fxs-msg" rows="3" maxlength="1000" placeholder="' + esc(t("fx_d_msg_ph")) + '"></textarea>' +
             '<input id="fxs-dfile" type="file" accept="image/*" hidden>' +
             '<div class="fx-row-act"><button type="button" class="btn btn-sm btn-primary" id="fxs-dsend"' + (page.busy ? " disabled" : "") + ">" + esc(t("fx_d_send")) + "</button>" +
@@ -1485,13 +1807,155 @@
     return res.data;
   }
 
+  // ---------- Чат на странице заявки (клиент) ----------
+  function newBannerHtml() {
+    return '<div class="xc-done" role="status">' + U.icon("check", 22) +
+      "<div><b>" + esc(t("xc_new_title")) + "</b><p>" + esc(t("xc_new_text")) + "</p>" +
+      '<button type="button" class="btn btn-sm" id="fxs-copy">' + U.icon("link", 16) + esc(t("xc_copy_link")) + "</button></div></div>";
+  }
+  function brandAva(b, big) {
+    var url = b && b.logo ? c.db().storage.from("logos").getPublicUrl(b.logo).data.publicUrl : "";
+    var letter = String((b && b.name) || "U").trim().charAt(0).toUpperCase() || "U";
+    return '<span class="xc-ava' + (big ? " lg" : "") + '" aria-hidden="true">' + (url ? '<img alt="" src="' + esc(url) + '">' : esc(letter)) + "</span>";
+  }
+  function chatShellHtml() {
+    return '<section class="client-block xc" id="fxs-chat" aria-labelledby="fxs-chat-name">' +
+      '<div class="xc-head" id="fxs-chead"></div>' +
+      '<div class="xc-log" id="fxs-log" role="log" aria-live="polite"></div>' +
+      '<div class="xc-compose" id="fxs-compose"></div>' +
+      '<input id="fxs-cfile" type="file" accept="image/*" hidden>' +
+      "</section>";
+  }
+  var QUICK = ["xc_q_status", "xc_q_paid", "xc_q_when"];
+  function renderChat() {
+    var s = page.st, b = s.brand || {};
+    var head = $("#fxs-chead"), log = $("#fxs-log"), comp = $("#fxs-compose");
+    if (!head || !log || !comp) return;
+    var hh = brandAva(b) + '<div><b id="fxs-chat-name">' + esc(b.name || t("xc_title")) + "</b>" +
+      "<small>" + esc(s.chat_open ? (s.eta ? t("xc_sub_eta", { n: etaName(s.eta) }) : t("xc_sub")) : t("xc_closed")) + "</small></div>";
+    if (head.innerHTML !== hh) head.innerHTML = hh;
+    // отправленные и уже пришедшие с сервера — убрать из «отправляются»
+    var ids = {};
+    chatEvents(s.events).forEach(function (e) { ids[e.id] = true; });
+    page.chat.pending = page.chat.pending.filter(function (p) { return !(p.id && ids[p.id]); });
+    var html;
+    if (!chatEvents(s.events).length && !page.chat.pending.length) {
+      html = '<div class="xc-hello">' + brandAva(b, true) + "<b>" + esc(t("xc_hello_title")) + "</b>" +
+        "<p>" + esc(t(s.chat_open ? "xc_hello" : "xc_closed")) + "</p>" +
+        (s.chat_open ? '<div class="xc-quick">' + QUICK.map(function (k) {
+          return '<button type="button" class="chip" data-xc-quick="' + esc(k) + '">' + esc(t(k)) + "</button>";
+        }).join("") + "</div>" : "") + "</div>";
+    } else {
+      html = chatListHtml(s.events, "client", {
+        seen: s.buyer_seen, pending: page.chat.pending, fresh: page.chat.fresh,
+        photo: function (e) { return e.file ? sentUrl(e.file) : (page.chat.local[e.id] || ""); }
+      });
+    }
+    logUpdate(log, html, page.chat.bottom);
+    page.chat.bottom = false;
+    page.chat.fresh = {};   // «появление» нового сообщения — один раз
+    var key = s.chat_open ? "open" : "closed";
+    if (page.composeKey !== key) {
+      comp.innerHTML = s.chat_open
+        ? composerHtml("c", t("xc_ph_client")) + '<p class="xc-note">' + U.icon("shield", 14) + "<span>" + esc(t("xc_note_client")) + "</span></p>"
+        : '<p class="xc-note">' + esc(t("xc_closed_hint")) + "</p>";
+      page.composeKey = key;
+    }
+    markSeenClient();
+  }
+  // клиент прочитал ответы обменника (только когда вкладка на экране)
+  function markSeenClient() {
+    if (document.hidden || !hasChat(page.st)) return;
+    var max = chatEvents(page.st.events).reduce(function (m, e) { return e.author !== "client" ? Math.max(m, Number(e.id) || 0) : m; }, 0);
+    if (max <= page.chat.seen) return;
+    page.chat.seen = max;
+    try { c.db().rpc("fx_chat_seen", { p_id: page.id }).then(function () {}, function () {}); } catch (e) { /* ignore */ }
+  }
+  async function clientChatSend(text, file) {
+    text = String(text || "").trim();
+    if (!text && !file) return;
+    var item = { tmp: "t" + (++page.chat.n), kind: "msg", author: "client", body: text || null, at: new Date().toISOString(),
+      wait: true, photo: !!file, local: file ? URL.createObjectURL(file) : "", src: file || null };
+    page.chat.pending.push(item);
+    page.chat.bottom = true;
+    renderChat();
+    try {
+      var path = null;
+      if (file) {
+        var blob = await prepImg(file);
+        path = page.id + "/c-" + rnd(8) + "." + imgExt(blob);
+        var up = await c.db().storage.from("fx-proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+        if (up.error) throw up.error;
+      }
+      var id = await rpcOk("fx_chat_post", { p_id: page.id, p_body: text || null, p_file: path });
+      item.id = id; item.wait = false;
+      if (item.local) page.chat.local[id] = item.local;
+      notifyEvent(page.id);
+      page.chat.bottom = true;
+      await loadStatus();
+    } catch (err) {
+      console.error(err);
+      item.wait = false; item.fail = true;
+      renderChat();
+      toast(chatErr(err), "error");
+    }
+  }
+  function clientSendTyped() {
+    var ta = $('[data-xc-input="c"]');
+    if (!ta) return;
+    var text = ta.value.trim();
+    if (!text) { ta.focus(); return; }
+    ta.value = ""; growInput(ta);
+    clientChatSend(text, null);
+  }
+
   var statusBound = false;
   function bindStatus() {
     if (statusBound) return;
     statusBound = true;
     var box = $("#shop-content");
+    // чат: отправить, Enter, поле растёт с текстом
+    box.addEventListener("submit", function (e) {
+      if (page.mode !== "status" || !e.target.closest("[data-xc-form]")) return;
+      e.preventDefault();
+      clientSendTyped();
+    });
+    box.addEventListener("keydown", function (e) {
+      if (page.mode === "status" && enterSends(e)) { e.preventDefault(); clientSendTyped(); }
+    });
+    box.addEventListener("input", function (e) {
+      if (page.mode === "status" && e.target.hasAttribute && e.target.hasAttribute("data-xc-input")) growInput(e.target);
+    });
+    // вернулись на вкладку — сразу обновить и снять «💬» с заголовка
+    document.addEventListener("visibilitychange", function () {
+      if (page.mode !== "status" || document.hidden) return;
+      if (page.titleWas) { document.title = page.titleWas; page.titleWas = ""; }
+      if (page.st) loadStatus();
+    });
     box.addEventListener("click", function (e) {
       if (page.mode !== "status") return;
+      if (e.target.closest("#fxs-tochat")) {
+        var ch = $("#fxs-chat");
+        if (ch) ch.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+        var inp = $('[data-xc-input="c"]');
+        if (inp) setTimeout(function () { try { inp.focus({ preventScroll: true }); } catch (x) { inp.focus(); } }, 350);
+        return;
+      }
+      if (e.target.closest("[data-xc-attach]")) { var cf = $("#fxs-cfile"); if (cf) { cf.value = ""; cf.click(); } return; }
+      var qk = e.target.closest("[data-xc-quick]");
+      if (qk) { clientChatSend(t(qk.getAttribute("data-xc-quick")), null); return; }
+      var ci = e.target.closest("[data-xc-img]");
+      if (ci) { c.openLightbox([ci.getAttribute("data-xc-img")], 0); return; }
+      var rt = e.target.closest("[data-xc-retry]");
+      if (rt) {
+        var tmp = rt.getAttribute("data-xc-retry"), it = page.chat.pending.filter(function (p) { return p.tmp === tmp; })[0];
+        if (it) { page.chat.pending = page.chat.pending.filter(function (p) { return p !== it; }); clientChatSend(it.body, it.src); }
+        return;
+      }
+      if (e.target.closest("#fxs-copy")) {
+        c.copyText(statusUrl(page.id)).then(function (ok) { toast(ok ? t("xc_link_copied") : t("error_generic"), ok ? "ok" : "error"); });
+        return;
+      }
       if (e.target.closest("#fxs-refresh")) { loadStatus(); return; }
       if (e.target.closest("#fxs-pick")) { var f = $("#fxs-file"); if (f) f.click(); return; }
       var st = e.target.closest("[data-fxs-star]");
@@ -1515,6 +1979,12 @@
       if (e.target.closest("#fxs-dattach")) { var df = $("#fxs-dfile"); if (df) df.click(); }
     });
     box.addEventListener("change", async function (e) {
+      if (page.mode === "status" && e.target.id === "fxs-cfile" && e.target.files && e.target.files[0]) {
+        var ta = $('[data-xc-input="c"]'), cap = ta ? ta.value.trim() : "";
+        if (ta) { ta.value = ""; growInput(ta); }
+        clientChatSend(cap, e.target.files[0]);
+        return;
+      }
       if (page.mode === "status" && e.target.id === "fxs-dfile" && e.target.files && e.target.files[0]) {
         var file = e.target.files[0], text = ($("#fxs-msg").value || "").trim();
         clientDo(async function () {
@@ -1556,11 +2026,28 @@
           '<p class="muted">' + esc(t(page.state === "error" ? "rq_err_load" : "fx_st_none_hint")) + "</p></section>";
         return;
       }
+      var head = (b && b.name ? '<section class="sp-head"><h1 class="rq-title">' + esc(b.name) + "</h1></section>" : "") +
+        (page.isNew ? newBannerHtml() : "");
       // текст спора, который клиент набирает, не стирается автообновлением
       page.keep = page.keep || {};
-      ["fxs-msg", "fxs-reason"].forEach(function (k) { var el = $("#" + k); if (el) page.keep[k] = el.value; });
-      box.innerHTML = (b && b.name ? '<section class="sp-head"><h1 class="rq-title">' + esc(b.name) + "</h1></section>" : "") + statusHtml();
-      ["fxs-msg", "fxs-reason"].forEach(function (k) { var el = $("#" + k); if (el && page.keep[k]) el.value = page.keep[k]; });
+      var saveTyped = function () { ["fxs-msg", "fxs-reason"].forEach(function (k) { var el = $("#" + k); if (el) page.keep[k] = el.value; }); };
+      var putTyped = function () { ["fxs-msg", "fxs-reason"].forEach(function (k) { var el = $("#" + k); if (el && page.keep[k]) el.value = page.keep[k]; }); };
+      if (!hasChat(page.st)) {
+        saveTyped();
+        box.innerHTML = head + statusHtml();
+        putTyped();
+        return;
+      }
+      // с чатом: статус и переписка обновляются по отдельности — поле ввода и прокрутка не сбиваются
+      var main = box.querySelector("#fxs-main");
+      if (!main) {
+        box.innerHTML = '<div id="fxs-main"></div>' + chatShellHtml();
+        main = box.querySelector("#fxs-main");
+        page.mainHtml = ""; page.composeKey = ""; page.chat.bottom = true;
+      }
+      var html = head + statusHtml();
+      if (html !== page.mainHtml) { saveTyped(); main.innerHTML = html; page.mainHtml = html; putTyped(); }
+      renderChat();
       return;
     }
     var d = page.data || {};

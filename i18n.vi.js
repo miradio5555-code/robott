@@ -1462,7 +1462,7 @@ I18N.vi = {
   fx_msg_label: "Lời nhắn cho khách (không bắt buộc)",
   fx_msg_ph: "Ví dụ: chuyển vào Alipay sau 15:00",
   fx_wa_status: "{name}, trạng thái yêu cầu đổi tiền: {url}",
-  fx_track: "Theo dõi trạng thái",
+  fx_track: "Trạng thái và trò chuyện",
   fx_my_reqs: "Yêu cầu của tôi",
   fx_req_from: "Yêu cầu lúc {d}",
   fx_status_title: "Trạng thái yêu cầu đổi tiền",
@@ -3154,3 +3154,50 @@ I18N.vi.lp_rate_at = "theo tỷ giá {r}";
 I18N.vi.lp_rate_cta = "Đổi nhân dân tệ";
 I18N.vi.lp_rate_note = "Đổi tiền sau khi đăng ký miễn phí. Tỷ giá ULA cập nhật mỗi ngày.";
 I18N.vi.lp_rate_note_fx = "Không cần đăng ký: nhập số tiền → thông tin chuyển khoản → ảnh chụp thanh toán. Theo dõi yêu cầu ngay trên trang.";
+
+// чат по заявке на обмен (файл 76)
+I18N.vi.xc_title = "Trò chuyện về yêu cầu";
+I18N.vi.xc_sub = "Chúng tôi trả lời tại đây";
+I18N.vi.xc_sub_eta = "Thường trả lời trong vòng {n}";
+I18N.vi.xc_hello_title = "Xin chào!";
+I18N.vi.xc_hello = "Đây là cuộc trò chuyện về yêu cầu của bạn. Hãy hỏi về giao dịch đổi tiền hoặc gửi thêm biên lai — chúng tôi trả lời tại đây.";
+I18N.vi.xc_q_status = "Yêu cầu của tôi thế nào rồi?";
+I18N.vi.xc_q_paid = "Tôi đã thanh toán, vui lòng kiểm tra";
+I18N.vi.xc_q_when = "Khi nào nhân dân tệ đến?";
+I18N.vi.xc_ph_client = "Tin nhắn…";
+I18N.vi.xc_ph_buyer = "Trả lời khách…";
+I18N.vi.xc_note_client = "Chỉ trao đổi tại đây. Không chuyển tiền theo thông tin gửi qua tin nhắn riêng.";
+I18N.vi.xc_closed = "Đã đóng trò chuyện";
+I18N.vi.xc_closed_hint = "Đã đóng trò chuyện: yêu cầu đã hoàn tất hơn 3 ngày. Cần hỗ trợ? Hãy gửi yêu cầu mới.";
+I18N.vi.xc_today = "Hôm nay";
+I18N.vi.xc_yesterday = "Hôm qua";
+I18N.vi.xc_photo = "Ảnh";
+I18N.vi.xc_photo_open = "Mở ảnh";
+I18N.vi.xc_sending = "Đang gửi";
+I18N.vi.xc_delivered = "Đã gửi";
+I18N.vi.xc_read = "Đã xem";
+I18N.vi.xc_failed = "Chưa gửi được";
+I18N.vi.xc_retry = "Nhấn để gửi lại";
+I18N.vi.xc_attach = "Đính kèm ảnh hoặc biên lai";
+I18N.vi.xc_send = "Gửi";
+I18N.vi.xc_e_fast = "Gửi quá nhanh. Vui lòng đợi một phút";
+I18N.vi.xc_e_many = "Cuộc trò chuyện có quá nhiều tin nhắn";
+I18N.vi.xc_e_send = "Chưa gửi được. Kiểm tra kết nối và nhấn vào tin nhắn để thử lại";
+I18N.vi.xc_new_msg = "Tin nhắn mới";
+I18N.vi.xc_new_title = "Đã gửi yêu cầu";
+I18N.vi.xc_new_text = "Tại đây có trạng thái đổi tiền và trò chuyện với bên đổi tiền. Hãy lưu liên kết trang này để quay lại.";
+I18N.vi.xc_copy_link = "Sao chép liên kết";
+I18N.vi.xc_link_copied = "Đã sao chép liên kết";
+I18N.vi.xc_sys_dispute_me = "Bạn đã mở khiếu nại";
+I18N.vi.xc_sys_dispute_client = "Khách đã mở khiếu nại";
+I18N.vi.xc_sys_dispute_buyer = "Người bán đã mở khiếu nại";
+I18N.vi.xc_sys_resolved = "Quyết định khiếu nại";
+I18N.vi.xc_dispute_hint = "Hãy viết và đính kèm ảnh chụp màn hình trong trò chuyện bên dưới — quản trị viên ULA Factory xem được toàn bộ.";
+I18N.vi.xc_dispute_hint_buyer = "Trao đổi về khiếu nại nằm trong trò chuyện của yêu cầu. Quản trị viên ULA Factory xem được toàn bộ.";
+I18N.vi.xc_btn = "Trò chuyện";
+I18N.vi.xc_unread = "Chưa đọc: {n}";
+I18N.vi.xc_with = "Trò chuyện với khách: {name}";
+I18N.vi.xc_client_page = "Trang của khách";
+I18N.vi.xc_empty_buyer = "Chưa có tin nhắn. Khách xem trò chuyện trên trang yêu cầu của họ.";
+I18N.vi.xc_ping = "Tin nhắn mới từ khách";
+I18N.vi.xc_go_chat = "Nhắn cho bên đổi tiền";

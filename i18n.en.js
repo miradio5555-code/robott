@@ -1490,7 +1490,7 @@ I18N.en = {
   fx_msg_label: "Message to client (optional)",
   fx_msg_ph: "E.g. will send to Alipay after 3 pm",
   fx_wa_status: "{name}, your exchange request status: {url}",
-  fx_track: "Track request status",
+  fx_track: "Request status and chat",
   fx_my_reqs: "My requests",
   fx_req_from: "Request from {d}",
   fx_status_title: "Exchange request status",
@@ -3182,3 +3182,50 @@ I18N.en.lp_rate_at = "at {r}";
 I18N.en.lp_rate_cta = "Exchange yuan";
 I18N.en.lp_rate_note = "Exchange is available after free sign-up. The ULA rate is updated every day.";
 I18N.en.lp_rate_note_fx = "No sign-up needed: amount → payment details → payment screenshot. Track your request on the site.";
+
+// чат по заявке на обмен (файл 76)
+I18N.en.xc_title = "Request chat";
+I18N.en.xc_sub = "We reply here";
+I18N.en.xc_sub_eta = "We usually reply within {n}";
+I18N.en.xc_hello_title = "Hello!";
+I18N.en.xc_hello = "This is the chat for your request. Ask about your exchange or send another receipt — we reply here.";
+I18N.en.xc_q_status = "What's the status of my request?";
+I18N.en.xc_q_paid = "I've paid, please check";
+I18N.en.xc_q_when = "When will the yuan arrive?";
+I18N.en.xc_ph_client = "Message…";
+I18N.en.xc_ph_buyer = "Reply to the client…";
+I18N.en.xc_note_client = "Write only here. Never pay to details sent in private messages.";
+I18N.en.xc_closed = "Chat closed";
+I18N.en.xc_closed_hint = "Chat closed: the request was completed more than 3 days ago. Need help? Leave a new request.";
+I18N.en.xc_today = "Today";
+I18N.en.xc_yesterday = "Yesterday";
+I18N.en.xc_photo = "Photo";
+I18N.en.xc_photo_open = "Open photo";
+I18N.en.xc_sending = "Sending";
+I18N.en.xc_delivered = "Delivered";
+I18N.en.xc_read = "Read";
+I18N.en.xc_failed = "Not sent";
+I18N.en.xc_retry = "Tap to send again";
+I18N.en.xc_attach = "Attach a photo or receipt";
+I18N.en.xc_send = "Send";
+I18N.en.xc_e_fast = "Too fast. Please wait a minute";
+I18N.en.xc_e_many = "Too many messages in this chat";
+I18N.en.xc_e_send = "Not sent. Check your connection and tap the message to retry";
+I18N.en.xc_new_msg = "New message";
+I18N.en.xc_new_title = "Request sent";
+I18N.en.xc_new_text = "Here you see the exchange status and chat with the exchanger. Save the link to this page to come back.";
+I18N.en.xc_copy_link = "Copy link";
+I18N.en.xc_link_copied = "Link copied";
+I18N.en.xc_sys_dispute_me = "You opened a dispute";
+I18N.en.xc_sys_dispute_client = "The client opened a dispute";
+I18N.en.xc_sys_dispute_buyer = "The seller opened a dispute";
+I18N.en.xc_sys_resolved = "Dispute decision";
+I18N.en.xc_dispute_hint = "Write and attach screenshots in the chat below — the ULA Factory administrator sees the whole conversation.";
+I18N.en.xc_dispute_hint_buyer = "Dispute messages are in the request chat. The ULA Factory administrator sees all of it.";
+I18N.en.xc_btn = "Chat";
+I18N.en.xc_unread = "Unread: {n}";
+I18N.en.xc_with = "Chat with client: {name}";
+I18N.en.xc_client_page = "Client page";
+I18N.en.xc_empty_buyer = "No messages yet. The client sees the chat on their request page.";
+I18N.en.xc_ping = "New message from a client";
+I18N.en.xc_go_chat = "Message the exchanger";

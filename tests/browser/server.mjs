@@ -42,6 +42,19 @@ function build(scn) {
   };
   if (scn === "fxoff") { ws.module_exchange = false; db.exchange_requests.push({ id: "fx1", workspace_id: "ws1", status: "sent", dispute: null }, { id: "fx2", workspace_id: "ws1", status: "paid", dispute: "open" }); }
   if (scn === "fxoff0") { ws.module_exchange = false; ws.module_shop = false; }
+  // файл 76: у обменника две заявки, клиенты написали в чат (одна переписка частично прочитана)
+  if (scn === "fxchat") {
+    const at = (m) => iso(new Date(Date.now() - m * 60000));
+    const base = { workspace_id: "ws1", source: "shop", rate: 12.62, comment: null, buyer_note: null, eta_until: null, sent_at: null, sent_proof: null, rating: null, dispute: null, client_flag: false };
+    db.exchange_requests.push(
+      { ...base, id: "fxr-1", client_name: "Азамат", client_phone: "+996555111222", cny: 1000, som: 12620, status: "paid", created_at: at(40), status_at: at(38), paid_at: at(38), proof_path: "fxr-1/pay.jpg", chat_buyer_seen: 11, chat_client_seen: 0 },
+      { ...base, id: "fxr-2", client_name: "Бакыт", client_phone: "+996777000111", cny: 3000, som: 37860, status: "new", created_at: at(6), status_at: at(6), paid_at: null, proof_path: null, chat_buyer_seen: 0, chat_client_seen: 0 });
+    db.exchange_events = [
+      { id: 11, request_id: "fxr-1", kind: "msg", author: "client", body: "Здравствуйте! Оплатил, проверьте, пожалуйста", file_path: null, file_pub: false, created_at: at(30) },
+      { id: 12, request_id: "fxr-1", kind: "msg", author: "client", body: "Когда придут юани?", file_path: null, file_pub: false, created_at: at(3) },
+      { id: 13, request_id: "fxr-2", kind: "msg", author: "client", body: "Что с моей заявкой?", file_path: null, file_pub: false, created_at: at(2) },
+    ];
+  }
   const mkClient = (name, phone, extra = {}) => { const c = { id: uid("c"), workspace_id: "ws1", name, phone: phone || null, match_phone: phone || null, telegram: null, city: null, address: null, pickup_point: null, has_card: false, created_at: iso(NOW()), ...extra }; db.clients.push(c); return c; };
   const mkOrder = (o) => {
     const c = o.client_id ? db.clients.find((x) => x.id === o.client_id) : mkClient(o.client_name, o.client_phone);
@@ -261,6 +274,25 @@ function orderView(db, o, needOk, extra) {
     ...extra };
 }
 const GUEST_FX = "e".repeat(32);
+const FX_NEW = "11111111-2222-4333-8444-555555555555", FX_TALK = "11111111-2222-4333-8444-555555555556";
+function fxReq(db, id) {
+  if (id !== FX_NEW && id !== FX_TALK) return null;
+  db.fxReqs = db.fxReqs || {}; db.fxSeq = db.fxSeq || 100;
+  if (!db.fxReqs[id]) {
+    const at = (m) => iso(new Date(NOW().getTime() - m * 60000)), talk = id === FX_TALK;
+    const view = { status: talk ? "confirmed" : "paid", cny: 1000, som: 12620, rate: 12.62, created_at: at(40), paid_at: at(38), status_at: at(talk ? 20 : 38),
+      eta_until: talk ? iso(new Date(NOW().getTime() + 25 * 60000)) : null, buyer_note: null, has_proof: true, note: null, eta: 30, can_upload: false,
+      brand: { name: "ULA Factory", logo: null }, sent_at: null, sent_proof: null, close_at: null, received_at: null, rating: null,
+      dispute: null, dispute_by: null, dispute_result: null, dispute_note: null, can_dispute: false, dispute_from: at(-80) };
+    const events = talk ? [
+      { id: 11, kind: "msg", author: "client", body: "Здравствуйте! Я оплатил 12 620 сом, проверьте, пожалуйста", file: null, photo: false, at: at(30) },
+      { id: 12, kind: "msg", author: "client", body: null, file: null, photo: true, at: at(29) },
+      { id: 13, kind: "msg", author: "buyer", body: "Здравствуйте! Оплату получили, спасибо. Юани отправим в течение 30 минут на ваш Alipay.", file: null, photo: false, at: at(20) },
+    ] : [];
+    db.fxReqs[id] = { view, events, buyer_seen: talk ? 12 : 0 };
+  }
+  return db.fxReqs[id];
+}
 function clientRpc(db, name, a) {
   const cab = (tok) => (typeof tok === "string" && /^[a-f0-9]{32}$/.test(tok) ? (db.cabinets || []).find((x) => x.token === tok) : null);
   switch (name) {
@@ -279,6 +311,22 @@ function clientRpc(db, name, a) {
       return ok({ ok: true, id: "11111111-2222-4333-8444-555555555555", cny, som: Math.round(cny * rate * 100) / 100, rate, note: "Mbank 0555 000 000 · ULA" });
     }
     case "fx_attach_proof": (db.writes = db.writes || []).push("exchange_proof"); return ok(true);
+    // страница заявки клиента с чатом (файл 76): …555 — новая заявка без сообщений, …556 — идёт переписка
+    case "get_exchange_status": {
+      const r = fxReq(db, a.p_id); if (!r) return ok(null);
+      return ok({ ...r.view, buyer_seen: r.buyer_seen, chat_open: true, events: r.events });
+    }
+    case "fx_chat_post": {
+      const r = fxReq(db, a.p_id); if (!r) return err("request_not_found", "P0002");
+      const body = a.p_body == null ? null : String(a.p_body).trim();
+      if (!body && !a.p_file) return err("empty", "22023");
+      if (body === "!fast") return err("too_fast", "P0001");
+      const id = ++db.fxSeq;
+      r.events.push({ id, kind: "msg", author: "client", body: body || null, file: null, photo: !!a.p_file, at: iso(NOW()) });
+      (db.writes = db.writes || []).push("fx_chat:" + (body || "photo"));
+      return ok(id);
+    }
+    case "fx_chat_seen": { const r = fxReq(db, a.p_id); return ok(r ? r.events.reduce((m, e) => Math.max(m, e.id), 0) : null); }
     case "get_client_cabinet": {
       const k = cab(a.p_token); if (!k) return ok(null);
       const mine = db.orders.filter((o) => o.client_id === k.client_id), cl = db.clients.find((c) => c.id === k.client_id);
@@ -331,6 +379,20 @@ function publicFx(db) {
 }
 function rpc(db, name, a) {
   if (name === "public_fx") return ok(publicFx(db));
+  // файл 76: чат заявки у обменника
+  if (db.exchange_events && (name === "fx_chat_post" || name === "fx_chat_seen" || name === "fx_chat_unread")) {
+    const ev = db.exchange_events, maxOf = (id) => ev.filter((e) => e.request_id === id).reduce((m, e) => Math.max(m, e.id), 0);
+    if (name === "fx_chat_unread") return ok(db.exchange_requests.reduce((n, r) => n + ev.filter((e) => e.request_id === r.id && e.author !== "buyer" && e.id > (r.chat_buyer_seen || 0)).length, 0));
+    const r = db.exchange_requests.find((x) => x.id === a.p_id); if (!r) return err("request_not_found", "P0002");
+    if (name === "fx_chat_seen") { r.chat_buyer_seen = maxOf(r.id); return ok(r.chat_buyer_seen); }
+    const body = a.p_body == null ? null : String(a.p_body).trim();
+    if (!body && !a.p_file) return err("empty", "22023");
+    const id = ev.reduce((m, e) => Math.max(m, e.id), 0) + 1;
+    ev.push({ id, request_id: r.id, kind: "msg", author: "buyer", body, file_path: a.p_file || null, file_pub: !!a.p_file, created_at: iso(NOW()) });
+    r.chat_buyer_seen = id; db.writes.push("fx_chat_buyer:" + (body || "photo"));
+    return ok(id);
+  }
+  if (name === "fx_autoclose_ws") return ok(0);
   if (name === "my_focus_add") {   // файл 72: минуты к дню и к задаче
     const m = Number(a.p_minutes); if (!(m >= 1 && m <= 240)) return err("bad_minutes", "22023");
     let d = db.my_focus_days.find((x) => x.day === a.p_day); if (!d) { d = { day: a.p_day, minutes: 0 }; db.my_focus_days.push(d); }
