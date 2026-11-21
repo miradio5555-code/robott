@@ -1344,6 +1344,13 @@
       page.state = "error";
     }
     renderPage();
+    // пришли с главной с суммой (?fx=…&cny=12000) — сразу шаг оплаты: реквизиты, скриншот, имя и телефон
+    var cny = parseNum(new URLSearchParams(location.search).get("cny") || "");
+    var slot = $("#fx-pub-slot-page");
+    if (page.state === "ok" && slot && cny > 0 && cny <= 10000000 && rateFor(page.data.fx.tiers, cny)) {
+      pub.cny = String(cny); pub.step = "form"; pub.error = "";
+      renderPublic(slot);
+    }
   }
 
   // ---------- Страница статуса заявки (?xr=НОМЕР) ----------

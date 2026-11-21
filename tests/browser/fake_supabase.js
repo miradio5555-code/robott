@@ -54,7 +54,9 @@
   } catch (e) { /* ignore */ }
   var listeners = [];
   var user = { id: scn === "staff" || scn === "teamstaff" ? "u-staff" : "u-owner", email: "test@example.test", user_metadata: { full_name: "Тест" }, app_metadata: { providers: ["email"] } };
-  var session = scn === "loggedout" || scn === "nofx" ? null : { user: user, access_token: "fake" };   // nofx — гость, курса ULA нет
+  // guestfx — гость, на главной ссылка обмена ULA (config.js → EXCHANGE_LINK): курс для клиентов и заявка без регистрации
+  if (scn === "guestfx" && window.CARGO_CONFIG) window.CARGO_CONFIG.EXCHANGE_LINK = "https://ulafactory.com/?fx=" + "e".repeat(32);
+  var session = scn === "loggedout" || scn === "nofx" || scn === "guestfx" ? null : { user: user, access_token: "fake" };   // nofx — гость, курса ULA нет
   var chan = { on: function () { return chan; }, subscribe: function () { return chan; }, unsubscribe: function () {} };
   var client = {
     from: Q,

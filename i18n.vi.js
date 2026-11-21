@@ -3153,3 +3153,4 @@ I18N.vi.lp_rate_hint = "Nhập số nhân dân tệ — chúng tôi quy ra som";
 I18N.vi.lp_rate_at = "theo tỷ giá {r}";
 I18N.vi.lp_rate_cta = "Đổi nhân dân tệ";
 I18N.vi.lp_rate_note = "Đổi tiền sau khi đăng ký miễn phí. Tỷ giá ULA cập nhật mỗi ngày.";
+I18N.vi.lp_rate_note_fx = "Không cần đăng ký: nhập số tiền → thông tin chuyển khoản → ảnh chụp thanh toán. Theo dõi yêu cầu ngay trên trang.";

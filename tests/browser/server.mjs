@@ -260,9 +260,25 @@ function orderView(db, o, needOk, extra) {
     ...("track_stage" in o ? { track_stage: o.track_stage, shipped_at: dayOf(o.shipped_at), transit_days_min: o.transit_days_min, transit_days_max: o.transit_days_max, ship_to: o.ship_to } : {}),
     ...extra };
 }
+const GUEST_FX = "e".repeat(32);
 function clientRpc(db, name, a) {
   const cab = (tok) => (typeof tok === "string" && /^[a-f0-9]{32}$/.test(tok) ? (db.cabinets || []).find((x) => x.token === tok) : null);
   switch (name) {
+    // ссылка обмена ULA для гостей с главной (scn=guestfx, config.js → EXCHANGE_LINK)
+    case "get_shop": {
+      if (a.p_token !== GUEST_FX) return ok(null);
+      const d = NOW(); d.setHours(9, 30, 0, 0);
+      return ok({ name: "ULA Factory", logo: null, products: [],
+        fx: { tiers: [{ from: 1000, rate: 12.62 }, { from: 10000, rate: 12.55 }, { from: 50000, rate: 12.48 }], note: "Mbank 0555 000 000 · ULA", eta: 30, updated_at: iso(d) } });
+    }
+    case "submit_exchange": {
+      if (a.p_token !== GUEST_FX) return err("link_not_found", "P0002");
+      const cny = Number(a.p_cny), rate = cny >= 50000 ? 12.48 : cny >= 10000 ? 12.55 : cny >= 1000 ? 12.62 : 0;
+      if (!rate) return err("below_min", "22023");
+      (db.writes = db.writes || []).push("exchange:" + cny);
+      return ok({ ok: true, id: "11111111-2222-4333-8444-555555555555", cny, som: Math.round(cny * rate * 100) / 100, rate, note: "Mbank 0555 000 000 · ULA" });
+    }
+    case "fx_attach_proof": (db.writes = db.writes || []).push("exchange_proof"); return ok(true);
     case "get_client_cabinet": {
       const k = cab(a.p_token); if (!k) return ok(null);
       const mine = db.orders.filter((o) => o.client_id === k.client_id), cl = db.clients.find((c) => c.id === k.client_id);
@@ -502,6 +518,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (u.pathname.startsWith("/functions/v1/")) { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false })); return; }
+  if (u.pathname.startsWith("/storage/v1/object/fx-proofs/") && req.method === "POST") { for await (const _ of req) { /* тело не нужно */ } res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ Key: "ok" })); return; }
   if (u.pathname.startsWith("/storage/")) { res.writeHead(404); res.end("no"); return; }
   if (u.pathname === "/__reset") { DBS.delete(u.searchParams.get("scn") || "veteran"); res.writeHead(200); res.end("ok"); return; }
   if (u.pathname === "/__state") { const db = get(u.searchParams.get("scn") || "veteran"); res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ profile: db.profiles[0], ws: db.workspaces[0], writes: db.writes, tz_log: db.tz_log, orders: db.orders.length, fmaps: db.factory_maps })); return; }

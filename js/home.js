@@ -93,11 +93,20 @@
     });
   }
 
-  // ---------- «Курс юаня сегодня»: курс ULA для всех, без входа (public_fx, файл 75) ----------
-  // Только цифры курса: ступени, время, срок и история курса первой ступени. Реквизитов здесь нет.
-  // Курса нет, база без файла 75 или нет сети — блок и значок в шапке просто не показываются.
+  // ---------- «Курс юаня сегодня»: курс для всех, без входа ----------
+  // Есть ссылка обмена ULA (config.js → EXCHANGE_LINK): показываем курс для клиентов этой ссылки (get_shop),
+  //   и «Обменять юани» сразу открывает заявку без регистрации (?fx=…&cny=сумма: реквизиты, скриншот, статус).
+  // Нет ссылки или обмен по ней выключен — курс ULA для байеров (public_fx, файл 75), обмен после регистрации.
+  // График и «дешевле / дороже» — по истории курса ULA (public_fx), только пока курс для клиентов с ним совпадает.
+  // Курса нет или нет сети — блок и значок в шапке просто не показываются.
   var REFRESH = 10 * 60 * 1000;
-  var fx = { data: null, at: 0, busy: false, days: 7 };
+  var fx = { data: null, at: 0, busy: false, days: 7, link: "" };
+
+  // код ссылки обмена из config.js: можно вписать и всю ссылку, и только код после ?fx=
+  function fxToken() {
+    var m = String((window.CARGO_CONFIG || {}).EXCHANGE_LINK || "").toLowerCase().match(/[a-f0-9]{32}/);
+    return m ? m[0] : "";
+  }
 
   function n(v) { var x = Number(v); return isFinite(x) ? x : 0; }
   function loc() { return U.core && U.core.locale ? U.core.locale() : "ru-RU"; }
@@ -202,6 +211,7 @@
 
     var inp = $("#lp-rate-cny");
     inp.placeholder = moneyStr(Math.max(main.from, 1000));
+    $("#lp-rate-note").textContent = t(fx.link ? "lp_rate_note_fx" : "lp_rate_note");
     $("#lp-rate-eta").textContent = d.eta > 0 ? "⏱ " + t("fx_eta_usual", { n: etaName(n(d.eta)) }) : "";
 
     if (chip) {
@@ -219,6 +229,7 @@
     if (!inp || !fx.data) return;
     var tiers = tiersOf(fx.data), cny = n(String(inp.value).replace(/[\s ]/g, "").replace(",", "."));
     var tier = cny > 0 ? tierFor(tiers, cny) : null;
+    goLink(tier ? cny : 0);
     Array.prototype.forEach.call(document.querySelectorAll("#lp-rate-tiers .lp-tier"), function (el) {
       el.classList.toggle("on", !!tier && Number(el.getAttribute("data-from")) === tier.from);
     });
@@ -234,13 +245,34 @@
     at.textContent = t("lp_rate_at", { r: rateStr(tier.rate) }) + (tiers.length > 1 ? " · " + t("fx_from", { n: moneyStr(tier.from) }) : "");
   }
 
+  // «Обменять юани»: страница обмена с суммой из калькулятора или регистрация
+  function goUrl(cny) {
+    if (!fx.link) return "#/join";
+    return location.pathname.replace(/index\.html$/, "") + "?fx=" + fx.link + (cny > 0 ? "&cny=" + Math.round(cny * 100) / 100 : "");
+  }
+  function goLink(cny) {
+    var a = $("#lp-rate-go");
+    if (a) a.setAttribute("href", goUrl(cny));
+  }
+
   async function loadRate(force) {
     var db = U.core && U.core.db && U.core.db();
     if (!db || fx.busy || (!force && fx.data && Date.now() - fx.at < REFRESH)) return;
     fx.busy = true;
+    var tok = fxToken();
+    function call(name, args) { return Promise.resolve(db.rpc(name, args)).catch(function () { return { error: true }; }); }
     try {
-      var res = await db.rpc("public_fx");
-      if (!res.error) { fx.data = res.data && typeof res.data === "object" ? res.data : null; fx.at = Date.now(); }
+      var rs = await Promise.all([call("public_fx"), tok ? call("get_shop", { p_token: tok }) : null]);
+      var base = rs[0] && !rs[0].error && rs[0].data && typeof rs[0].data === "object" ? rs[0].data : null;
+      var own = rs[1] && !rs[1].error && rs[1].data && rs[1].data.fx;
+      if (own && tiersOf(own).length) {
+        var b0 = tiersOf(base)[0], o0 = tiersOf(own)[0];
+        fx.data = { tiers: own.tiers, eta: own.eta, updated_at: own.updated_at, hist: b0 && b0.rate === o0.rate ? base.hist : [] };
+        fx.link = tok;
+        fx.at = Date.now();
+      } else if (!(rs[0] && rs[0].error) || (rs[1] && !rs[1].error)) {
+        fx.data = base; fx.link = ""; fx.at = Date.now();
+      }
     } catch (e) { /* нет сети — оставляем прежний курс */ }
     fx.busy = false;
     renderRate();
@@ -249,7 +281,12 @@
   function bindRate() {
     var form = $("#lp-rate-form"), inp = $("#lp-rate-cny"), sec = $("#lp-rate");
     if (!form) return;
-    form.addEventListener("submit", function (e) { e.preventDefault(); inp.blur(); });
+    // Enter в калькуляторе: есть ссылка обмена и сумма подходит — сразу к заявке
+    form.addEventListener("submit", function (e) {
+      e.preventDefault(); inp.blur();
+      var a = $("#lp-rate-go");
+      if (fx.link && a && /[?&]cny=/.test(a.getAttribute("href") || "")) location.href = a.getAttribute("href");
+    });
     inp.addEventListener("input", function () {
       var v = inp.value.replace(/[^\d.,\s ]/g, "");
       if (v !== inp.value) inp.value = v;
