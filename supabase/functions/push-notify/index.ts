@@ -5,6 +5,7 @@
 //   "support" — написали в поддержку: байер → всем администраторам; администратор (с полем user) → этому байеру.
 //   "kyc"     — байер отправил документы на проверку → администраторам.
 //   "exchange" / "exchange_paid" — клиент оставил заявку на обмен / загрузил оплату (без входа, по номеру заявки) → владельцу кабинета.
+//   "exchange_msg" — клиент написал в чат заявки на обмен (без входа, по номеру заявки) → владельцу кабинета (файл 77).
 //   "request" — клиент оставил заявку на товар по ссылке (без входа, по ссылке слежения) → владельцу кабинета.
 // Ключи отправителя создаются сами при первом запуске и лежат в таблице push_keys (читает только эта функция).
 // =====================================================
@@ -82,6 +83,33 @@ Deno.serve(async (req) => {
         title: paid ? "💰 Клиент оплатил обмен" : "💱 Новая заявка на обмен",
         body: String(x.client_name || "—").slice(0, 60) + " · ¥" + x.cny + " = " + x.som + " сом",
         tag: "fx",
+      });
+      return json({ ok: true, sent });
+    }
+
+    // ---------- без входа: клиент написал в чат заявки на обмен (файл 77) ----------
+    // «забираем» свежие сообщения клиента одним действием (отметка push_at): повторный вызов уже ничего не найдёт,
+    // поэтому одно сообщение не придёт дважды и засыпать обменника уведомлениями нельзя
+    if (action === "exchange_msg") {
+      const id = String(body.id ?? "");
+      if (!/^[0-9a-f-]{36}$/.test(id)) return json({ ok: false });
+      const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: evs, error: evErr } = await db.from("exchange_events")
+        .update({ push_at: new Date().toISOString() })
+        .eq("request_id", id).eq("kind", "msg").eq("author", "client").is("push_at", null).gte("created_at", since)
+        .select("body, file_path, created_at");
+      if (evErr || !evs || !evs.length) return json({ ok: true, sent: 0 });
+      const { data: x } = await db.from("exchange_requests").select("workspace_id, client_name").eq("id", id).maybeSingle();
+      if (!x) return json({ ok: true, sent: 0 });
+      const { data: w } = await db.from("workspaces").select("owner_id").eq("id", x.workspace_id).maybeSingle();
+      if (!w?.owner_id) return json({ ok: true, sent: 0 });
+      const list = [...evs].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
+      const last = list[list.length - 1];
+      const text = String(last.body || (last.file_path ? "📷 Фото" : "")).slice(0, 140);
+      const sent = await send([w.owner_id], {
+        title: "💬 " + String(x.client_name || "Клиент").slice(0, 60) + (list.length > 1 ? " · " + list.length + " сообщ." : ""),
+        body: text + "\nЧат заявки на обмен — откройте «Обмен», чтобы ответить.",
+        tag: "fxchat-" + id,
       });
       return json({ ok: true, sent });
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================
-# ПРОВЕРКА ФАЙЛА 76 (чат по заявке на обмен) на временной базе.
+# ПРОВЕРКА ФАЙЛОВ 76–77 (чат по заявке на обмен и push о сообщениях) на временной базе.
 #
 #   bash tests/exchange_chat_test.sh        (входит в bash tests/run_db_tests.sh)
 #
@@ -28,6 +28,9 @@ for f in $(ls migration_*.sql | sort | awk -F_ '{ if ($2+0 <= 75) print }'); do 
 echo "▶ Файл 76 и повторный запуск…"
 q < migration_76_exchange_chat.sql >/dev/null || { echo "❌ файл 76 не запустился"; exit 1; }
 q < migration_76_exchange_chat.sql >/dev/null || { echo "❌ повторный запуск файла 76 упал"; exit 1; }
+echo "▶ Файл 77 (push о сообщениях) и повторный запуск…"
+q < migration_77_exchange_chat_push.sql >/dev/null || { echo "❌ файл 77 не запустился"; exit 1; }
+q < migration_77_exchange_chat_push.sql >/dev/null || { echo "❌ повторный запуск файла 77 упал"; exit 1; }
 
 q >/dev/null <<'SQL'
 insert into auth.users (id, email) values
@@ -216,5 +219,21 @@ begin
   raise notice '   ✓ больше 15 фото в чат — нет';
 end $$;
 reset role;
+-- ===== файл 77: push о сообщении клиента забирается один раз (так делает push-notify) =====
+do $$
+declare n1 int; n2 int;
+begin
+  with x as (update public.exchange_events set push_at = now()
+              where request_id = '00000000-0000-0000-0000-0000000f0001' and kind = 'msg' and author = 'client' and push_at is null
+              returning 1) select count(*) into n1 from x;
+  with x as (update public.exchange_events set push_at = now()
+              where request_id = '00000000-0000-0000-0000-0000000f0001' and kind = 'msg' and author = 'client' and push_at is null
+              returning 1) select count(*) into n2 from x;
+  if n1 <> 8 or n2 <> 0 then raise exception 'ПРОВАЛ: push забирает % и затем % сообщений (нужно 8 и 0)', n1, n2; end if;
+  raise notice '   ✓ push о сообщениях клиента отправляется один раз';
+end $$;
+set role anon;
+do $$ begin perform t.err('select push_at from public.exchange_events', 'permission denied'); end $$;
+reset role;
 SQL
-echo "✅ Файл 76 проверен"
+echo "✅ Файлы 76–77 проверены"
