@@ -5,6 +5,9 @@
 
 Выложить новую версию сайта: `bash scripts/build_site.sh && npx wrangler@4 deploy`
 (в `dist/` попадают только файлы сайта; файлы базы, функции и тесты не выкладываются).
+«Свежие новости дня» для «Карты фабрик» тоже собирает Cloudflare: каждое утро в 07:00–07:54 по Бишкеку, по одной ленте
+раз в 6 минут (`worker/index.js`, `scripts/news_core.mjs`), подборка — `https://ulafactory.com/news.json`.
+Проверить ленты вручную: `node scripts/fetch_news.mjs news.json`.
 
 Языки интерфейса: русский, English, 中文.
 

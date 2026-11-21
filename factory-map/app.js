@@ -1237,9 +1237,9 @@ function newsCard(n){
 }
 
 /* ---------- Свежие новости дня (только администратор) ----------
-   Подборку раз в день собирает GitHub (.github/workflows/news.yml → scripts/fetch_news.mjs) и кладёт в ветку daily-news.
+   Подборку каждое утро собирает Cloudflare (worker/index.js → scripts/news_core.mjs) и отдаёт с ulafactory.com/news.json.
    Это заголовки и ссылки из открытых лент, их никто не проверял; в базу карты они не записываются. */
-const DAILY_NEWS_URL='https://raw.githubusercontent.com/miradio5555-code/robott/daily-news/news.json';
+const DAILY_NEWS_URL='https://ulafactory.com/news.json'; // полный адрес: приложение iPhone пока открывает карту со старого адреса
 const DAILY_STEP=20;
 let daily=null,dailyLoading=false,dailyShown=DAILY_STEP;
 const dailyDate=iso=>{

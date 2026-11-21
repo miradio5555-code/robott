@@ -1,11 +1,19 @@
 // Выкладка сайта на ulafactory.com (Cloudflare). Только папка dist — её собирает scripts/build_site.sh.
 //   bash scripts/build_site.sh && npx wrangler@4 deploy
+// worker/index.js — только «Свежие новости дня» (/news.json и сбор по утрам); остальные файлы Cloudflare отдаёт сам.
 {
   "name": "ulafactory",
   "compatibility_date": "2026-11-19",
+  "main": "worker/index.js",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    { "binding": "NEWS", "id": "f009f892cd314cbf962c21a1c2d8780c" }
+  ],
+  // 07:00–07:54 по Бишкеку, раз в 6 минут: 10 запусков — по одной ленте новостей
+  "triggers": { "crons": ["*/6 1 * * *"] },
   "routes": [
     { "pattern": "ulafactory.com", "custom_domain": true },
     { "pattern": "www.ulafactory.com", "custom_domain": true }
