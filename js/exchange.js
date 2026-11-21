@@ -1891,6 +1891,8 @@
       item.id = id; item.wait = false;
       if (item.local) page.chat.local[id] = item.local;
       notifyEvent(page.id);
+      // push на телефон обменника (файл 77; без него функция просто ничего не отправит)
+      try { c.db().functions.invoke("push-notify", { body: { action: "exchange_msg", id: page.id } }).catch(function () {}); } catch (e) { /* ignore */ }
       page.chat.bottom = true;
       await loadStatus();
     } catch (err) {

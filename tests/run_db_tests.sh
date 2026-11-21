@@ -97,7 +97,7 @@ echo "▶ Карта фабрик у каждого байера своя (фа�
 bash tests/factory_maps_test.sh
 echo "▶ Курс юаня на главной для всех (файл 75)…"
 bash tests/public_fx_test.sh
-echo "▶ Чат по заявке на обмен (файл 76)…"
+echo "▶ Чат по заявке на обмен и push о сообщениях (файлы 76–77)…"
 bash tests/exchange_chat_test.sh
 
 echo ""
