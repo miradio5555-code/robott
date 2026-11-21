@@ -1,0 +1,9 @@
+// Выкладка сайта на ulafactory.com (Cloudflare). Только папка dist — её собирает scripts/build_site.sh.
+//   bash scripts/build_site.sh && npx wrangler@4 deploy
+{
+  "name": "ulafactory",
+  "compatibility_date": "2026-11-19",
+  "assets": {
+    "directory": "./dist"
+  }
+}
