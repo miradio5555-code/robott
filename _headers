@@ -7,3 +7,16 @@
   Cache-Control: public, max-age=2592000
 /factory-map/vendor/*
   Cache-Control: public, max-age=2592000
+
+# Защита для всех страниц:
+#   • только HTTPS (браузер сам не пойдёт по http://);
+#   • чужой сайт не может встроить наши страницы в рамку и подсунуть кнопки (кликджекинг);
+#   • при переходе на чужой сайт адрес страницы не передаётся — секретные ссылки клиентов не утекают;
+#   • микрофон, оплата, USB — выключены; место и камера — только для самого сайта.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
+  Permissions-Policy: microphone=(), payment=(), usb=(), geolocation=(self), camera=(self)
