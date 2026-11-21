@@ -6,3 +6,4 @@ mobile/ios/App/Pods/
 dist/
 .wrangler/
 .env*
+supabase/.temp/

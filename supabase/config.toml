@@ -1,3 +1,12 @@
 [functions.whatsapp-ai]
 # Keep gateway verification and private service-key authorization.
 verify_jwt = true
+
+# Настройки входа функций — такие же, как сейчас в Supabase (проверено 21.11.2026), чтобы выкладка их не меняла.
+[functions.telegram-notify]
+# Страницы клиентов зовут её с публичным ключом сайта (anon key) — он проходит проверку.
+verify_jwt = true
+
+[functions.order-notify-worker]
+# Зовёт только расписание с секретом NOTIFY_WORKER_SECRET; проверка JWT выключена, вместо неё — секрет.
+verify_jwt = false

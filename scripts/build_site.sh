@@ -3,7 +3,8 @@
 # Папка с сайтом для выкладки на ulafactory.com (Cloudflare).
 #
 #   bash scripts/build_site.sh        собрать заново в dist/
-#   npx wrangler@4 deploy             выложить dist/ на ulafactory.com (настройки — wrangler.jsonc)
+#   npx wrangler@4 deploy             выложить dist/ и worker/index.js (новости) на ulafactory.com (настройки — wrangler.jsonc)
+# _headers — сколько браузер хранит картинки и шрифты.
 #
 # В папку попадают только файлы, которые открывает браузер: страницы, скрипты, стили, картинки,
 # шрифты и «Карта фабрик». Файлы базы (migration_*.sql, factory-map/setup.sql), функции Supabase,
@@ -18,7 +19,7 @@ rm -rf "$DST"
 mkdir -p "$DST"
 cp "$SRC"/index.html "$SRC"/app.js "$SRC"/supabase.js "$SRC"/config.js "$SRC"/sw.js \
    "$SRC"/i18n*.js "$SRC"/style.css "$SRC"/manifest.webmanifest \
-   "$SRC"/privacy.html "$SRC"/terms.html "$DST"/
+   "$SRC"/privacy.html "$SRC"/terms.html "$SRC"/_headers "$DST"/
 cp -R "$SRC"/js "$SRC"/img "$SRC"/fonts "$SRC"/factory-map "$DST"/
 rm -f "$DST"/factory-map/setup.sql
 find "$DST" -name .DS_Store -delete
