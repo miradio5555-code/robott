@@ -35,7 +35,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const SITE_URL = "https://miradio5555-code.github.io/robott/";
+const SITE_URL = "https://ulafactory.com/";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

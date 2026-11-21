@@ -27,7 +27,7 @@ class Cloud:
         if t:self.call('rpc/wa_link_order',{'p_workspace':self.ws,'p_thread':t['id'],'p_order':order_id})
     @staticmethod
     def redact(text):
-        text=re.sub(r'https://miradio5555-code\.github\.io/robott/\?[^\s]*\bc=[a-f0-9]{32}[^\s]*','[Личная ссылка клиента скрыта]',text)
+        text=re.sub(r'https://(?:ulafactory\.com/|miradio5555-code\.github\.io/robott/)\?[^\s]*\bc=[a-f0-9]{32}[^\s]*','[Личная ссылка клиента скрыта]',text)
         return text[:4000]
     def ingest(self,event,phone,mid,text,direction='in'):
         msg=(event.get('data') or {}).get('Message') or {}

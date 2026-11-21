@@ -7,7 +7,7 @@
 // трек-номер, ссылка заказа, название кабинета): закупочных цен, прибыли, заметок и чужих клиентов там нет.
 // =====================================================
 
-export const SITE_URL = "https://miradio5555-code.github.io/robott/";
+export const SITE_URL = "https://ulafactory.com/";
 
 const T = {
   ru: {
