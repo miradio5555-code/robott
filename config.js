@@ -16,7 +16,7 @@ window.CARGO_CONFIG = {
   // 3) Капча Cloudflare Turnstile при входе и регистрации (необязательно).
   //    Сюда вписывается только ПУБЛИЧНЫЙ ключ сайта (Site key). Секретный ключ (Secret key) сюда нельзя —
   //    он вставляется в Supabase → Authentication → Attack Protection. Пусто = капчи нет.
-  TURNSTILE_SITE_KEY: "",
+  TURNSTILE_SITE_KEY: "0x4AAAAAAGLfJ9iTdmCUo7eE",
 
   // 4) Видео-инструкция для новых байеров (YouTube, Instagram, Telegram и т.п.), необязательно.
   //    Появится в меню как «Видео: как работать». Пусто = пункта нет.
