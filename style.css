@@ -5736,3 +5736,7 @@ html[data-theme="dark"] .lp-rate-calc { background: #26232B; border: 1px solid r
 .lp-rate-chip:empty, .lp-rate-chip i:empty { display: none; }
 @media (max-width: 380px) { .lp-rate-chip .lp-live { display: none; } .lp-rate-chip { padding: 0 10px; } }
 @media (prefers-reduced-motion: reduce) { .lp-live { animation: none; } }
+
+/* Страницы клиента (?fx, ?shop, ?xr): заголовок «Название кабинета + подсказка».
+   Класс sp-head есть и у шапки чата поддержки (тёмная, белый текст) — здесь он обычный заголовок страницы. */
+#shop-content .sp-head { display: block; min-height: 0; padding: 0; margin: 6px 0 16px; background: none; border: 0; box-shadow: none; color: inherit; }

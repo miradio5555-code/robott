@@ -160,6 +160,8 @@ const SCREENS = [
   { id: "home", name: "Главная (гость)", go: async () => { await open("?scn=loggedout#/"); }, see: "#view-home .lp-h1" },
   { id: "home-rate", name: "Главная: курс юаня", go: async () => { await open("?scn=loggedout#/"); }, see: "#lp-rate .lp-rate-big b" },
   { id: "home-nofx", name: "Главная без курса", go: async () => { await open("?scn=nofx#/"); }, see: "#view-home .lp-h1" },
+  { id: "home-guestfx", name: "Главная: обмен без регистрации", go: async () => { await open("?scn=guestfx#/"); }, see: "#lp-rate .lp-rate-big b" },
+  { id: "fx-guest-form", name: "Обмен гостя: сразу шаг оплаты", go: async () => { await open("?fx=" + "e".repeat(32) + "&cny=12000"); }, see: "#fxc-form" },
   { id: "login", name: "Вход", go: async () => { await open("?scn=loggedout#/login"); }, see: "#view-login" },
   { id: "today", name: "Сегодня", go: async () => { await open("?scn=veteran"); await tab("home"); }, see: "#tab-home" },
   { id: "orders", name: "Список заказов", go: async () => { await tab("orders"); await waitFor(visible("#orders [data-id]"), "карточки заказов"); }, see: "#orders [data-id]" },

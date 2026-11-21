@@ -3181,3 +3181,4 @@ I18N.zh.lp_rate_hint = "输入人民币金额，自动换算成索姆";
 I18N.zh.lp_rate_at = "汇率 {r}";
 I18N.zh.lp_rate_cta = "兑换人民币";
 I18N.zh.lp_rate_note = "免费注册后即可兑换。ULA 汇率每天更新。";
+I18N.zh.lp_rate_note_fx = "无需注册：输入金额 → 查看收款信息 → 上传付款截图。可在网站上查看申请状态。";

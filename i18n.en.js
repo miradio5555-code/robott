@@ -3181,3 +3181,4 @@ I18N.en.lp_rate_hint = "Enter an amount in yuan — we’ll show it in som";
 I18N.en.lp_rate_at = "at {r}";
 I18N.en.lp_rate_cta = "Exchange yuan";
 I18N.en.lp_rate_note = "Exchange is available after free sign-up. The ULA rate is updated every day.";
+I18N.en.lp_rate_note_fx = "No sign-up needed: amount → payment details → payment screenshot. Track your request on the site.";
