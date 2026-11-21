@@ -58,6 +58,7 @@
     $("#pk-login-text").textContent = t("pk_login_" + kind());
     lockTexts();
   }
+  function isCaptcha(e) { return !!e && (e.code === "captcha_failed" || /captcha/i.test(String(e.message || e.msg || ""))); }
   function loginError(msg) {
     var el = $("#login-error");
     el.textContent = msg || "";
@@ -75,11 +76,15 @@
     if (!auto) b.disabled = true;
     loginError("");
     try {
-      var r = await c.db().auth.signInWithPasskey({ options: { signal: ctrl.signal } });
+      // Капча (если включена в Supabase): без неё сервер не начнёт вход по Face ID. null — капча выключена.
+      var cap = U.captcha ? await U.captcha.get("cf-passkey") : null;
+      if (st.ctrl !== ctrl) return;   // заменён нажатием на кнопку
+      var r = await c.db().auth.signInWithPasskey({ options: { signal: ctrl.signal, captchaToken: cap || undefined } });
       if (st.ctrl !== ctrl) return;   // заменён нажатием на кнопку
 
       if (r.error) {
         if (isOff(r.error)) { mark(false); renderLogin(); if (!auto) loginError(t("pk_err_off")); }
+        else if (isCaptcha(r.error)) { if (!auto) loginError(t("captcha_err")); }
         else if (!isCancel(r.error) && !auto) loginError(t("pk_err_login"));
         return;
       }
@@ -87,7 +92,7 @@
       var u = (await c.db().auth.getUser()).data.user;
       if (u) await c.enterAdmin(u);
     } catch (e) {
-      if (st.ctrl === ctrl && !isCancel(e) && !auto) { console.error(e); loginError(t("pk_err_login")); }
+      if (st.ctrl === ctrl && !isCancel(e) && !auto) { console.error(e); loginError(t(isCaptcha(e) ? "captcha_err" : "pk_err_login")); }
     } finally {
       if (st.ctrl === ctrl) { st.busy = false; st.ctrl = null; b.disabled = false; }
     }
