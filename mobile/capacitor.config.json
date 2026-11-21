@@ -3,7 +3,7 @@
   "appName": "ULA Factory",
   "webDir": "www",
   "server": {
-    "url": "https://miradio5555-code.github.io/robott/",
+    "url": "https://ulafactory.com/",
     "cleartext": false,
     "errorPath": "offline.html"
   },
