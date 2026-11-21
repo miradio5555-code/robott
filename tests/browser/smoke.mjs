@@ -157,7 +157,10 @@ const VIEWPORTS = [
 
 // Экраны: что открыть и какой блок должен быть виден
 const SCREENS = [
-  { id: "login", name: "Вход", go: async () => { await open("?scn=loggedout"); }, see: "#view-login" },
+  { id: "home", name: "Главная (гость)", go: async () => { await open("?scn=loggedout#/"); }, see: "#view-home .lp-h1" },
+  { id: "home-rate", name: "Главная: курс юаня", go: async () => { await open("?scn=loggedout#/"); }, see: "#lp-rate .lp-rate-big b" },
+  { id: "home-nofx", name: "Главная без курса", go: async () => { await open("?scn=nofx#/"); }, see: "#view-home .lp-h1" },
+  { id: "login", name: "Вход", go: async () => { await open("?scn=loggedout#/login"); }, see: "#view-login" },
   { id: "today", name: "Сегодня", go: async () => { await open("?scn=veteran"); await tab("home"); }, see: "#tab-home" },
   { id: "orders", name: "Список заказов", go: async () => { await tab("orders"); await waitFor(visible("#orders [data-id]"), "карточки заказов"); }, see: "#orders [data-id]" },
   { id: "order-card", name: "Карточка заказа", go: async () => { await click('#orders [data-id] [data-act="open"]'); await waitFor(visible("#modal-detail.open #detail-body .detail"), "карточка заказа"); }, see: "#modal-detail.open .detail", after: closeModals },

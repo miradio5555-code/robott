@@ -1,0 +1,55 @@
+<!doctype html>
+<!-- Картинка-карточка ссылки (1200×630) для WhatsApp, Telegram и соцсетей.
+     Снимается скриптом scripts/landing_shots.mjs → img/og.jpg. На сайт этот файл не попадает. -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>OG card</title>
+<style>
+  @font-face { font-family: "Inter"; font-weight: 100 900; src: url(../fonts/inter-cyrillic.woff2) format("woff2"); unicode-range: U+0400-045F, U+2116; }
+  @font-face { font-family: "Inter"; font-weight: 100 900; src: url(../fonts/inter-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+2212; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body { font-family: Inter, system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased;
+    background: radial-gradient(760px 520px at 0% 0%, rgba(229, 72, 91, .38), transparent 62%),
+                radial-gradient(640px 440px at 100% 100%, rgba(229, 72, 91, .18), transparent 60%), #141317;
+    display: grid; grid-template-columns: 1fr 430px; gap: 48px; align-items: center; padding: 64px 72px; }
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 44px; }
+  .brand img { width: 64px; height: 64px; }
+  .brand span { font-size: 34px; font-weight: 800; letter-spacing: .01em; }
+  .brand b { color: #FF6B78; font-weight: 900; }
+  h1 { font-size: 52px; line-height: 1.04; letter-spacing: -.035em; font-weight: 800; margin-bottom: 26px; }
+  h1 em { display: block; font-style: normal; color: #FF6B78; }
+  p { font-size: 25px; line-height: 1.4; color: rgba(255,255,255,.72); max-width: 600px; }
+  .url { margin-top: 34px; display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); font-size: 22px; font-weight: 650; }
+  .url i { width: 10px; height: 10px; border-radius: 50%; background: #4FC08F; }
+  .card { padding: 30px; border-radius: 28px; background: #fff; color: #17191D; box-shadow: 0 40px 80px -20px rgba(0,0,0,.6); transform: rotate(-2deg); }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+  .head small { display: block; font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8A9099; margin-bottom: 6px; }
+  .head b { font-size: 27px; letter-spacing: -.01em; }
+  .pill { padding: 7px 14px; border-radius: 999px; background: #EAF2FB; color: #2B6CB5; font-size: 17px; font-weight: 700; }
+  ol { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin-bottom: 28px; }
+  ol::before { content: ""; position: absolute; left: 12.5%; right: 12.5%; top: 12px; height: 4px; border-radius: 4px; background: linear-gradient(90deg, #B50919 0 58%, #D5D9E0 58%); }
+  li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 15px; font-weight: 650; color: #17191D; text-align: center; }
+  li i { width: 28px; height: 28px; border-radius: 50%; background: #B50919; border: 4px solid #B50919; }
+  li.now i { background: #fff; box-shadow: 0 0 0 7px #FCEBEC; }
+  li.next { color: #8A9099; } li.next i { background: #fff; border-color: #D5D9E0; }
+  .rows { border-radius: 16px; overflow: hidden; background: #E8EBEF; display: grid; gap: 1px; }
+  .rows div { display: flex; justify-content: space-between; padding: 15px 18px; background: #F1F3F6; font-size: 18px; color: #626873; }
+  .rows b { color: #17191D; } .rows .red { color: #B50919; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="brand"><img src="../img/ula-mark-dark.png" alt=""><span><b>ULA</b> FACTORY</span></div>
+    <h1>Заказы из Китая&nbsp;— <em>под контролем от фабрики до клиента</em></h1>
+    <p>Заказы, оплаты, доставка и клиенты в одном месте. Клиент сам видит, где его товар.</p>
+    <div class="url"><i></i>ulafactory.com</div>
+  </div>
+  <div class="card">
+    <div class="head"><div><small>Заказ № SR-1079</small><b>Кроссовки, 40 пар</b></div><span class="pill">В пути</span></div>
+    <ol><li><i></i>Куплен</li><li><i></i>Склад в Китае</li><li class="now"><i></i>Граница</li><li class="next"><i></i>Бишкек</li></ol>
+    <div class="rows"><div><span>Доставка</span><b>через 5–7 дней</b></div><div><span>Осталось оплатить</span><b class="red">12 400 сом</b></div></div>
+  </div>
+</body>
+</html>

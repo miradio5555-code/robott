@@ -235,7 +235,7 @@
   function showView(name) {
     var boot = document.getElementById("boot");
     if (boot) boot.parentNode.removeChild(boot); // страница ожила — убрать «Загрузка…»
-    ["config", "login", "join", "admin", "client", "request", "shop"].forEach(function (v) {
+    ["config", "home", "login", "join", "admin", "client", "request", "shop"].forEach(function (v) {
       $("#view-" + v).classList.toggle("hidden", v !== name);
     });
     if (name !== shownView) {
@@ -250,6 +250,8 @@
         }, { once: true });
       } else playIn($("#view-" + name), "view-in");
     }
+    // уже входил на этом устройстве — в следующий раз сразу форма входа, без главной (js/home.js)
+    if (name === "admin" && ULA.home) ULA.home.rememberSignedIn();
     // пришёл по приглашению помощника — подсказать, что делать
     if (name === "login" && ULA.team) $("#login-team-note").classList.toggle("hidden", !ULA.team.pendingCode());
   }
@@ -347,7 +349,7 @@
   }
 
   // ---------- Запуск ----------
-  var APP_VERSION = "20261222f"; // та же версия, что в ?v= у файлов
+  var APP_VERSION = "20261223a"; // та же версия, что в ?v= у файлов
   var started = false;
   document.addEventListener("DOMContentLoaded", init);
 
@@ -441,6 +443,7 @@
     // Какая страница открыта:
     //   ?order=ТОКЕН     — страница клиента
     //   #/join/КОД       — регистрация байера по приглашению
+    //   #/login          — форма входа (без входа и без #/login гость видит главную, js/home.js)
     //   иначе            — вход и кабинет
     var token = new URLSearchParams(location.search).get("order");
     var join = location.hash.match(/^#\/join(?:\/([a-f0-9]{32}))?$/i);
@@ -449,7 +452,8 @@
     // (иначе вход через Google и «Забыли пароль» терялись и снова показывался вход).
     window.addEventListener("hashchange", function (e) {
       var wasJoin = String(e.oldURL || "").indexOf("#/join") !== -1;
-      if (/^#\/join/.test(location.hash) || (location.hash === "" && wasJoin)) location.reload();
+      // с регистрации на вход или главную (#/login, #/) — тоже перезагрузкой: форма регистрации живёт отдельно
+      if (/^#\/join/.test(location.hash) || (wasJoin && /^(#\/(login)?)?$/.test(location.hash))) location.reload();
     });
     showGoogleIfEnabled(url, key);
 
@@ -461,7 +465,7 @@
       initJoin(join[1] ? join[1].toLowerCase() : null);
     } else {
       mode = "admin";
-      initAdmin().then(function () { if (authErr) setLoginError(authErr); });
+      initAdmin(!!authErr).then(function () { if (authErr) setLoginError(authErr); });
     }
   }
 
@@ -597,6 +601,7 @@
       return;
     }
     if (ULA.passkey) ULA.passkey.renderLogin();
+    if (ULA.home) ULA.home.onLang();   // курс юаня на главной: числа и даты в формате нового языка
     if (mode === "request") {
       ULA.requests.render();
       return;
@@ -730,7 +735,8 @@
     return promise;
   }
 
-  async function initAdmin() {
+  // loginFirst — показать форму входа, а не главную (например, нужно показать ошибку входа)
+  async function initAdmin(loginFirst) {
     bindAdminUI();
     var recovering = false;
     // Перешли по ссылке «забыли пароль» из письма: сначала новый пароль, потом вход
@@ -768,7 +774,11 @@
     var session = res && res.data && res.data.session;
     if (session && ULA.recovery.isRecoveryLink()) recover(session);
     else if (session && !recovering) await enterAdminOnce(session.user);
-    else if (!session) { showView("login"); ULA.passkey.onLoginView(); }
+    else if (!session) {
+      // гость: главная страница (что это и для кого) или сразу вход — решает js/home.js
+      if (!loginFirst && ULA.home && ULA.home.showGuest()) return;
+      showView("login"); ULA.passkey.onLoginView();
+    }
   }
 
   // После входа: узнаём роль (админ / байер) и кабинет пользователя
@@ -1236,6 +1246,7 @@
         var fTok = await ULA.captcha.get("cf-settings");
         var fr = await db.auth.resetPasswordForEmail(state.me.email, { redirectTo: location.origin + location.pathname, captchaToken: fTok || undefined });
         if (fr.error && /rate|seconds|limit/i.test(fr.error.message || "")) { toast(t("reset_wait"), "error"); return; }
+        if (fr.error) { console.warn("reset", fr.error.message); toast(t(/captcha/i.test(fr.error.message || "") ? "captcha_err" : "error_generic"), "error"); return; }
         toast(t("reset_sent", { e: state.me.email }), "ok");
       } catch (err) {
         console.error(err);
