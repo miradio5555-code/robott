@@ -53,7 +53,7 @@ function build(scn) {
     return r;
   };
   db.mkOrder = mkOrder; db.mkClient = mkClient;
-  const N = { cab: 0, empty: 0, new1: 3, veteran: 420, staff: 40, fxoff: 12, fxoff0: 12, clients: 4, no55: 30, no54: 30 }[scn] ?? 12;
+  const N = { cab: 0, demo: 0, empty: 0, new1: 3, veteran: 420, staff: 40, fxoff: 12, fxoff0: 12, clients: 4, no55: 30, no54: 30 }[scn] ?? 12;
   const flow = ["new", "awaiting_payment", "purchasing", "china_warehouse", "in_transit", "arrived", "delivered", "cancelled"];
   for (let i = 0; i < N; i++) {
     const st = flow[i % flow.length];
@@ -75,6 +75,7 @@ function build(scn) {
     mkOrder({ client_name: "Айбек", product_ru: "Кроссовки", source: "request", status: "new" });
   }
   if (scn === "cab") buildCab(db, ws, mkClient, mkOrder);
+  if (scn === "demo") buildDemo(db, ws, mkClient, mkOrder);
   // байер с файлом 64: у заказов есть поля пути заказа → в карточке виден блок «Путь заказа для клиента»
   if (scn === "track") db.orders.forEach((o) => Object.assign(o, { track_stage: null, shipped_at: null, transit_days_min: null, transit_days_max: null, ship_to: null }));
   if (scn === "clients") {
@@ -150,6 +151,59 @@ function buildTrack(db, mkClient, o) {
   tk({ product_ru: "Шарф (этап не подходит к статусу)", status: "arrived", track_stage: "buying" });                        // CAB-19 → «Прибыл в страну назначения»
   tk({ product_ru: "Зонт (в пути без даты)", status: "in_transit", history: [{ event_type: "status", status: "in_transit", created_at: at(-3) }] });   // CAB-20: дата из истории
   db.cabinets.push({ token: T.D, client_id: D.id });
+}
+// Витрина для главной страницы (scripts/landing_shots.mjs): правдоподобный кабинет байера за год — клиенты, товары, деньги.
+// Всё выдумано и одинаково при каждом запуске. Заказ для страницы клиента: ?scn=demo&order=DEMO_TOKEN.
+export const DEMO_TOKEN = "d".repeat(32);
+function buildDemo(db, ws, mkClient, mkOrder) {
+  ws.name = "Silk Road Cargo"; ws.order_prefix = "SR"; ws.client_contact_phone = "+996555123456"; ws.client_contact_tg = "silkroad_cargo";
+  db.cabinets = []; db.wallet = []; db.delivery = {}; db.tgOn = new Set();
+  db.profiles[0].full_name = "Айбек Касымов";
+  const names = ["Айгерим Сапарова", "Бакыт Токтогулов", "Нурлан Асанов", "Элина Кадырова", "Тимур Жумабаев", "Мээрим Осмонова",
+    "Азамат Беков", "Жылдыз Маматова", "Улан Исаков", "Динара Абдыкадырова", "Эрлан Сыдыков", "Асель Нурбекова"];
+  const cities = ["Бишкек", "Бишкек", "Ош", "Бишкек", "Каракол", "Бишкек"];
+  const people = names.map((n, i) => mkClient(n, "+99655" + String(5100000 + i * 7311).slice(0, 7), { city: cities[i % cities.length], address: "ул. Киевская " + (10 + i), has_card: true }));
+  // товар, цена за штуку в юанях, сколько штук, вес кг, наценка
+  const goods = [["Кроссовки беговые", 118, 40, 38, 1.32], ["Детские пуховики", 145, 25, 30, 1.3], ["Чехлы для телефонов", 6.5, 300, 9, 1.6],
+    ["Женские сумки", 86, 30, 21, 1.38], ["Беспроводные наушники", 52, 60, 7, 1.42], ["Постельное бельё", 98, 24, 36, 1.3],
+    ["Конструкторы для детей", 41, 80, 44, 1.35], ["Зимние ботинки", 132, 36, 48, 1.3], ["Термосы 0,5 л", 23, 120, 42, 1.45],
+    ["LED-лампы", 9.8, 400, 26, 1.5], ["Школьные рюкзаки", 58, 45, 27, 1.36], ["Спортивные костюмы", 89, 40, 34, 1.33],
+    ["Кухонные наборы", 74, 30, 52, 1.34], ["Солнцезащитные очки", 14, 150, 8, 1.7], ["Пледы флисовые", 39, 60, 45, 1.4]];
+  const RATE = 12.4, USD = 87.5, TARIFF = 3.2;
+  const day = (n) => new Date(Date.now() - n * 864e5);
+  // активные заказы: последние две недели, все этапы
+  const active = [["new", 0, 0], ["new", 1, 0], ["awaiting_payment", 2, 0], ["awaiting_payment", 3, 0.5], ["purchasing", 4, 1], ["purchasing", 5, 1],
+    ["china_warehouse", 6, 1], ["china_warehouse", 8, 1], ["in_transit", 9, 1], ["in_transit", 11, 0.6], ["arrived", 13, 1], ["arrived", 14, 0.7]];
+  let n = 0, featured = null;
+  const make = (status, ago, paidPart, k) => {
+    const [title, unit, qty, kg, markup] = goods[k % goods.length];
+    const q = Math.round(qty * (0.8 + ((k * 37) % 9) / 20));
+    const cost = q * unit * RATE + kg * TARIFF * USD;
+    const price = Math.round((cost * markup) / 100) * 100;
+    const d = day(ago);
+    n++;
+    const o = mkOrder({ client_id: people[k % people.length].id, client_name: people[k % people.length].name, client_phone: people[k % people.length].phone, order_number: "SR-" + (1000 + n), status, product_ru: title + ", " + q + " шт",
+      unit_price_cny: unit, quantity: q, exchange_rate: RATE, weight_kg: ["new", "awaiting_payment", "purchasing"].includes(status) ? 0 : kg, delivery_cost: kg * TARIFF, delivery_rate: USD,
+      client_currency: "KGS", client_price: price, paid_amount: Math.round(price * paidPart / 100) * 100, tracking_number: ["in_transit", "arrived", "delivered"].includes(status) ? "YT26" + String(110000 + n * 731) : null,
+      order_date: iso(d).slice(0, 10), created_at: iso(d), supplier: "1688" });
+    return o;
+  };
+  // история за 12 месяцев: выданные заказы (растущий бизнес: к концу года заказов больше)
+  for (let m = 11; m >= 0; m--) {
+    const cnt = 3 + Math.round((11 - m) * 0.6);
+    for (let i = 0; i < cnt; i++) make(i === cnt - 1 && m % 4 === 2 ? "cancelled" : "delivered", 16 + m * 30 + i * 4, i === 0 && m < 2 ? 0.5 : 1, m * 7 + i * 3);
+  }
+  active.slice().reverse().forEach(([st, ago, paid], i) => { const o = make(st, ago, paid, i * 5 + 2); if (st === "in_transit" && !featured) featured = o; });
+  // заказ для страницы клиента: кроссовки в пути, путь заказа заполнен
+  const at = (k) => iso(day(k));
+  Object.assign(featured, { product_ru: "Кроссовки беговые, 40 шт", public_token: DEMO_TOKEN, track_stage: "shipped", shipped_at: at(6).slice(0, 10), transit_days_min: 10, transit_days_max: 14,
+    ship_to: "Бишкек, Кыргызстан", client_comment: "Груз в машине, всё по плану", client_card_ok: true,
+    history: [{ event_type: "status", status: "new", created_at: at(16) }, { event_type: "payment", paid_total: featured.paid_amount, created_at: at(15) },
+      { event_type: "status", status: "purchasing", created_at: at(14) }, { event_type: "stage", status: "purchasing", stage: "bought", note: null, created_at: at(12) },
+      { event_type: "status", status: "china_warehouse", created_at: at(9) }, { event_type: "stage", status: "china_warehouse", stage: "packing", note: "Вес 38 кг, 2 коробки", created_at: at(8) },
+      { event_type: "status", status: "in_transit", created_at: at(6) }, { event_type: "stage", status: "in_transit", stage: "shipped", note: "Груз в машине, всё по плану", created_at: at(6) }] });
+  calc(featured);
+  db.tgOn.add(featured.id);
 }
 function calc(r) {
   const cost = Number(r.quantity) * Number(r.unit_price_cny) * Number(r.exchange_rate) + Number(r.delivery_cost) * Number(r.delivery_rate);
