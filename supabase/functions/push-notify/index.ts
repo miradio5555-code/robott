@@ -4,8 +4,9 @@
 // Приходят на телефон и компьютер, даже когда сайт закрыт. Что умеет (поле action):
 //   "support" — написали в поддержку: байер → всем администраторам; администратор (с полем user) → этому байеру.
 //   "kyc"     — байер отправил документы на проверку → администраторам.
-//   "exchange" / "exchange_paid" — клиент оставил заявку на обмен / загрузил оплату (без входа, по номеру заявки) → владельцу кабинета.
-//   "exchange_msg" — клиент написал в чат заявки на обмен (без входа, по номеру заявки) → владельцу кабинета (файл 77).
+//   "exchange" / "exchange_paid" — клиент оставил заявку на обмен / загрузил оплату (без входа, по номеру заявки);
+//   "exchange_msg" — клиент написал в чат заявки на обмен (без входа, по номеру заявки; файл 77).
+//      Об обмене получают владелец кабинета и активные сотрудники с полным доступом (право orders.all).
 //   "request" — клиент оставил заявку на товар по ссылке (без входа, по ссылке слежения) → владельцу кабинета.
 // Ключи отправителя создаются сами при первом запуске и лежат в таблице push_keys (читает только эта функция).
 // =====================================================
@@ -60,6 +61,22 @@ Deno.serve(async (req) => {
       }));
       return n;
     };
+    // кому в кабинете слать push об обмене: владелец + активные сотрудники с полным доступом
+    // (роль владельца или право orders.all — те же люди, что видят заявки на обмен, как is_member в базе)
+    const wsPeople = async (wsId: string, ownerId: string | null) => {
+      const ids = new Set<string>();
+      if (ownerId) ids.add(ownerId);
+      const { data: mem } = await db.from("workspace_members").select("user_id, role, role_key, deactivated_at").eq("workspace_id", wsId);
+      const { data: roles } = await db.from("ws_roles").select("key, permissions").eq("workspace_id", wsId);
+      const full = new Set((roles ?? []).filter((r: any) => (r.permissions ?? []).includes("orders.all")).map((r: any) => r.key as string));
+      const cand = (mem ?? []).filter((m: any) => !m.deactivated_at && (m.role === "owner" || (m.role_key && full.has(m.role_key))))
+        .map((m: any) => m.user_id as string);
+      if (cand.length) {
+        const { data: act } = await db.from("profiles").select("user_id").in("user_id", cand).eq("is_active", true);
+        (act ?? []).forEach((p: any) => ids.add(p.user_id as string));
+      }
+      return [...ids];
+    };
     const admins = async () => {
       const { data } = await db.from("profiles").select("user_id").eq("role", "admin").eq("is_active", true);
       return (data ?? []).map((r: any) => r.user_id as string);
@@ -78,8 +95,7 @@ Deno.serve(async (req) => {
       const { data: x } = await q.select("workspace_id, client_name, cny, som").maybeSingle();
       if (!x) return json({ ok: true, sent: 0 });
       const { data: w } = await db.from("workspaces").select("owner_id").eq("id", x.workspace_id).maybeSingle();
-      if (!w?.owner_id) return json({ ok: true, sent: 0 });
-      const sent = await send([w.owner_id], {
+      const sent = await send(await wsPeople(x.workspace_id, w?.owner_id ?? null), {
         title: paid ? "💰 Клиент оплатил обмен" : "💱 Новая заявка на обмен",
         body: String(x.client_name || "—").slice(0, 60) + " · ¥" + x.cny + " = " + x.som + " сом",
         tag: "fx",
@@ -102,11 +118,10 @@ Deno.serve(async (req) => {
       const { data: x } = await db.from("exchange_requests").select("workspace_id, client_name").eq("id", id).maybeSingle();
       if (!x) return json({ ok: true, sent: 0 });
       const { data: w } = await db.from("workspaces").select("owner_id").eq("id", x.workspace_id).maybeSingle();
-      if (!w?.owner_id) return json({ ok: true, sent: 0 });
       const list = [...evs].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
       const last = list[list.length - 1];
       const text = String(last.body || (last.file_path ? "📷 Фото" : "")).slice(0, 140);
-      const sent = await send([w.owner_id], {
+      const sent = await send(await wsPeople(x.workspace_id, w?.owner_id ?? null), {
         title: "💬 " + String(x.client_name || "Клиент").slice(0, 60) + (list.length > 1 ? " · " + list.length + " сообщ." : ""),
         body: text + "\nЧат заявки на обмен — откройте «Обмен», чтобы ответить.",
         tag: "fxchat-" + id,
