@@ -99,9 +99,9 @@
           <a href="#lp-services" data-lp-go="lp-services" data-i18n="lp_nav_services"></a>
           <a href="#lp-show" data-lp-go="lp-show" data-i18n="lp_nav_show"></a>
           <a href="#lp-faq" data-lp-go="lp-faq" data-i18n="lp_nav_faq"></a>
-          <a href="#lp-track" data-lp-go="lp-track" data-i18n="lp_nav_clients"></a>
         </nav>
         <div class="lp-nav-act">
+          <a class="lp-rate-chip hidden" id="lp-rate-chip" href="#lp-rate" data-lp-go="lp-rate"><span class="lp-live" aria-hidden="true"></span><span class="lp-chip-y">¥</span><b id="lp-rate-chip-v"></b><i id="lp-rate-chip-d" aria-hidden="true"></i></a>
           <div class="lang-switch lp-lang" role="group" aria-label="Language">
             <button type="button" data-lang="ru" title="Русский">RU</button>
             <button type="button" data-lang="en" title="English">EN</button>
@@ -157,6 +157,31 @@
             <b data-i18n="lp_demo_profit_v"></b>
             <svg viewBox="0 0 120 36" preserveAspectRatio="none"><path d="M2 30 L22 26 L40 28 L58 18 L76 20 L96 9 L118 4"/></svg>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1½. Курс юаня ULA на сегодня — виден всем без входа (функция public_fx, файл 75; заполняет js/home.js).
+         Пока курс не загрузился или его нет — блок спрятан. -->
+    <section class="lp-rate hidden" id="lp-rate" aria-labelledby="lp-rate-h">
+      <div class="lp-wrap">
+        <div class="lp-rate-card">
+          <div class="lp-rate-main">
+            <p class="lp-rate-kicker"><span class="lp-live" id="lp-rate-live" aria-hidden="true"></span><span id="lp-rate-when"></span></p>
+            <h2 class="lp-rate-h" id="lp-rate-h" data-i18n="lp_rate_h"></h2>
+            <p class="lp-rate-big"><span class="lp-rate-one">1&nbsp;¥&nbsp;=</span> <b id="lp-rate-val"></b> <span class="lp-rate-cur" data-i18n="fx_som_short"></span></p>
+            <p class="lp-rate-move hidden" id="lp-rate-move"></p>
+            <div class="lp-rate-tiers" id="lp-rate-tiers"></div>
+            <div class="lp-rate-chart" id="lp-rate-chart"></div>
+          </div>
+          <form class="lp-rate-calc" id="lp-rate-form" novalidate>
+            <label class="lp-rate-label" for="lp-rate-cny" data-i18n="lp_rate_calc"></label>
+            <div class="lp-rate-in"><input id="lp-rate-cny" type="text" inputmode="decimal" autocomplete="off" maxlength="12"><span aria-hidden="true">¥</span></div>
+            <div class="lp-rate-out" aria-live="polite"><span data-i18n="lp_rate_pay"></span><b id="lp-rate-som">—</b></div>
+            <p class="lp-rate-at" id="lp-rate-at"></p>
+            <a class="btn lp-btn-main lp-btn-lg lp-rate-go" href="#/join" data-i18n="lp_rate_cta"></a>
+            <p class="lp-rate-note"><span data-i18n="lp_rate_note"></span> <span id="lp-rate-eta"></span></p>
+          </form>
         </div>
       </div>
     </section>

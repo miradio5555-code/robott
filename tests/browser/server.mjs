@@ -306,7 +306,15 @@ function clientRpc(db, name, a) {
   }
   return null;
 }
+// файл 75: курс ULA для главной (гостю — только цифры курса, без заметки с реквизитами). Сценарий nofx — гость, курса нет.
+function publicFx(db) {
+  if (db.scn === "nofx") return null;
+  const day = (k, h) => { const d = NOW(); d.setDate(d.getDate() - k); d.setHours(h, 30, 0, 0); return iso(d); };
+  const hist = [[34, 12.74], [26, 12.70], [21, 12.66], [15, 12.71], [11, 12.68], [6, 12.64], [3, 12.69], [0, 12.62]].map(([k, r]) => ({ at: day(k, 9), r }));
+  return { tiers: [{ from: 1000, rate: 12.62 }, { from: 10000, rate: 12.55 }, { from: 50000, rate: 12.48 }], eta: 120, updated_at: day(0, 9), hist };
+}
 function rpc(db, name, a) {
+  if (name === "public_fx") return ok(publicFx(db));
   if (name === "my_focus_add") {   // файл 72: минуты к дню и к задаче
     const m = Number(a.p_minutes); if (!(m >= 1 && m <= 240)) return err("bad_minutes", "22023");
     let d = db.my_focus_days.find((x) => x.day === a.p_day); if (!d) { d = { day: a.p_day, minutes: 0 }; db.my_focus_days.push(d); }

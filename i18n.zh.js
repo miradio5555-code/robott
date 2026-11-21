@@ -3165,3 +3165,19 @@ I18N.zh.lp_q7 = "可以和经理一起工作吗？";
 I18N.zh.lp_a7 = "可以。邀请团队成员，分配角色和权限，布置任务。他们能做什么——删除、查看利润、修改设置——由您决定。";
 I18N.zh.lp_q8 = "支持哪些语言？";
 I18N.zh.lp_a8 = "俄语、英语、中文和越南语。一键切换语言，方便与中国的同事合作。";
+
+// главная: курс юаня ULA для всех (js/home.js, файл 75)
+I18N.zh.lp_rate_h = "今日人民币汇率";
+I18N.zh.lp_rate_today = "ULA 汇率 · 今天 {t} 更新";
+I18N.zh.lp_rate_on = "ULA 汇率 · {d} 更新";
+I18N.zh.lp_rate_down = "便宜 {n} 索姆 · 原为 {was}";
+I18N.zh.lp_rate_up = "上涨 {n} 索姆 · 原为 {was}";
+I18N.zh.lp_rate_flat = "近 {n} 天汇率未变";
+I18N.zh.lp_rate_chart_a = "汇率走势：1 ¥ 兑 {lo}–{hi} 索姆";
+I18N.zh.lp_rate_chip_a = "今日人民币汇率：1 ¥ = {n} 索姆";
+I18N.zh.lp_rate_calc = "需要多少人民币？";
+I18N.zh.lp_rate_pay = "应付";
+I18N.zh.lp_rate_hint = "输入人民币金额，自动换算成索姆";
+I18N.zh.lp_rate_at = "汇率 {r}";
+I18N.zh.lp_rate_cta = "兑换人民币";
+I18N.zh.lp_rate_note = "免费注册后即可兑换。ULA 汇率每天更新。";

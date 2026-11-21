@@ -95,6 +95,8 @@ echo "▶ Мои цели: личные цели, доска, фокус дня 
 bash tests/goals_test.sh
 echo "▶ Карта фабрик у каждого байера своя (файл 73)…"
 bash tests/factory_maps_test.sh
+echo "▶ Курс юаня на главной для всех (файл 75)…"
+bash tests/public_fx_test.sh
 
 echo ""
 echo "🎉 Все проверки пройдены"

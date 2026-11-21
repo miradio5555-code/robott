@@ -601,6 +601,7 @@
       return;
     }
     if (ULA.passkey) ULA.passkey.renderLogin();
+    if (ULA.home) ULA.home.onLang();   // курс юаня на главной: числа и даты в формате нового языка
     if (mode === "request") {
       ULA.requests.render();
       return;

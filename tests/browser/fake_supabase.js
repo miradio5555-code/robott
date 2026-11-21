@@ -54,7 +54,7 @@
   } catch (e) { /* ignore */ }
   var listeners = [];
   var user = { id: scn === "staff" || scn === "teamstaff" ? "u-staff" : "u-owner", email: "test@example.test", user_metadata: { full_name: "Тест" }, app_metadata: { providers: ["email"] } };
-  var session = scn === "loggedout" ? null : { user: user, access_token: "fake" };
+  var session = scn === "loggedout" || scn === "nofx" ? null : { user: user, access_token: "fake" };   // nofx — гость, курса ULA нет
   var chan = { on: function () { return chan; }, subscribe: function () { return chan; }, unsubscribe: function () {} };
   var client = {
     from: Q,

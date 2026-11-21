@@ -5444,7 +5444,7 @@ button.gl-chip.brd { cursor: pointer; }
 .lp-hide-sm { display: none; }
 @media (min-width: 600px) { .lp-hide-sm { display: inline-flex; } }
 @media (min-width: 720px) { .lp-lang { display: inline-flex; } }
-@media (min-width: 1040px) { .lp-links { display: flex; } }
+@media (min-width: 1200px) { .lp-links { display: flex; } }
 
 /* первый экран */
 .lp-hero { position: relative; padding: 40px 0 56px;
@@ -5654,3 +5654,85 @@ html[data-theme="dark"] .lp-browser { box-shadow: 0 40px 90px -30px rgba(0,0,0,.
 .lp-faq summary:hover::after { background: var(--fill-2); }
 .lp-faq details p { padding: 0 22px 20px; color: var(--text-2); line-height: 1.6; }
 @media (prefers-reduced-motion: reduce) { .lp-pane:not([hidden]) { animation: none; } .lp-faq summary::before, .lp-faq summary::after { transition: none; } }
+
+/* =====================================================
+   ГЛАВНАЯ: «Курс юаня сегодня» (#lp-rate) и значок курса в шапке — js/home.js, файл 75
+   Тёмное «табло» в обеих темах: курс крупно, как изменился, ступени, график; справа — калькулятор.
+   ===================================================== */
+.lp-rate { padding: 0 0 48px; margin-top: -16px; }
+.lp-rate-card { position: relative; display: grid; gap: 18px; padding: 22px; border-radius: 28px; overflow: hidden; color: #fff;
+  background: radial-gradient(620px 360px at 0% 0%, rgba(229, 72, 91, .30), transparent 62%),
+              radial-gradient(520px 320px at 100% 100%, rgba(229, 72, 91, .14), transparent 60%), var(--lp-ink);
+  box-shadow: 0 30px 70px -28px rgba(20, 19, 23, .55); }
+html[data-theme="dark"] .lp-rate-card { background-color: #1B191F; border: 1px solid rgba(255,255,255,.08); box-shadow: none; }
+@media (min-width: 860px) { .lp-rate-card { grid-template-columns: 1.25fr 1fr; gap: 28px; padding: 32px; align-items: center; } }
+
+.lp-live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #4FC08F; box-shadow: 0 0 0 4px rgba(79, 192, 143, .22);
+  animation: lp-live 2.4s ease-in-out infinite; }
+.lp-live.old { background: #9A9AA3; box-shadow: none; animation: none; }
+@keyframes lp-live { 50% { box-shadow: 0 0 0 7px rgba(79, 192, 143, .06); } }
+
+.lp-rate-kicker { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: var(--fs-sm); font-weight: 650; color: rgba(255,255,255,.7); }
+.lp-rate-h { margin: 0; font-size: var(--fs-xl); font-weight: 700; letter-spacing: -.01em; color: #fff; }
+.lp-rate-big { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 4px; line-height: 1; }
+.lp-rate-big b { font-size: clamp(52px, 9vw, 76px); font-weight: 800; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.lp-rate-one, .lp-rate-cur { font-size: var(--fs-2xl); font-weight: 650; color: rgba(255,255,255,.66); }
+.lp-rate-move { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 0; padding: 5px 12px; border-radius: var(--r-pill);
+  font-size: var(--fs-md); font-weight: 650; font-variant-numeric: tabular-nums; }
+.lp-rate-move.down { background: rgba(79, 192, 143, .16); color: #7BE0A6; }
+.lp-rate-move.up { background: rgba(255, 107, 120, .16); color: #FF8F99; }
+
+.lp-rate-tiers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.lp-rate-tiers:empty { display: none; }
+.lp-tier { display: inline-flex; align-items: baseline; gap: 8px; padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1); font-variant-numeric: tabular-nums; transition: background .2s, border-color .2s; }
+.lp-tier small { font-size: var(--fs-sm); color: rgba(255,255,255,.62); }
+.lp-tier b { font-size: var(--fs-md); }
+.lp-tier.on { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); }
+
+.lp-rate-chart { margin-top: 18px; }
+.lp-rate-days { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 8px; border-radius: var(--r-pill); background: rgba(255,255,255,.07); }
+.lp-rate-days button { min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: transparent; color: rgba(255,255,255,.7);
+  font: inherit; font-size: var(--fs-sm); font-weight: 650; cursor: pointer; }
+.lp-rate-days button[aria-pressed="true"] { background: rgba(255,255,255,.16); color: #fff; }
+.lp-rate-chart svg { display: block; width: 100%; height: 72px; overflow: visible; }
+.lp-rate-line { fill: none; stroke: #FF6B78; stroke-width: 2.5; stroke-linejoin: round; }
+.lp-rate-area { fill: rgba(255, 107, 120, .14); stroke: none; }
+.lp-rate-plot { position: relative; }
+.lp-rate-dot { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: #fff;
+  border: 2.5px solid #FF6B78; box-sizing: border-box; box-shadow: 0 0 0 5px rgba(255, 107, 120, .18); }
+/* переход к разделам главной: заголовок не прячется под липкой шапкой */
+.lp section[id] { scroll-margin-top: 76px; }
+.lp-rate-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: var(--fs-xs); color: rgba(255,255,255,.55); font-variant-numeric: tabular-nums; }
+.lp-rate-flat { margin: 0; font-size: var(--fs-sm); color: rgba(255,255,255,.55); }
+
+/* калькулятор — белая карточка на табло */
+.lp-rate-calc { display: grid; gap: 12px; padding: 20px; border-radius: 22px; background: var(--surface); color: var(--text); box-shadow: 0 20px 40px -18px rgba(0,0,0,.5); }
+html[data-theme="dark"] .lp-rate-calc { background: #26232B; border: 1px solid rgba(255,255,255,.08); }
+.lp-rate-label { font-size: var(--fs-md); font-weight: 650; color: var(--text-2); }
+.lp-rate-in { position: relative; }
+.lp-rate-in input { width: 100%; min-height: 56px; padding: 10px 44px 10px 16px; border-radius: 16px; border: 1px solid var(--border-field);
+  background: var(--field); color: var(--text); font: inherit; font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lp-rate-in input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-tint); }
+.lp-rate-in span { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: var(--fs-xl); font-weight: 700; color: var(--text-3); pointer-events: none; }
+.lp-rate-out { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--surface-sunken); }
+.lp-rate-out span { flex: none; font-size: var(--fs-md); color: var(--text-2); }
+.lp-rate-out b { font-size: var(--fs-3xl); font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.lp-rate-out b.lp-rate-min { font-size: var(--fs-md); font-weight: 650; color: var(--warning-text); }
+.lp-rate-at { margin: -4px 0 0; min-height: 1.3em; font-size: var(--fs-sm); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.lp-rate-go { width: 100%; }
+.lp-rate-note { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-3); }
+.lp-rate-note span:empty { display: none; }
+
+/* значок курса в шапке: «● ¥ 12,60 ▼» — видно с первого взгляда, ведёт к блоку */
+.lp-rate-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-pill);
+  border: 1px solid var(--border); background: var(--surface); font-size: var(--fs-md); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lp-rate-chip.hidden { display: none; }
+.lp-rate-chip .lp-chip-y { color: var(--text-3); font-weight: 700; }
+.lp-rate-chip b { font-weight: 750; color: var(--text); }
+.lp-rate-chip i { font-style: normal; font-size: 10px; }
+.lp-rate-chip i.down { color: var(--success-text); }
+.lp-rate-chip i.up { color: var(--accent-text); }
+.lp-rate-chip:empty, .lp-rate-chip i:empty { display: none; }
+@media (max-width: 380px) { .lp-rate-chip .lp-live { display: none; } .lp-rate-chip { padding: 0 10px; } }
+@media (prefers-reduced-motion: reduce) { .lp-live { animation: none; } }

@@ -3137,3 +3137,19 @@ I18N.vi.lp_q7 = "Có thể làm việc cùng quản lý không?";
 I18N.vi.lp_a7 = "Có. Mời nhân viên, giao vai trò và quyền, giao nhiệm vụ. Họ được làm gì — xóa, xem lợi nhuận, đổi cài đặt — do bạn quyết định.";
 I18N.vi.lp_q8 = "Hỗ trợ những ngôn ngữ nào?";
 I18N.vi.lp_a8 = "Tiếng Nga, tiếng Anh, tiếng Trung và tiếng Việt. Đổi ngôn ngữ chỉ một chạm — tiện khi đồng nghiệp ở Trung Quốc làm cùng bạn.";
+
+// главная: курс юаня ULA для всех (js/home.js, файл 75)
+I18N.vi.lp_rate_h = "Tỷ giá nhân dân tệ hôm nay";
+I18N.vi.lp_rate_today = "Tỷ giá ULA · cập nhật hôm nay lúc {t}";
+I18N.vi.lp_rate_on = "Tỷ giá ULA · cập nhật {d}";
+I18N.vi.lp_rate_down = "rẻ hơn {n} som · trước đây {was}";
+I18N.vi.lp_rate_up = "đắt hơn {n} som · trước đây {was}";
+I18N.vi.lp_rate_flat = "Tỷ giá không đổi trong {n} ngày qua";
+I18N.vi.lp_rate_chart_a = "Biểu đồ tỷ giá: từ {lo} đến {hi} som cho 1 ¥";
+I18N.vi.lp_rate_chip_a = "Tỷ giá hôm nay: {n} som cho 1 ¥";
+I18N.vi.lp_rate_calc = "Bạn cần bao nhiêu nhân dân tệ?";
+I18N.vi.lp_rate_pay = "Cần trả";
+I18N.vi.lp_rate_hint = "Nhập số nhân dân tệ — chúng tôi quy ra som";
+I18N.vi.lp_rate_at = "theo tỷ giá {r}";
+I18N.vi.lp_rate_cta = "Đổi nhân dân tệ";
+I18N.vi.lp_rate_note = "Đổi tiền sau khi đăng ký miễn phí. Tỷ giá ULA cập nhật mỗi ngày.";

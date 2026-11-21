@@ -3165,3 +3165,19 @@ I18N.en.lp_q7 = "Can I work together with managers?";
 I18N.en.lp_a7 = "Yes. Invite team members, give them roles and permissions, assign tasks. You decide what they can do — delete, see profit, change settings.";
 I18N.en.lp_q8 = "Which languages does it support?";
 I18N.en.lp_a8 = "Russian, English, Chinese and Vietnamese. Switch the language in one click — handy if colleagues in China work with you.";
+
+// главная: курс юаня ULA для всех (js/home.js, файл 75)
+I18N.en.lp_rate_h = "Yuan rate today";
+I18N.en.lp_rate_today = "ULA rate · updated today at {t}";
+I18N.en.lp_rate_on = "ULA rate · updated {d}";
+I18N.en.lp_rate_down = "{n} som cheaper · was {was}";
+I18N.en.lp_rate_up = "{n} som dearer · was {was}";
+I18N.en.lp_rate_flat = "No change in the last {n} days";
+I18N.en.lp_rate_chart_a = "Rate chart: from {lo} to {hi} som per 1 ¥";
+I18N.en.lp_rate_chip_a = "Yuan rate today: {n} som per 1 ¥";
+I18N.en.lp_rate_calc = "How many yuan do you need?";
+I18N.en.lp_rate_pay = "You pay";
+I18N.en.lp_rate_hint = "Enter an amount in yuan — we’ll show it in som";
+I18N.en.lp_rate_at = "at {r}";
+I18N.en.lp_rate_cta = "Exchange yuan";
+I18N.en.lp_rate_note = "Exchange is available after free sign-up. The ULA rate is updated every day.";
