@@ -1,0 +1,689 @@
+{
+ "updatedAt": "2026-11-21T08:06:00.313Z",
+ "regions": {
+  "china": "Китай",
+  "europe": "Европа",
+  "usa": "США",
+  "central-asia": "Средняя Азия",
+  "sea": "Юго-Восточная Азия"
+ },
+ "themes": {
+  "ecommerce": "Электронная торговля",
+  "economy": "Экономика"
+ },
+ "failed": [],
+ "items": [
+  {
+   "title": "США ввели санкции против четырех граждан Ирана",
+   "source": "Бакинский рабочий",
+   "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxQUE5MWGdzRTk5dFFqTUsyQ2VEOEZMczhZanVFUHF6a0c5Sktsa3JOcEk3U0lYbEZKS1c4WGxNUllETG5qT1psdWZha05FZEJlZllEZ1VENjgzSmVlN0ZYMExQOGZTc1lHbllWdnBLSERIbThOR185MzhNUlJOYWFvMndmbzViUQ?oc=5",
+   "publishedAt": "2026-11-21T07:38:07.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Четыре страны Центральной Азии готовят единую площадку для торговли электричеством",
+   "source": "Podrobno.uz",
+   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQeUlKNzZHTXFMOE0yclBicFJfb19YR2VNRWptc29fUUJJMVdQVFRyYVhxRHRfRHZSS2FWeTRSa1B2ZlpqX2tXMFB5MjZIWDhGaUp6YXhjZWtvSVJrMjBmMzU4b3d6UlNFUmFxRE96aVdySUEzUjBtZFhSZ3lzdHUtUU51QlN6a3hoNV84UnUzenFQaG8yaFUyS1UzRFQxOTI4SHdyMmo2MEdKRnBpTmxfdlp5d0l2NXBHX29sYXZtOU81dw?oc=5",
+   "publishedAt": "2026-11-21T07:00:35.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Брексит продолжает оказывать давление на европейскую автомобильную промышленность.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE8ybmx4QkV2cDNxT3Q2OWpEOUkzN1VCbVVScmJEUDAzZlAtb3REMnZWRnRLZlJaLUtGR3hjenNLTzZDeC14OWNYTElMN1N5YXBsWU51R3lST1l6aENOd1dENVJLdTVRakJKNFdDZndHc1N6RHQ5UjVBYlk0NmdFb00?oc=5",
+   "publishedAt": "2026-11-21T06:58:30.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Объем иностранных инвестиций в хайтек Китая за десять месяцев вырос на треть",
+   "source": "prospect.com.ru",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxQRGFESnBCRkdhRWtrWElVMzgyRW5VYlhHOHk4ekZ2UUtRaHlRMWhUaWRfTS1aT1cyT3BER0FWcnk4WU94eGxhdUUxdEVxTG83S2FsNEh2U05kZ3ZMU2p0Nmh5UFEzeFlMbGtrVjZFU2d4bWs2Vnotd1B2dkY5YzNWb2dhZnlLTmJOSmF1X0ZKOXVNT2lURld4WUczbVMzS0VTT0hvOTdvVjVJM1hEOWRNb3h5NFBTRmNDYnBjMw?oc=5",
+   "publishedAt": "2026-11-21T06:30:52.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Экономика быстрой доставки: сколько зарабатывают курьеры в Казахстане и Китае",
+   "source": "Казинформ",
+   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxPLS1PWkFIODJiQUM1bkJYaVA2RDFtN3BPelhpaFpDX0sybmtvMmJJUjJ4bGFNYWk1dUx3LTJGUFZkSnlOQnJyWlU5UVNRaG9uTnRUOUw3bWxiY1hmNURHdkl5RGswN0RhNHpxZXBaQUNTT21iaFdLa203U3MtU0FZSUp4aUFwZTFOamVKbFJIV3NuRWlRdjlpVGNieFJqZjFHZEtaTUZ5dVZEbHFvZDNz0gGvAUFVX3lxTE8tLU9aQUg4MmJBQzVuQlhpUDZEMW03cE96WGloWkNfSzJua28yYklSMnhsYU1haTV1THctMkZQVmRKeU5CcnJaVTlRU1Fob25OdFQ5TDdtbGJjWGY1REd2SXlEazA3RGE0enFlcFpBQ1NPbWJoV0trbTdTcy1TQVlJSnhpQXBlMU5qZUpsUkhXc25FaVF2OWlUY2J4UmpmMUdkS1pNRnl1VkRscW9kM3M?oc=5",
+   "publishedAt": "2026-11-21T06:00:00.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Что будет с долларом, если США признают биткоин стратегическим резервным активом",
+   "source": "Белновости",
+   "url": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxOODVhZDZNQVZVV2F2Xzk0MWV5V2dzeVNvam4yRWE4bDRkLWlRRmQwazFYRnNtUTdwODF2UG1FY2VzYnNtWnFmbExGX3JyNnc4d3pqRWpIMlZSN2s5bmROT3p6UG90ZzQtS2dTaGp3SkVsMjJzX1d2MjB0bktvU3FXaHFxMzJoU1pGRC1EZ1lvdEo4eFR1ZEo0NHhHdmpkOE1OWTVtUHJBaThCZTRKbXRrWm9OMTlXZmp6Sy1Z?oc=5",
+   "publishedAt": "2026-11-21T04:05:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Вьетнамский рынок смартфонов вырос на 1% в третьем квартале 2026 года, в то время как в Юго-Восточной Азии наблюдалось снижение на 36%, при этом Xiaomi впервые вышла в лидеры.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxONFdNZG13aWQyTHlGdVVFU1lXVmdMMXJtd2VhTDU4V0g1R2FMVTZnRl9PRk9hN2ZTRE11cXExZWZsQnpEVEtrM1hWN3c2TllKaTZQamJfTE16U0I0aWV4enN0R0otbGFCbXBPTHQ0UGZFb293aGxOdFk1SkxqQVdOMlExbEVrb0R2YWRQcVJ1Rl9GOHRKRVI5VWdwS1BRaXdZNDNqaTFCRDN5Wk5nVmh5X0JybGhfSzdS?oc=5",
+   "publishedAt": "2026-11-21T03:22:54.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Глава Минфина США заявил, что мир может обойтись без иранской нефти",
+   "source": "Интерфакс",
+   "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE9WVVU1MDhjaEtyYm00QlIyWFhMVTNLS3g3Y1lMVWx5U0toRGdJLUZqTUZRX3hkV1plOXlLNGYyUXltUG51bU1FSGhrY9IBS0FVX3lxTE9WVVU1MDhjaEtyYm00QlIyWFhMVTNLS3g3Y1lMVWx5U0toRGdJLUZqTUZRX3hkV1plOXlLNGYyUXltUG51bU1FSGhrYw?oc=5",
+   "publishedAt": "2026-11-21T00:07:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Маск: \"Продолжим расширять производство автомобилей в Китае\"... В центре внимания шанхайский завод Tesla... Tesla наращивает экспорт на фоне падения продаж в КНР",
+   "source": "재경일보",
+   "url": "https://news.google.com/rss/articles/CBMiYkFVX3lxTFBURmlSMTRmUXlVaW1iOE5rLWotU09NQWk1ZG1oWmJkd2NqcWNRcGFaekNpcmhYNmZLUl9BRlN0VGNMRTB2eTZxV2xSQVhqaUIyZmR1YWhTY3NpVk9tUVJ6RDZ3?oc=5",
+   "publishedAt": "2026-11-20T23:22:00.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "США установили рекорд по экспорту СПГ на фоне разницы цен с Европой – ОСН",
+   "source": "Общественная служба новостей",
+   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPUmRabkE5MFdMVENkZlFwYVpsTkRkVFhRSWx1US03ZGZFanc4TjNfbFRRRGF1Wlo2NWl2d1B4RGRtZHlvYl9YTnhuM0pCMG9IX2k1MWgxTWpkTkl6SmdWODFDSUtNY21TY29iYXY1UW9WdHRJSjB3QkhWX2ZtUFRDVGhacWxKV3J6VlRXUjl5aTR6MGZYb2JSaHp4Z0R2QUV1WUNuRnNtNVJsQ3BHSGc?oc=5",
+   "publishedAt": "2026-11-20T22:59:49.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Новости 20 ноября: рынки в США идут вниз после IPO Anthropic",
+   "source": "Економічна правда",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxOd2JZM3Y2d3pmTDkwckUxQnVhMnQ2VExEandqNVdLMmMzRUZzczA2SFI1ZDNkcHJVeDRCLV95TzVCcHBuYTdMRHR3QjZEWkcwMHBjNUtBdjBONDdFWTZraVc4Skp4eFRiQmNjcWNQUzRYWmtqU3J2NGI4UlNyWEozR1AwdzNVYkNMLWVmOEhNLUVLbVRFUzM2SEplNWYxQmtBOEZyWdIBsAFBVV95cUxOMDAxRHNNY3kyWl9OTWNuV3VzWmh3ckZRaXEyM2JJNFM1R1RQNWhURE43YU9FbTJVaFR0ek5UcUoySjZvSF9mLWVNVnFsbFVKS3ZlVWoxWEg2S3oyZGxtclhVQldHUUJiX0RMYUJZUXdqa0VWRUZDMXRBdkI4MFpvbTJjTko5YlVXVlJ6YUZSN1l0MDJia1Z3MXpERGlSS2JlX1NhS19vazZUVm9obmZVcA?oc=5",
+   "publishedAt": "2026-11-20T19:07:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "В Казахстане внедряются цифровые инструменты для контроля рынка БАД",
+   "source": "GOV.KZ",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBaMTF6UWhqNlVTLUtwUHBBVFJrMVZ5cEh2ZEJQSmxoVU1lRm5oa3lRZXRTS0M0Qzc3V0RROVd5LUZqX25GY0xHZmdjWXBLV210Y0RMVk9LYjU1NEI4RXRqMFE4cGpDcmhJWE56cEttYw?oc=5",
+   "publishedAt": "2026-11-20T17:04:49.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Brexit отступает: Великобритания и ЕС договорились упростить торговлю",
+   "source": "24 Канал",
+   "url": "https://news.google.com/rss/articles/CBMiygFBVV95cUxQTlR1cUEzV2tpT1VSUUxhaUV1WmpmMHVZZ3JhT3FCMlJyOEdJR2RrWDY3Mk5VYnNSTGVKUkxBak1xYVRWUXRGOElrelVtWFpWTjR4SHZUU0d6c1htdVBQbFZUc01FeFRsQXM0ZW5Lb1UyUTdwcDdWd1dwRy03aUhoNzliTkYyNHVkY3JNeUF3MXlpbEdpV1FGdFpZcXVfS0tsVHhHYTdNQkdNaVd5YjlPVEU1SGoteFRXd3NkRElKSjN2SGpHTWRZellB0gHPAUFVX3lxTE9ueFdkVENTd1FBOHk0NkJmNTZmWFp0aklNYXhiM3dNVEIyTFdnSHdib2FoZllZbDZua1J2aHlDRG92RFk1MUgwUzJnb0c3T2ZwblBsY1NlYkFhWFZHWFdBNDktUklQTVBlWm1BRkxnU2lGSWFHXzhld3FpcE5ucUpVZ1NzS3NZSWNzS2lIQXAyQTdibXA3Q2gtem9CeUR2eTZELXJTYU5vWnpWanFLcE5CN05pUk55bmtQNkU1N1dheldjNGFNeUswYzFqZ2ZWcw?oc=5",
+   "publishedAt": "2026-11-20T16:09:00.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Миллиардная прибыль на фоне падения акций: что происходит с владельцем Temu",
+   "source": "Комерсант Український",
+   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxOX3RpWk1QRTUzRk0xUU1BYW9sdjNmSzNTNXBNTS1jU3IxYWR1OVJZYjFnYmx3aExDcXdtWXNYeWRadkVlcjlFYkV0ZHdKUTFoQzlwT3huWk14XzUyS1VQQU41WTVnU2ZtTGx2TzRiYzdxY1YtSEk0YVBhRzlMMnJLS3oyeXdzUHdoYW5QbUQ5bExwcHl1bFFQTklsVHNtbzZxU0E?oc=5",
+   "publishedAt": "2026-11-20T15:52:00.000Z",
+   "theme": "ecommerce",
+   "region": "china"
+  },
+  {
+   "title": "Итоги саммита АСЕАН в Маниле: Кодекс поведения и торговля.",
+   "source": "Евразия сегодня",
+   "url": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1WNHBVX0xEamNFUUtlems1LU9hYjZJdE5SZU9yNjNfRzZzQkhtX2Y3a2g5SWRsNEM2clk5LURzaWVsOWJ3UmxLR3BSdVR1c2RoQUpHMg?oc=5",
+   "publishedAt": "2026-11-20T15:03:00.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Бернем признал ущерб британской экономике от Brexit, новое соглашение с ЕС должно принести £17 млрд",
+   "source": "Report.az",
+   "url": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxNZ1NvRTc3SkxZeGY1eHdjVXVTamZOWWNjZDFCdkRyMTgwU3l4LWtfMFRGR2Q2eWhMdWcwZ1J3U0tkVWwtSFR3Rzh6NWlIVkdlTkJ4cVRkWFNiNXR0ekl2SjlqRHNjWXRzb0tFQUd4RlBCY1BWcVdNN01maXNLdUt3dkV4Mkgxc3pLZ2VTeGFnZGtKU3p0enl1c1VpOW5pSEpDampodW5CRDJNNTRJS0lDdHpYOGZOSEh6ejBHMFc3NTI1dWxJOXl6d2VWbUFVb1pO?oc=5",
+   "publishedAt": "2026-11-20T14:07:34.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "«Против экономики войны»: Италию охватила общенациональная забастовка",
+   "source": "prospect.com.ru",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNUWRSTXFrbVdkcUVkZ3hvaVhzSGJmQ3hxNVRNT1l2NFlPQnlIaFFBQmozYkpvWGdIRVBpN2F1TVJyRDZpN01vVG5HenJDLUNvQWdkMWlfRkQ4QWFxWHRyUWVZTWRzMFZjX01BdGxXUk95TEhJd2JyeXc1d0F6Nko5N3I5Q01RV05rT09XYlZLOFFTNG81dDFfTHo3UVZrWWJyM3dfeEQzcEt1WDI2MFZuQ2h3?oc=5",
+   "publishedAt": "2026-11-20T14:00:09.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Пакистан и АСЕАН расширяют торговое сотрудничество и взаимодействие в сфере безопасности",
+   "source": "Operativ Məlumat Mərkəzi",
+   "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxNNTdoMXRMZHFvV0lfYnZtbkpFZ1JWaHJHN3VzZXVmaUZSQ0ZlY0pnd0I1NWtybmhOaTNaOWZUSWdlczRPeUFRcUVDVElWaWNoYWJRQ05rQThHcWdjSXVSWEQ1eDViVjNpekN5NXltbHB0X1FjcUxZTGdMbXVSMDUtXy1kbkh3bU5BSDA4elVPQUY5cDdkY3JURnJyeDhIakozaVdUSXdVVTdnVjdiclM2U3BjbGlQNXh0alR3UHBRZS10QTlhT19z?oc=5",
+   "publishedAt": "2026-11-20T13:52:20.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Человеческий ресурс вместо денег: за счет чего Россия удерживает экономику в условиях конфликта и на чем еще может сэкономить, опираясь на опыт СССР и США",
+   "source": "Портал РЕПОСТ",
+   "url": "https://news.google.com/rss/articles/CBMinwJBVV95cUxNdFhzSUxWOHBFRnBCcENiUDlkd0NKTWhLMTJ3OHI3TXRNMGVYMTVTVFBsOEo2X1JFZWwwNDItdGFsWVhXak05SG1BZ21nSllVdnJKbV9RZGRoWXRPUlpSZnBBazd2TnA4cEd4bGdlMTNrUF9qZV9CTlN0N2VLUGZWd0w0cXFOX3lsMlVDTGI0VjU3emc3NHVzVTl3V2c2c1RGN2FmTzh5YmF2Ry0zNmhsN2M4c2pWRmk3a2JhN2V0T0UtN05MOTl5VmExRzhpeUplVTRkUGgtX3VjclBfZ2QzUUF6ZGNodUdxWG90b2k2ZzF4VnY5Rlkwekk1NFhoQ0R2SGVseHRVV3o3ZFFrQmpQOUJsUlJyS20zSlIyTDBjZw?oc=5",
+   "publishedAt": "2026-11-20T13:37:39.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Индекс доллара США (DXY) колеблется ниже 104,00: опасения вокруг ИИ нивелируют ожидания повышения ставки ФРС",
+   "source": "www.tmgm.com",
+   "url": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxQTWdlZE0ydWw1eXRxYXRMc25DQnRIT21ZelZlS1hFV3ZWRHhvb2k5QzFCYk1XSml1S1l1SVV3ekZ4VW9KUFh1UFNVeEtVZEtieUJTM2JGdGN3TkJPakc0UDh1c0dMWnBBdHNTMHRlV2pyLWJheWlhaTltY3I4M0pTWl9QWFZ1eDU4dDRMMTNDVTY2c0FRZUEtRFRzWUhNUTBCeEZIZ19taUVMUUNVNFRwb1E3T1owSHRXZHVXUE4yS1hKWXNJWWJzaVlEZGhjdDZnN2xLOHdNNllONUpY?oc=5",
+   "publishedAt": "2026-11-20T13:11:49.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Комитет по конкуренции проверит цены на уголь в Узбекистане",
+   "source": "UzDaily.uz",
+   "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxOY2VPdVdWaUg3VEJKMDdyVmNfbFBiNU0xSkNZMXljZVN0d2tTTTF2ekgyVWFLa0xwLUtWbTktTmFXWVJjb2VNU0lCcUd5clV5NEk1d0tJVWtGTHhCaHJqZi1EUHh5VkNBZ29QVmZuZmRCY2pGTGhLRlJzaG1IbFNLM2t0X0wtZ2NnRE40M1dObWY?oc=5",
+   "publishedAt": "2026-11-20T13:01:00.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "США ввели санкции против главы мошеннической схемы, платившего Чэнь Чжи из Prince Group за защиту",
+   "source": "Cryptopolitan",
+   "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5tV0J2cjRfWjVBLVE2Snk1VUxuRHFhaDJqaEtzY1B5MFk2V211ZU1meTRkcVVScFpDbkJBZzN3UzBld1hLcGlMNzllZWljanZfaC1LUzBVemM1eWJoWWt6cUh3YjdVUlMtdHpDUzdBQ3dRQzdEaHVqdg?oc=5",
+   "publishedAt": "2026-11-20T12:30:35.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Вьетнамские и юго-западные китайские предприятия укрепляют торговые и инвестиционные связи.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxNZngwQVM5cXRhaHdHM1ZxLUQ1OGdGbmJyanhhZ0tXLVNqMndjNmRCX0tiMl9CYmQ1VHNLSUxGeWt3WlcwMUVHbFNSMVFoRm1pZVI4X0tvNXgwSjBpZzB3OUVlVW5BUGFSdWVSM0F0X01LOFNoRkdPcUg0REVGaTJHZVR4NmVJNXdJZ2MwdGV3czVOTTJzLU85dkxEX2QwNklOdzU4dTEwTGo1dw?oc=5",
+   "publishedAt": "2026-11-20T12:25:20.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Кыргызстан и Узбекистан расширяют торговые возможности: на границе открылся логистический терминал «Кен-Сай»",
+   "source": "news-asia.ru",
+   "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1OLTNmdTFUZ0tycHRoWF9ibTRLMGpaZVlTLWluWGhZeXl3b0hJSm5FOVI4UlptRlVaZ0FrRFBYeGZWZVNJeEZncEY4ZGRqZzZfRFhVVzYxem9XUQ?oc=5",
+   "publishedAt": "2026-11-20T12:20:26.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Владимир Путин прибыл с визитом в Таджикистан: в центре переговоров — безопасность, экономика и Афганистан — Asiais.ru",
+   "source": "Asiais.ru",
+   "url": "https://news.google.com/rss/articles/CBMiTkFVX3lxTFBrQlVtMFJyME9RdTFvTnJJSnJQeDl1bktkQlZOWF9nVnI1QUY2U0g3UF9nS205MHR4S295aTI5WjVQMURGVEVYZHFreEpDZw?oc=5",
+   "publishedAt": "2026-11-20T12:17:08.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Почему инвесторы видят в акциях Walmart и сигнал о рецессии, и защитный актив?",
+   "source": "TradingView",
+   "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE50MDVhUzYyYm5aaGxMSzlMN3Q2ZmMtRXliQjhmbVBTeEJRUEpmVVlpRWJSNURveGJrUUo5ckpvaVhRME5DdmlqSDB2X1FGMGdhTHlkSTdIRUtid3FmU0lSX29memRzS2hJ?oc=5",
+   "publishedAt": "2026-11-20T12:17:06.000Z",
+   "theme": "ecommerce",
+   "region": "usa"
+  },
+  {
+   "title": "Торговый расчет: как Китай, США и другие участники АТЭС находят возможности для сотрудничества — интервью Дениса Денисова.",
+   "source": "Евразия сегодня",
+   "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE5BNl96Q0JxZWJIR0dURTRUN3lGX0ZvX2RVVVR0OFh6X2lpa2c5aUhmb0FoSWJOZzJSM09LM0xucDZKTnVRV1k0QVZKbG5PU082blVna0FhTkZzQ0FfUnQwbWYwYkNtMTdHQlNycFRhY2hJZw?oc=5",
+   "publishedAt": "2026-11-20T12:02:16.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Страны АСЕАН подписали Соглашение о единой цифровой экономике DEFA.",
+   "source": "Евразия сегодня",
+   "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBDVEdXR2V6c3FMM0tzOWFnb25ZNEd3dkVVZTZDNVMtaS1Cajg1b2k4V1hTYzdVLTlJN3NHSFZFVUE2MWR0dDlJY2FueXEwMEMzdUE5Xzg3U0hBUjNIYS1N?oc=5",
+   "publishedAt": "2026-11-20T11:52:15.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Vanguard предупредила о рисках ИИ-бума в 2027 году и спрогнозировала рост экономики США на 3%",
+   "source": "Incrypted",
+   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxQbDFrX2tMRmlhS3YwWmxiSHNsZ1hWLXBiVnU3YlVuVFZUUE1WOHZEX3NUcldjTko5djVCTThBVWxNMW05Q0NyejIyb0g1ZHR0THhfUFRIRU9ieFZVVlFjTlo0eGdIY292QUFqcFB1ajFTZ3ZFM2FqbC1BSUNvRmQxb2dBM3JVbWM5TU5mNHl2bzhLcm5OZXhoaXVDZlpjOFQwRU1rSmxWcnNQalFHb3VFZDZwczRlWXhl?oc=5",
+   "publishedAt": "2026-11-20T11:43:35.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "США ввели санкции против байкеров",
+   "source": "Lenta News",
+   "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE44c1NBLVh1S3VXT2l1S0U1NzQyTFdEUDBub0UxTVBGWFVSQkdRTGxIRGttWmxzVy12Y0lfVjJwY1pzYlVEYkoyTGlGdnFYQ1ZEZW5aTmNILVpHOWZnOXZfYmw0eUNxS3lxR29vMGRiRnp3eFVUOFZTT2s3c9IBgAFBVV95cUxNZEgyTVlxdU1hSVE5amRrNjJiUkZzWWt4UzZuTkczVWE5OTR3czBCajUwa3g2NW5ZdkxzNzY0THhBOENWdEpNMVBtdFdKdjZrR1JHU1FNZmNRWFJydEduMktkWFQzZFc2dE9WbTh4WEFid3BCQk44LTkzZERyNjEtZA?oc=5",
+   "publishedAt": "2026-11-20T11:35:57.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "ЕЦБ предупреждает: Европе нужно активнее развивать рынки капитала и защищать экономический суверенитет",
+   "source": "Traders Union",
+   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxPWDdMOWpmSThmUllvcXMzd01uQU9sNzlrTUVvQXRlMzIxMm1aLWhfbVQ2SU91allVaWZtejFfS052OUZJc093LTgtOFNQeGtZM1I2ak5VTGVSVzBHeFRlSW9aaEVTMVYwd0RaNDMyOWE3Sk15Wi1BSGduOWpfWlNDeTJIdHl5bGx2Vmh0MTI5bG9LcWpJUEM3Zw?oc=5",
+   "publishedAt": "2026-11-20T10:23:51.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Walmart расширяет закупки вьетнамских товаров, увеличивая свою сеть поставщиков во Вьетнаме.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxQUm11YmdSZXlqWm9LNjIyVVBoZGRHYkJpU0ZYSnRkSVBwR3ktdHpyOWVfNWpmbDRVM2U0RjVnbE1EbElCY2tWNEhWTm55cjFpY0NMS2tqa1Eyd01sTGpzY3NrYjRKRzZ5T3NKUlQ2a3dxaEZRYWE4dk43U3JsRktFa2J3Q2lGUTI2NWtFNVkxOG53cU9sNnBOWDg4UGdJaE9zYVd5U3pqOA?oc=5",
+   "publishedAt": "2026-11-20T10:13:55.000Z",
+   "theme": "ecommerce",
+   "region": "usa"
+  },
+  {
+   "title": "Вьетнамский рынок смартфонов идет против общей тенденции.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE5NcWJhLXFCQ0JXQkk3TWJsdFlxMVZnM1lUbS01QTBlNF91OGFXRmtJYTN6UGtoYkpISDRTbEdMeWtvYkl3aERHWnpyckRTQlk3UHhhQUJIOXJBc0JBVEpmOTk1ekpRSEs5dzFLaFlpVW9IVGhEeGc?oc=5",
+   "publishedAt": "2026-11-20T10:13:45.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Почему Кыргызстан способен стать лидером Центральной Азии по ВВП на душу населения?",
+   "source": "АКИpress",
+   "url": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFB5MzJIRGdnWmpidGU3aFAtNXJBemlkWWFBNXRJU0xXeHFUZ24yNkxVcVZjdXFEelc5X2xvbmVLNnp5MmNGdGFITzVib3lVN21jeF9EdERHM1hRQlNZ?oc=5",
+   "publishedAt": "2026-11-20T10:02:22.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Пошлины США против Китая: как это приведет к обвалу цен на солнечные панели",
+   "source": "24 Канал",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxQQTRrTEpkUTFLeWI1TUJIcEF4X1NqX29VdGRRZXcxSVJCaXQ1b2d1S2RZeFNXdThhQ3BCb2k5SWcwRlhTV1lkTWhhTjVTZXF6VnA5YjhmZm9aY3Q0VThJZF9lM3JZQ0NHZElTV2ZnZnJVVHJZUkV4SWQyYVRGMWlpSEZmalBRYnRpeWRYT0Nla250WDJzalRZNTBaNDjSAaIBQVVfeXFMTUZaMUlkOGVlUG5TS0VQMnplQjRQVlU0cmFGUDlDYTFtZ01DVXMxdENPWERkQ3UzTERyTVFTN25YSUpSMVBJUGNLbU5CaGRURDVVMUdPdDBxMlUtaHJfbVd6TTVHTGNvUG1RZjR1SXdMLVczempPeG1TNHJwSmx4M1NYRmxjdjZKTEtIY095MGVlSzVFWklhZDF5OTRLMmYyUWFR?oc=5",
+   "publishedAt": "2026-11-20T09:07:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Поставки нефти из Саудовской Аравии в Китай в октябре восстановились",
+   "source": "Интерфакс",
+   "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1aWTFWOVV6SV9IZjlnUmxyYmY3U3dXMERoS29adWdjd3g3a3JMYktIZDdRVnlfZHZWUXU0TGJjdExYR3hkRUYtQXI5d9IBS0FVX3lxTE1aWTFWOVV6SV9IZjlnUmxyYmY3U3dXMERoS29adWdjd3g3a3JMYktIZDdRVnlfZHZWUXU0TGJjdExYR3hkRUYtQXI5dw?oc=5",
+   "publishedAt": "2026-11-20T08:50:00.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Новое торговое соглашение между Канадой и Китаем",
+   "source": "تسنیم",
+   "url": "https://news.google.com/rss/articles/CBMiuwNBVV95cUxOLVhZZU9oRGt2czdJTXozNHg3R2dvbmo5aVNYam9Mdkh2a1RGVS1NUHMtZm03ZkdOVlROTmt0SF9qZ2o0Z3VYc2xYbWxsZjZETUdraXhYMDlDT0JaZFd3bHFXWHlNbnN4V2Q2WEZoOGRzY2NxVzlhWHVkUGVod3MwUHNBcGFiODVMQlFDRER0NmNQQkRVdGRZZjBuNUtJZDBYUzJvU2psdDFwdDU0YUFxaFdBcTdTQTU3NUlYdU5Xd0o3TDcxam1KUE5wbGdQdzhNZlo2OUdqVVB6TWF1QXExNVprOU96WVlWWkI2NjVoeVE1VGRERnZJb3pzcmN3STlYWVpPZ0JCMTdCQmJGRnlFUzJiRFlPRHlyYU5pVHhzWFB1R3gwNldzN0tfbzVlLVhpckd1SmZYQ29GT0ZCUFZQeUZCcW5mRUtxeDI2a0hJU2pUUms5V1dON2xZa1hHOWpleElZb0t3dTFnemlmUVd4T2xrSWtrN05pd2E0T2I4YU12LXdId3M2U0ktUHdGMzBSV1FHR25sMk9fM0ZhWXNlNmpUc09oMEdzY0piZkhaS1BVRzA2REJXZ3Foc9IBwANBVV95cUxPVm1MRUJ0UmVnVlpQOVpRS0ozTEQ0bkx4WlZsaHNBdUxFOVBzN05GRXRURVhXTkJEdDBXcF9COEVIRWNLYzNjQ1VXVkF3MVF5ZWZCdUZoUDlHeUJiZGgwM3lvMVVBYkhIQXV4RnRZN0xTdGwxTm9HaGo1STFaS0VpSEYzWW5mT085Um5GX0xsamE0TlpIS0lyTzFsY0NLZ3p3YWotdWdmc3kwbE1XYk1sRlUtemo4Q3h5aVlXQTMzaXZLQW1iWXNjNG5nX2R2SlJjSUw5WlBQX0VTbm9ZTmF2aDVBeGtib0xaWHlnSVRKdVJNM292NF9QeEFXNlM4ZzVMZ1RkRXJ0V0JLa1E4cmVvY3N2QjQzczVheXZGU2VwQWd3UmdHZHVlUF9rOFd6ZW1xb2x5V0o1Q2ZyM25kX3k1ckdYZzREa2VzXzFBekZOQVlwN2djTGlIeXVtNWdOSXh2bzNrOVJnZnpiTHRSWXNudGx3TWZ1LUl1SF9pWHJZQ09sTkg5dEloaUk3QXZVclJ6b0dZaVJRc0szTUd3WDM4NWxkNWdrSVJLelNQQzROeW9PMVg4S3ZYcDJkN3NSanF6?oc=5",
+   "publishedAt": "2026-11-20T08:46:06.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Глава МИД КНР: встреча лидеров экономик АТЭС демонстрирует единство китайского видения",
+   "source": "CGTN на русском",
+   "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5zVjBKTUhXRjkwSFM5UjlraHI3OXBMYXRyTDdma252N1BZYzJNSWdZdzhIZWFKZmpKSnk1SjY2VF9PcjF3ai1SN3JsZVk5RGVKVl9HdHhXUFlGN1FrczFlOUtGRXJyaHM?oc=5",
+   "publishedAt": "2026-11-20T08:38:29.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Прямые расходы США на войну с Ираном уже превысили 48 млрд долларов без учета разрушений баз",
+   "source": "أوكرانيا بالعربية",
+   "url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPRjh2SDRxZDZyX1ZpNndXWnVLY1ZNa3E0aGVzNURLVnYycFF1R0UzSmRCOUEzblVzZ3lscm5aYUVUUVZyTUV5UEM1YTQ3MXdhYTBUNHNPTV9xM0hjY2RZbnRpZGFheG1UTTgzeEk3VVRJQXg5YVROMHpoOEIyZVVxQkprLUJoanFKNjZvdU44eVNQZw?oc=5",
+   "publishedAt": "2026-11-20T08:38:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Владелец Temu заработал $4,65 млрд за квартал благодаря экономии на маркетинге и поднял акции на 6%",
+   "source": "Delo.ua",
+   "url": "https://news.google.com/rss/articles/CBMiygFBVV95cUxQb1AzWXhraTJCc3BDd3BvOHpsbUVDbWJBcTVGN25YN2RlamRZZ0pobWtmSnEwNHA0M1ItdVc3eEZqRThIY1AwcExkQ3NRMVowU1hsWDIzQXEyMmVOcjNkMkVxWVROOWhNRmQ2OVRoOFFqb09GaktSRDkxV2JyZ05DaXc1SjlZWDM5NnZUV3ZfeVd4TEFzUy0ySGtWY3NuZXlIV01LWjkxLXNEY3dvdlExOVdqcWxLZGVHSEUyQ1FkdWxlc2xjcjZybW9B?oc=5",
+   "publishedAt": "2026-11-20T08:12:57.000Z",
+   "theme": "ecommerce",
+   "region": "china"
+  },
+  {
+   "title": "Бесплатная доставка с Pinduoduo в Казахстан. Что делать бизнесу с падением доходов",
+   "source": "Informburo.kz",
+   "url": "https://news.google.com/rss/articles/CBMizAFBVV95cUxPc0dUdVNxSTQtRzVDc0ZwZms0eU96c1J1SGI2MFlQQ2x0X1BkQjlCQzQzY1JBR3JFeGpoZ0V6MTFwZVgwY29wYTBodUEyMk1oQTNEVWRUczlJYm1IQ0oyOHpnX1FLdk5IS2xDUHlZVFF5TTJrWGd5Ykl3OEk4Q1BzVk16MGtTcmtxb1NUSl9yUzVqZW9IZEoweTFIbjZ1dTFvTlZvVkU5MU9lR0lpNFI3MS14Zm11RmVnOXBnSlctM0pJdllza2wzYlVvX3Y?oc=5",
+   "publishedAt": "2026-11-20T08:02:00.000Z",
+   "theme": "ecommerce",
+   "region": "china"
+  },
+  {
+   "title": "Польша станет лидером ЕС по дефициту бюджета: Еврокомиссия прогнозирует 7,1% ВВП",
+   "source": "Портал РЕПОСТ",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxONHgxam5GMzJYMmhGZ0VpRjNiNzNhOXJuRmNtNFR5R0NtRWVfV3ZseGlfM1VLeHlzb3RWTlRkTEw2ZEtENUIwWmJfVWRTdXZkWnZ3YkRIQXVRT1FISnZwSUh6Y05vOW5Fb3N1bHprcExZb1RVYmlnUjJZNGZMUjJoYXE2MGxWWVZTNVdwT0FFQ29MdWZqcV9tZzN2ZXpOZTliOEhRYkw3QU1yVVpzUnZtX0pjMA?oc=5",
+   "publishedAt": "2026-11-20T08:00:38.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Что поддерживает доллар США, помимо ожиданий повышения процентной ставки ФРС?",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxQR0NiZ0dRMVNWeE0tOXFINC1Uc2ZxaTJjbjB1ZE9mbHF0WmJENmxuX2JtRzFLeEpZaUhVUk5WVjVZWU5rUDNBUlh1dnNEbFJCdTF3OUdiYUVENFNWWktORWJKZ2NTVkxKb29GelFqUkVGaHZNc2U1WW5pUVdlWkE5U0g3RGFpQlhQYUE?oc=5",
+   "publishedAt": "2026-11-20T07:52:55.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Казахстан и соседи ищут, кто запустит общий рынок электроэнергии",
+   "source": "airpress.kz",
+   "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxQYU80MXJYaUZsbUNoU3RlQXVNTzJaRl9vcEVYV1JDN0dNWDJUNHlDN3dra21kS01JOTJFTWw1c3VLOWhySTlJVHg4dnRLQkRGTUlfbHoyNE40U2w3SnppSlFUd2Y5dTlNUDh0RlcweTVMTnNyS1FqUjZ6SXViNHBYXzFR?oc=5",
+   "publishedAt": "2026-11-20T07:27:27.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Четыре страны Центральной Азии создадут общий рынок электроэнергии",
+   "source": "Фергана - международное агентство новостей",
+   "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1oYnlBTkxmTG1PS1hUbnBtcXZ0dlBPMy1EWWNoY0RMTmdQWlBFWGJwekp4cDJKdUtyUy1DVF8xSGo4UkJ1RTlyVkczOA?oc=5",
+   "publishedAt": "2026-11-20T06:54:33.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Китай и Индонезия начали переговоры об экономическом партнерстве — Anadolu Agency",
+   "source": "UA.NEWS",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOZ2xLOV9GX05obnZqRUZvbE90N1docUxTQndsUk1TNDJFMXdaUEZMVnFzekFTUUNpTDV3Vm9TMkFOeHhaNVlESEFmYlVnVnNGZ3hEWDZmNTN6VUJRSE9YU1QxbkhBUFBucVF6YUhYZnhSRTk0ZlJLYnN2SnFheU9EamhrVkVKaWZzaVBPU1dPNnU2LUNzbnYySlZMMVJmSVUxb2FWR3VHQVJJS0JuTnNQZmpuVFA?oc=5",
+   "publishedAt": "2026-11-20T06:19:23.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Цифровизацию торговли и транзита в Центральной Азии обсудили в Бишкеке",
+   "source": "Қазақстан теміржолшысы",
+   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxOV0VGZUpVRmJvOF95QnROQmN5NmxoUzF4MzhuaGZWYlRDLXZDOGF2cDNNT3p4cElZTUtjRWZ5aDA2VWt3R2JyYVh2X1VhQS0yQS0zcGNaQmJ3ZUhiNXVPVW10el9IQUNPaWwzemNzTTV5RnJPZTVqTVlxR1JsQnpXSlRpOWtncl9kZGtvZFl5eDA1WHJSbks0TDZQNFNHTDVBVTN2NC1OUFIycXQ1Uldr?oc=5",
+   "publishedAt": "2026-11-20T04:31:22.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "ЕС ужесточает санкции: новые лица и крупнейшие российские предприятия под ударом",
+   "source": "prospect.com.ru",
+   "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxOVnN0XzN3UzRUZVZsZTdGRlpqTmYxODZfcnZUWHZuc3NYcm04eTZfT0hTX2JMdGF1Y3lnOGFVZGRESnhnai0yWlFBMldBd2hncUxiS05OTEZOTGcxY1B5aUpKS25vQW5vYmJBalNteW9jODZhTmVvRXZKS2F6SlZ0NGtrWWE4SUUwZkQ3OFVXbTZHU2F2VUlTV1dXd0pFdElxbXhKdTlFc09QSUIycU9Uczg1VkN3S2FQSUJmaGE4c2ZfRUxTQnc?oc=5",
+   "publishedAt": "2026-11-20T04:02:46.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "США ввели санкции против канадского крыла итальянской мафии и похоронных бюро в районе Торонто",
+   "source": "Torontovka",
+   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPRy1Ub01udGtON3dvRTRXeWtaQ01SeUZDbWRBQlZpYXVJTU5vTWs3eTd1emowQ1dycWlvYUE1c0RVVlJway1yS0I4U0F3M3dkME1KN3lka2FTaGdiMlBLX05VMzFaN0RvN1pWNTJMMTNranI3UG9HTVI4RTI4bHk1QXZCejZxLXZZUUhPUUxkS1hSUFFWc01FZEZ6LXMwUmRZV2RxRGpFTmx0OV9OWkNkVG9fbmhiUU5NRXBpQVhQSV8wUjAx?oc=5",
+   "publishedAt": "2026-11-20T04:01:54.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Pinduoduo в каждое село. Что известно о доставке с зарубежных маркетплейсов через «Казпочту»",
+   "source": "DigitalBusiness.kz",
+   "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxQQ0U0YzE1Y3lfQXpGajJZT3lTT0dIYlVUUEZyaUVFeUZ1NmFRRHU2Rm5WQ1k5WDJFU1hRbFMwNU5LMjRIZ1FZSkhxWUxuX3k3dGFHUHJxVjBJMDRINVU5elRScGVwaWVyMHJhcDR3NDNYY013eElENzExd25wMmJmb041ZGRXQWZqN0Q0VHdxTlowYzdNSThXd1hfUTYteEtlUnNremhwZE12WHNaUVY3ZFB4T0F5N1g5RndHeERXWDQzVWVQbUhkTUowT0NTQdIB0wFBVV95cUxQeWo0Qkp2THhsRXFpVXpPVFo0bTdXZ3lSbmN0MG56dENRYjY2TnMtV3pwNTdkeUZ0NE9OUTVJQ0dfaHVLQlpVOWZ1SzExdXVWUUVhLV9OR0RqZTc3bFBDU3RsV3RMd1JlWlJSalBHQmpuUktaLXhQRXlyMGpIRnRDNjJLeEE1VFFKTERQTHRPN1BrLTM5UWNZU2R4cDk3S2EzVWEteDBkX0ZLcFBWRXhZRjdxaWhJVVJpQXdfQ21pNzYySTA0SHZHOEc5bXp1Z1EtbjJV?oc=5",
+   "publishedAt": "2026-11-20T04:00:00.000Z",
+   "theme": "ecommerce",
+   "region": "china"
+  },
+  {
+   "title": "Shein нашёл способ обойти новые поборы ЕС на посылки",
+   "source": "Grani.lv",
+   "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxOT1oxbmFrZlhBWlFUd2JuNmlnVlgtdHJUM3FReHFqSHo0SlAxQ1lCc2FXTDhHbWp2bDZvQVdyanRqNDUtZ2NkMWdLWEVoekFTaXdtLUN2SjhQOEl5cGZLMmRoTTBJLWo5SVlEZDBQT3puZlUtem8weV9kMml1X2otQ1dNZGJNZUVBNHBCaUFUcDVVLUY5RGFF?oc=5",
+   "publishedAt": "2026-11-20T03:58:00.000Z",
+   "theme": "ecommerce",
+   "region": "europe"
+  },
+  {
+   "title": "Вьетнам председательствует на конференциях в рамках CPTPP: ожидания по усилению региональной экономической интеграции.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQUGlZRW04LU45b3ppUi1BaE1EZ0duY1piVGMySlRLb1IxRHkxdkNmd3JRLUdvcTdNSXZpWnpsLTh0X25vS2l3RTYyWkg0YUpkNm04T3YzVWlzUjg0aE96NlM1aGVPUmVqTF9fcGhZb0VKUDhkTkNSNS1paHV2MVZ2cS1ISGFVNUlkREJmSUQtOFBJZTBQTE5nYVZRYWpsTjM0V0NwbmN4ekM?oc=5",
+   "publishedAt": "2026-11-20T03:39:37.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Рынок акций США резко снизился, основные индексы потеряли более 2%",
+   "source": "Интерфакс",
+   "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE5VQXpPd3U4UnQ0SjN1N21DZW5uUHZOUUwwR0xYZ2N6WFRKMGZBWk1fdk9uZVNDbzVMQW05UXlUMksxT0lmTkE5b18tZ9IBS0FVX3lxTE5VQXpPd3U4UnQ0SjN1N21DZW5uUHZOUUwwR0xYZ2N6WFRKMGZBWk1fdk9uZVNDbzVMQW05UXlUMksxT0lmTkE5b18tZw?oc=5",
+   "publishedAt": "2026-11-20T03:33:00.000Z",
+   "theme": "economy",
+   "region": "usa"
+  },
+  {
+   "title": "Новосибирский переработчик рыбы хочет системно выйти на рынок Китая",
+   "source": "Infopro54",
+   "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxPTENkeG0wSU82TFRjU2Q5cUFXZ05OZFZvSWhPWWVMLW9RUzJFVGR0UVNUQzBPZFBNUlIzSVJmUXZjRG1xRjFQOVNfeFEyREZneFoyWjBxVC1ZdW5GWWhCaEZGbG9iZG9WamkxYWxpZFgzVDZ0M2RMbVRuWnlZQlg3RDdHNVQ4U2ZPUE9NVFgzbDdwTkUwNV9panhZUXZtQQ?oc=5",
+   "publishedAt": "2026-11-20T03:00:12.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Walmart строит омниканальную среду вокруг агентного ИИ",
+   "source": "Techora.ru",
+   "url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxPTFQ1ZHdyQ2hIVFJhcW12amlFWU9sVW5UbkdPRWMwRVFqeGtLSHN0VTVXZTk2aFlDTXRzdjVxb2NCZ1dhN3A2QzRHdW5aanRDWENaaEgxdTRySllUWjBmZmE3bV8xSWZIbGVrTERGdVQ5NnZ2a2xQRm9fUWhueUdldGxKc081c1NwS0NwcDVNOA?oc=5",
+   "publishedAt": "2026-11-20T02:42:45.000Z",
+   "theme": "ecommerce",
+   "region": "usa"
+  },
+  {
+   "title": "CSIS: США будут осторожнее экспортировать чипы в Индонезию",
+   "source": "IDNFinancials",
+   "url": "https://news.google.com/rss/articles/CBMi1gNBVV95cUxPc1laVGxGdWdsVDZUZXY3ejB3d0pEZHlyZWRaLVJWLXpjZzZTZ0FBdXQ1akV6R09BR3B5c2ZDemZGM2gxbzNoOHJfbG9UbHVVRzUtZnJlSzFfbTk4SFEzVzdSLVQ4cUZVMEJDcUlsUktrR0hxYVlKd21fZkhBZ1BJT2xqMzFlNG9YV1MtbTdWcHFnckM1U1I2ZlBHMDhvdjFEZkZOTS1CQklOV0w4VlpvcXFWNTJVMjcxdVNlVDhxejA0UV9DOUxZdzlKdlFocUpQMWptUTdMbWVvTDV5OXZ4RG9KY2VvVnNqbmxrRE9mTW51NFd4dlYzRC1yUkR5NkNGeVVqdGFvbFlRRjdUelZ6MXFkN1E4b0ZjNzJsVnlEdDZRSndSbUtnV2dhWUp5aHk2QmN6bmR3MlFhaE11VDlJNWxpeHlJaFBUM3lmcjdSZnVjZ3NGREJObF9RcVZGdmc4NnplX0VDcExoVEpIWEpiUGozQ1EwNWtoVVhhX05sUTBSS3hkZGhxdy1CRFItWC12WnNsYUFmYnFFdGFDaHVMd0FMUEpzVVZoQ2ZyWlllSVktYXU5QmFQeldtTnFYdDl1c0VuYzlsRnFHcDZNVmJGUzF5ZFZJZw?oc=5",
+   "publishedAt": "2026-11-20T02:00:00.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "ЕЦБ предупреждает о серьезных рисках для финансовой стабильности Европы.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxPTllhb0JPSDdCVXYyb2JORV9hSWk5YndpbVhpcTFWT1lhZGNhTk80ank5YVpSUldndEp5eEl0cGdhb19tN21sTC1uUjRnbmFLX0pzbFEwRlhEellMc0M5MEx6bmZwLUVBaGd3TS1kZ29NZ0RSSjduVzlyNERFTEdvaTN0Q2VHcnkteFBz?oc=5",
+   "publishedAt": "2026-11-20T01:17:19.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Стройматериалы в экономике Узбекистана",
+   "source": "Review.uz",
+   "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE10bVNzQWQwNHZrckkzOW9NY1hkUmVZSExScHpjR2M2X0VsLXN3b0VRUTB4RE5XejB2SGU3ejhPd3BldU5rMmI5REhpdU5uWFhNdEs2VFJnUGJIc0llbnpZMHVKWXlaVHpPWHhBVA?oc=5",
+   "publishedAt": "2026-11-20T01:02:46.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Шэньчжэньская встреча руководителей экономик АТЭС стала новой вершиной экономического сотрудничества в АТР -- глава МИД КНР",
+   "source": "Жэньминь жибао",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5veTVmR29Sb0ljU2FYNG00cUJKaEdkcG9HQVRBckl1SDdvTHVRUm5zZXlGT2xRVjFhb2FBdWNRVGgxUVNjeTlVRjFhNlRJTGhNN1ROWEo5aEdid0JzREw3dGtrOUZIdndJR1BiaHlNNA?oc=5",
+   "publishedAt": "2026-11-20T00:51:00.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "В Словакии пожаловались на санкции ЕС против России",
+   "source": "Lenta News",
+   "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxQZHoydjVLSkdKWUNGZWFKdVkySGdqbjNFNTE5SWl5TzVSR2s4SE5QZHR5N0dyb0FBMU9vZG5NbUp3dnBfTnAyOGZpZVhzYV9KWVA3dkpCaTlPX0Vyb3Z3dk9HX1ptSDFxNGRoUWoxN0FVdTdhNkYta2RUc1lGdXRIQmhsNWhtanNaZ0c0eHBtY2x1NmFBVXhj0gGXAUFVX3lxTFBkejJ2NUtKR0pZQ0ZlYUp1WTJIZ2puM0U1MTlJaXlPNVJHazhITlBkdHk3R3JvQUExT29kbk1tSnd2cF9OcDI4ZmllWHNhX0pZUDd2SkJpOU9fRXJvdnd2T0dfWm1IMXE0ZGhRajE3QVV1N2E2Ri1rZFRzWUZ1dEhCaGw1aG1qc1pnRzR4cG1jbHU2YUFVeGM?oc=5",
+   "publishedAt": "2026-11-20T00:01:00.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Европа поплатилась за санкции против РФ",
+   "source": "URA.RU",
+   "url": "https://news.google.com/rss/articles/CBMiR0FVX3lxTE1xRVpPVno1RmdIZlZKanVBUE1OdngtUzBQdzZYd2dwR0pqbUs2M21TdDlQWU1FVGZGWjNSX2treW9CSTQySm1j?oc=5",
+   "publishedAt": "2026-11-19T23:41:00.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Казахстан сохранил лидерство по размеру экономики в регионе",
+   "source": "Inbusiness.kz",
+   "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxNMmtoaGxhVlpfSDM2VzdhTDV2S1Rid2I4aDIxRFBvbnUyeWxTeTQtRFJqU3NJV3g3V1dQWjhTMUJkaFc3dVh3VHhyR2Z1N0p0X3k5M3hTYnR6aGNQZlpWTl9BMGIzWVFvQ0pFdjVpaExvcGh1VElQOVc0cGh2ZEVQUnFtNlMzU0cwY1ZSNjU4LXpIbmM?oc=5",
+   "publishedAt": "2026-11-19T23:08:18.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Remsima от Celltrion занимает 1-е место в Сингапуре, Гонконге и Малайзии… доля рынка в Сингапуре достигла 95%, успехи Celltrion в Азии",
+   "source": "재경일보",
+   "url": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE9tQ1Z5Q3AyalFKMmRWclpsWXg4U0JjbmVoWTNqWFpKVFdhT2x2dVY0RDFvX0RzOWdUUU9fN3I2a0ptbEtkQW1WOG1JSUhzeWFIMkpJZWdhajJPdWFCVzlzVWpB?oc=5",
+   "publishedAt": "2026-11-19T21:05:00.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Китай и страны АТЭС договорились почти о 50 совместных инициативах в сфере экономики",
+   "source": "TV BRICS",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNNU5uWUh6ZThfemFsTUpuT2NESGQzZmVxVFJyNzVqRmpRaUFNeFlSRHIwNnI5R3Jya3pTUnduZWNtY3dRNEJRLTZ4ZkdsT2hSZmRTSDQ2RURSelhiWkhWYVFmT2hUdHM0dE5wVWxVdnZJc0JjY0RBeDVkYkU0dXJUY0FQMWROMWtGX3UxTWlVYzA3LVkta2RxQ0hxQ2RUaFk5c3h6eXlKSEZuY3ZsTEtDRC0zSQ?oc=5",
+   "publishedAt": "2026-11-19T21:00:00.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Взгляд из Шэньчжэня: Жизнеспособность экономического и торгового сотрудничества АТЭС",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQMDVvTUFKdFlYTUVvMmcyOGgtd1hNcmFFMmtYXzhSbEpCVlhTN2JLVjN0bWtUTS1BOGJkMEttWlVGYzlGUkpOeklxV05PWkpEQWVraFhWY2hhUEVQQnRWTTUyZ1lkZHRyd0dBc0pJeG50XzZrMGN3eW4tdlNXQjJYWnc1dFpnTFJMM2FBdjlwUEpKTzNQeDFtamNBdw?oc=5",
+   "publishedAt": "2026-11-19T19:24:46.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "АТЭС 2026: Малайзия обязуется содействовать открытой торговле и многостороннему сотрудничеству.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxNU3ZUSTZHdXZZTXY1ODN2VXhVakJnYmtjNU55cXNYamRPbHFBYlVGMGFiVXhBd2dkbkVOVXBpSEpvcUpVWDJtZV91LXk1ZjZmR3kyTjZXbFBxSzFrRG91ZGt3UG5fTGdTN2lUOXM3UVFFNktvRlBZanBraVBUaTZlTERqSkpLZ0ZzZnQtUy1VRHJHRlR3dkEwcV93VThHU0E?oc=5",
+   "publishedAt": "2026-11-19T18:33:54.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "1,0952: евро обновляет минимум на фоне повсеместного укрепления доллара США, перевешивающего устойчивость экономики еврозоны",
+   "source": "www.tmgm.com",
+   "url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNOXlSbW1GU1Z0cGJvazg0OWlMSzdIaXBuX2E1UTZtNkRHLXJYV0lodXphdDNmVE9LbGRaWm9mREZoMWI1SEFXRXNISlVPVmhEU2dmX0RUU18wZVRfeEU4N1hwQW4xS2FsOTA4WWMzUDJMNFViOGVvS1FOdHpoNC1UQWtPeEEtcWVFTDU5MDBHTWtkT2xsazRQTGtTckFaNzl5eXhCUzBUYW12LTliY0JiRzhncm5wSnhwenAxNjZXM3U0SGF6bWE5a1RwRUFycWNpVWtXODdoem1BMjhSSmduUWp1VFB4dFU?oc=5",
+   "publishedAt": "2026-11-19T18:28:30.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Брюссель вкладывается в логистику Центральной Азии / Я так вижу",
+   "source": "Независимая газета",
+   "url": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE9zVkZyTVBtZ1huQ0tIejNQQ1dYV1ZTb2xQTnBxX2FkeWlCUmM0cDFULXpJZzJUTmNZMUtGMHJGWEtSZDNYOVlFTFJNbkRyQUtiQl9oRjgyQ1BWZk5XeFlLSDBn?oc=5",
+   "publishedAt": "2026-11-19T17:16:51.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Страны Центральной Азии готовят единую площадку для торговли электричеством",
+   "source": "24.KG",
+   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxOaC12MEJ6WGJEaXhlbHNDdm9lOU10NkV3SVZsTHZNV19kNWM2a0lfcHhvSzEyQ2thWXlPNDVRazBBQy1WOG9hanU3N2JYenVVUEdvZTR2OE93R0V5SEFJa3FZYlQ3WEMxbUh3OUNTZ2dwRlpVVXdSZktjUE9nZXFDWnd3UjlMRjBPZTV1TmYtNDhhcW9kWVhXZl9NUWxkLWlxMXc?oc=5",
+   "publishedAt": "2026-11-19T17:00:49.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "США объявляют о торговых соглашениях в Юго-Восточной Азии на сумму более 17 миллиардов долларов.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxNNnpXc1BzbE80OHpBLXZsdDhSbFRWUS04UnFub0haUDNleTgyVVNvRkVaMnoteDZGZWxJRWVwejRiTnNCZFNXZkN0aUJqbTk3cDhadUE1Yndpcm5Cb2E0dVBEQXRpajRDNVJQZnYtMjk3dU9JR2xBRTg0YVQxQ1lYZDhxa0VnWWppREhZaFE5Nlk0WFRSUS14Z19fYjNsXy1x?oc=5",
+   "publishedAt": "2026-11-19T16:41:51.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Европейцы проводят на больничных по три недели в год - экономика ЕС теряет на этом до 810 млрд евро",
+   "source": "Mixnews",
+   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOSVRzeGlBX0M3dFEwaUpnU2tqOFJxemFUaVpLb0t1S2VBWFFWZVJOX0RoTHlYSWZza2VOc242TGh6WXh0akxZVmVhSE9pOE9WV0Rob2M0cGRWVWFNb0twSjdJNmItLThuVWJCWmlPMWNFSTdlanZ0ekhTY3dhaDRVQ1FwdkFLV3VqTFlUbFdwMXdtTThBZHh1emFHb1NYSzU1RjR1bnZIaFJRQmFyb1Nubmpibm93YUJTTlIxRU9WaUhySEsyMmVGbXFwU2pKX0d0ODk3cw?oc=5",
+   "publishedAt": "2026-11-19T16:35:01.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "В Центральной Азии готовятся к созданию единого рынка электроэнергии",
+   "source": "Ритм Евразии",
+   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxNT3FiU1dBZFlhckpIOThyUG5NM0JST2pQdWs2V3QwUDZSSmNYTlZvSVVUeGFhaVAzbGhMcml3Yl9ZQy10RHpyS3htVEFiRjg3cjBtYzdVNFVIOE9xSnRDY1dCeDJvQmh0cEpwUS1TcXZyaXdZUlR6anFnODRPcjNCclJvdEZFNEtaWXA0T3JNSG11NUJSQjFnMnROOVFhcmt3aWpaZVctZXZCWEl1dVlpZUlCV2JkbnB1Qm1taXB3?oc=5",
+   "publishedAt": "2026-11-19T16:13:04.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Узбекистан и Турция обсудили проекты в химической промышленности",
+   "source": "UzDaily.uz",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxOeEQ1dFk5aFFnalkwTEhnTk1ycFFTdjVob1JvMDF0YTI1VXNfX1hnSTBuRUxmcm9UQ1BXTmhhbl9iYmpoSkJXSmdCb1NNeDRLT2NlZFlyZ3cxVGFDaF9tX29qcTg5eTJ3SVQ0aWU4ZWZLV2l1ODJIVlRMT3BobGszUldCckVKRG55RENteUg5N25JMTF6VUlWZEs2dXo?oc=5",
+   "publishedAt": "2026-11-19T16:10:00.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Не только Баку: как туристы из Европы и Азии могут изменить экономику регионов - МНЕНИЕ ЭКСПЕРТА",
+   "source": "Vesti.az",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxNWW93X0JtT3pGTFdPUmhiczJtY2NOTXRqQTVtVTJIaW1FR09Dd29wZlNjSUFWSWd1bnlCU1pxeTdkRE0zdzNDTDdoRmYtTG1JU0VQdVF1QUZ5RmdVZE5Sd3pObFRibVZac19KYjRqVzJBTmZUUVEwaDdEbDZubk1wZUd0NjY3a2cteEFnS1F5SHFoU2htSTN2aWFzUGxGemwwNjllMWotODF5SGdxc0p6ME1GdnhYQ1pkZzgzckpWVQ?oc=5",
+   "publishedAt": "2026-11-19T16:04:18.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "ЕС: торговое соглашение с Мексикой отменит 95% пошлин на продовольственный импорт",
+   "source": "Vinetur",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxNcEtVeTF4bEtWYzJSQjNRU2RRY3plVkp1S3N6VFZySWNJZmdKM0tub3FXRVpueE0wSkIxcUktSHdwVGV6OTViTDlzc3N6dklkOXdRb1RuZWZFTDNicUhYYm94WFdmaG4tZXRyRGFvdU5pTG52ZnQzZ1VVSVQ1UDBWbXVMa2hjdEVqN0FGS2pxcUxocXJOdG9GajdYWjNORWRCUmctWFhRbzQ3RXFnMTNCdS1CU0LSAboBQVVfeXFMT21FYnJLTHF5Y3FrWHMyRlBQUkg2aTRJUUJtQUdPSTdfUXdOQmtUNHBPdWdnNUxQRTFqRDVKN1BEbVc2eEV3UDhDU0kzMWtuLXZQdEk1TFFTQ2JGZ0tnTWYzenczcTE3V0MxdWQ5VEpVakgzdkFRVVlIWUZITHY3aXhfTy1MRU1EYldaRXVlam5lc3lSWTRoRXpBcTliUUh5WmhJMTQ1eUNtNVJYdGtRMDZoZm5OaVlTZnJR?oc=5",
+   "publishedAt": "2026-11-19T15:33:44.000Z",
+   "theme": "economy",
+   "region": "europe"
+  },
+  {
+   "title": "Товарооборот Китая с 20 другими экономиками АТЭС по итогам 10 месяцев года подскочил на 25,4%",
+   "source": "CGTN на русском",
+   "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE8xNV9rOENZVXhWdXdjOVFVNHF1cnJiN0U3TG1tMTNmRWs3NWwzR3NoSWFSX1NFcUVOSTVrZzlrLVpaLUxhbDBvQU5VNWNueFdYOGhBaWFsMXp5NzI4NXVKR0lDclNsNFk?oc=5",
+   "publishedAt": "2026-11-19T15:23:27.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Выручка Alibaba превысила $40 млрд в III квартале 2026 года: доходы облачного и ИИ-бизнеса выросли на 53%",
+   "source": "rb.ru",
+   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOdVdGMXdONmEySXVZZGhscVF3WUxpLTg0U0MzU09nUGhicGtyYXF5ZEpacXMyQmsxU2Foc2ROeTMyMWZ6SlNpandSNVJ0X1FWbmdrWldPdzFKSF94OFFGNUhyN1JMWUkzTDVWSVJuTDY5T2NPeldjaUJMT0thZU1PTG00V3ZsUjhLZldYSDFGZDI3SUtlSEVzSE9zc3ZGWTBMQ212amNqX3dLcU5RX0U4YXdNbnU1dmNFYlFOS2tuV1RJQQ?oc=5",
+   "publishedAt": "2026-11-19T15:15:00.000Z",
+   "theme": "ecommerce",
+   "region": "china"
+  },
+  {
+   "title": "Китайские СМИ широко освещали экономическое и торговое сотрудничество между Вьетнамом и Китаем.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxPdlBvYWpvdzBnWlRUX0lJTktPUVd4QzNiLWJlelVici1aeEtoREJwT3hVbXlGZTNpVHpZdWZ5Y0xNOG9PRnVsWHVIYk40WEtJSnFVVTRySk5pZkJjcHVpQU11QVNweHBublBEcG9vQUVITGJOT3h5YnEyS0M4ZG01ZUlVNnNIMFozVnhldlJSZ0ltM2tzWllUUnliU21XV18tbm5yMGp3?oc=5",
+   "publishedAt": "2026-11-19T15:07:10.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Экономика Китая резко замедлила рост в октябре на фоне падения инвестиций и продаж",
+   "source": "Marketpower.pro",
+   "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxNRUxNOGZYejFFazY4V1JpR3FNcmlLSnZkbTctcHhybmxwWGozaFJEODJ4cTFoS2JoVGZ2R2doQ2lnTnE2bUxYSFczWFlNLXBQTDZrUWkxZXlQSWJxTEZMQUdGWmM0Z2NGdkpVSDNMVmRrVU9OSjJKNFd0U2MteDZoUnRtbExzQ3FfMF9iRUF6VFNTOWhYamp6d0xR?oc=5",
+   "publishedAt": "2026-11-19T14:47:38.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Профицит Китая — сигнал о сдвигах в глобальной экономике",
+   "source": "Капитал страны",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPZnlZQkFSZTg3RUV6NFhzU2ZQeGhmY2dzcGxJUmU3TVFPcF9yZ0dDcnFtLWM0MEFsclZZSUVYb1AwSlpqTTV1M3hCdFVDYXJXRktBZzg4Ynh4OENNaFZPWVZ0VzBMaTdndXM3LWh5QmhaNkFleFdXWU1SVGtiME5BYW1KSnpySEQ4bzRsOTd3X1dVbmpOUzNNZW9NbTI?oc=5",
+   "publishedAt": "2026-11-19T13:40:59.000Z",
+   "theme": "economy",
+   "region": "china"
+  },
+  {
+   "title": "Исследуя трансформацию экономики Узбекистана",
+   "source": "yuz.uz",
+   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE1nNTBmbU9UY1lHVWktd2pRNFZQam9CMUlrZHBCX0h1TjNQTzdFNXliWEs4dFJzTUdfMXVpYmw3WV9KOFo3VUlPemlHX3E3U3htMUs1aWNIWkE5dXhzYU1jT3lPLVVneWNlclV5bU41aFpkWDMtQ0Vfbm9B?oc=5",
+   "publishedAt": "2026-11-19T12:16:09.000Z",
+   "theme": "economy",
+   "region": "central-asia"
+  },
+  {
+   "title": "Несмотря на спад на региональном рынке, вьетнамские потребители по-прежнему активно скупают смартфоны.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxQcmg5S2JfNEtyZXlZRTBuV0dYSUV3UG9IVHAzQ25qMXVtYlhLNWt0XzlwRHFHZ0dIVk8zakF4cmRaeUZoWWtuTEN3M0JLOEVLa0NHQm5mdGs1a1duWmtSU3luZ2s5VGxWbEMxcE1URFBpSmJybzJ3bnBsTmt1VmNhaVlOSjZkS3oyZmtfaGs1ZUdYUXNPUmlGRHNn?oc=5",
+   "publishedAt": "2026-11-19T10:31:57.000Z",
+   "theme": "economy",
+   "region": "sea"
+  },
+  {
+   "title": "Склады уходят на юг: Ozon и Alibaba бронируют места в Казахстане",
+   "source": "LOGIRUS",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxOZS1lQlZYa1NIeWFsNHVxdHo2UzFsTEpRUEw3M25fUlBHS2JuXzVDdEFZQUNFMXNramhqaWV2NFQwZHEtN2dzRmJ1eVc1aUQxX2x2Vm84a0lDcWZ3LVVKaFhXb1dMRXdUZUJsbUtabklCN1BoeGlJWU16NnhWNkVyeTBnWUJzR0NOdVM1WmpvcGZoV3cta3lCT0FkUFVzbVA5QjJ6UzdTclAybExXdkxpYnRR?oc=5",
+   "publishedAt": "2026-11-19T10:08:34.000Z",
+   "theme": "ecommerce",
+   "region": "central-asia"
+  },
+  {
+   "title": "Инспекторы проверяют Shopee, Lazada, Tiki и еще три платформы электронной коммерции.",
+   "source": "Vietnam.vn",
+   "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxOSFo3QmU1TDV4UWhpX3hjbVNGTm8xNGpJR2tESHJ5Q1ZhdzRCYXZLQ0xkOWNfN0NMd1ByQ1hUUDJiYVVPNEdBZDZudjFKRnNuLUtsenB2VjBOREtxbGVxb2F1bjczYjdIQmNDMmx1NjNtaWJJQzVkV3hrSlhnQ0RfMmVjTzVYelFfUHRvcHprNV84Rmp0SkFLWEFQaHNkZw?oc=5",
+   "publishedAt": "2026-11-19T08:53:09.000Z",
+   "theme": "ecommerce",
+   "region": "sea"
+  }
+ ]
+}
