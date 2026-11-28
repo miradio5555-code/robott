@@ -48,7 +48,7 @@ function build(scn) {
     const base = { workspace_id: "ws1", source: "shop", rate: 12.62, comment: null, buyer_note: null, eta_until: null, sent_at: null, sent_proof: null, rating: null, dispute: null, client_flag: false };
     db.exchange_requests.push(
       { ...base, id: "fxr-1", client_name: "Азамат", client_phone: "+996555111222", cny: 1000, som: 12620, status: "paid", created_at: at(40), status_at: at(38), paid_at: at(38), proof_path: "fxr-1/pay.jpg", chat_buyer_seen: 11, chat_client_seen: 0,
-        recv_method: "alipay", recv_account: "+86 138 0013 8000", recv_name: "Azamat K", recv_qr: "fxr-1/q-abcdefgh12.jpg", recv_at: at(10) },
+        recv_method: "alipay", recv_account: null, recv_name: null, recv_qr: "fxr-1/q-abcdefgh12.jpg", recv_at: at(10) },
       { ...base, id: "fxr-2", client_name: "Бакыт", client_phone: "+996777000111", cny: 3000, som: 37860, status: "new", created_at: at(6), status_at: at(6), paid_at: null, proof_path: null, chat_buyer_seen: 0, chat_client_seen: 0,
         recv_method: null, recv_account: null, recv_name: null, recv_qr: null, recv_at: null });
     db.exchange_events = [
@@ -287,7 +287,7 @@ function fxReq(db, id) {
       brand: { name: "ULA Factory", logo: null }, sent_at: null, sent_proof: null, close_at: null, received_at: null, rating: null,
       dispute: null, dispute_by: null, dispute_result: null, dispute_note: null, can_dispute: false, dispute_from: at(-80),
       // файл 78: в переписке клиент уже указал Alipay, у новой заявки реквизитов нет
-      recv_method: talk ? "alipay" : null, recv_account: talk ? "+86 138 0013 8000" : null, recv_name: talk ? "Azamat K" : null, has_recv_qr: false, recv_edit: true };
+      recv_method: talk ? "alipay" : null, recv_account: null, recv_name: null, has_recv_qr: talk, recv_edit: true };
     const events = talk ? [
       { id: 11, kind: "msg", author: "client", body: "Здравствуйте! Я оплатил 12 620 сом, проверьте, пожалуйста", file: null, photo: false, at: at(30) },
       { id: 12, kind: "msg", author: "client", body: null, file: null, photo: true, at: at(29) },
