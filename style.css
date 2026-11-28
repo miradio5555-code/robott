@@ -5855,3 +5855,24 @@ html[data-theme="dark"] .xc-file { background: rgba(255, 255, 255, .08); }
 }
 @media (prefers-reduced-motion: reduce) { .xc-row.xc-new, .xc-done { animation: none; } .xc-tick.wait { animation: none; } }
 .xc-go { margin-top: 12px; gap: 8px; }
+
+/* ===== Обмен: «У меня есть сом» и куда получить юани (файл 78) ===== */
+.fx-mode { margin: 10px 0 0; }
+.fx-paysom { margin: -6px 0 10px; text-align: right; }
+.fx-paysom:empty { display: none; }
+.fx-rv-form { display: grid; gap: 4px; margin: 6px 0 10px; }
+.fx-rv-m { flex-wrap: wrap; margin-bottom: 6px; }
+.fx-rv-qr { display: grid; gap: 6px; }
+.fx-rv-qr > span { font-size: var(--fs-sm); color: var(--muted); }
+.fx-rv-view { display: grid; gap: 4px; margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: var(--soft); }
+.fx-rv-view small { color: var(--muted); font-size: var(--fs-xs); }
+.fx-rv-view .btn { justify-self: start; }
+.fx-rv-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fx-rv-acc span { font-weight: 600; font-size: var(--fs-md); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.fx-rv-changed { display: flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: 600; color: #B26A00; }
+.fx-rv-box { display: grid; gap: 6px; margin: 12px 0; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); }
+.fx-rv-box h4 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-md); }
+.fx-rv-box > .btn { justify-self: start; }
+.fx-rv-warn { display: flex; gap: 6px; margin: 0; font-size: var(--fs-sm); color: #B26A00; }
+.fx-rv-box .muted { display: flex; align-items: center; gap: 4px; }
+.fx-rv-view .btn .ico, .fx-rv-box .muted .ico { flex: none; }

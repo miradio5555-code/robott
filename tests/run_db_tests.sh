@@ -99,6 +99,8 @@ echo "▶ Курс юаня на главной для всех (файл 75)…
 bash tests/public_fx_test.sh
 echo "▶ Чат по заявке на обмен и push о сообщениях (файлы 76–77)…"
 bash tests/exchange_chat_test.sh
+echo "▶ Реквизиты клиента в заявке на обмен (файл 78)…"
+bash tests/exchange_recv_test.sh
 
 echo ""
 echo "🎉 Все проверки пройдены"
