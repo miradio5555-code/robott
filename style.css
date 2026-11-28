@@ -5876,3 +5876,16 @@ html[data-theme="dark"] .xc-file { background: rgba(255, 255, 255, .08); }
 .fx-rv-warn { display: flex; gap: 6px; margin: 0; font-size: var(--fs-sm); color: #B26A00; }
 .fx-rv-box .muted { display: flex; align-items: center; gap: 4px; }
 .fx-rv-view .btn .ico, .fx-rv-box .muted .ico { flex: none; }
+
+/* ===== Обмен по шагам: 1 сумма → 2 ваш QR → 3 оплата обменнику и чек → 4 имя и телефон ===== */
+.fx-wiz { display: grid; gap: 6px; margin: 14px 0 4px; }
+.fx-wiz-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.fx-wiz-bar i { height: 4px; border-radius: 2px; background: var(--line); }
+.fx-wiz-bar i.ok { background: var(--green); }
+.fx-wiz-bar i.cur { background: var(--primary); }
+.fx-wiz-n { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
+.fx-sub { margin: 14px 0 6px; font-size: var(--fs-md); }
+.fx-sum-list { display: grid; gap: 4px; margin: 4px 0 12px; padding: 0; list-style: none; font-size: var(--fs-sm); }
+.fx-sum-list li { display: flex; align-items: center; gap: 6px; color: var(--green); }
+.fx-pub .btn-block + .btn-block { margin-top: 8px; }
+.fx-pub [data-fxc="next"], .fx-pub #fxc-form [type="submit"] { margin-top: 14px; }

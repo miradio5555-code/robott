@@ -512,11 +512,12 @@
   function minSom(tiers) { var s = sortTiers(tiers); return s.length ? Math.ceil(num(s[0].from) * num(s[0].rate) * 100) / 100 : 0; }
 
   // ---------- Реквизиты клиента: куда получить юани (файл 78) ----------
-  var RECV = ["alipay", "wechat", "bank"];
-  function recvName(m) { return RECV.indexOf(m) === -1 ? "" : t("fx_rv_" + m); }
-  // форма: способ (Alipay / WeChat / карта), номер, имя, QR. h — где лежит выбранное: {method, file, local};
-  // pre — начало id полей; act — имя data-атрибута кнопок; acc/name — что показать в полях; oldQr — QR уже есть в заявке
-  function recvFormHtml(h, pre, act, acc, name, oldQr) {
+  // Клиент выбирает Alipay или WeChat и прикрепляет свой QR-код для получения. Номер и имя больше не спрашиваем
+  // (в старых заявках они могут быть — обменник их по-прежнему видит).
+  var RECV = ["alipay", "wechat"];
+  function recvName(m) { return ["alipay", "wechat", "bank"].indexOf(m) === -1 ? "" : t("fx_rv_" + m); }
+  // форма: способ и QR. h — {method, file, local}; pre — начало id; act — имя data-атрибута кнопок; oldQr — QR уже есть в заявке
+  function recvFormHtml(h, pre, act, oldQr) {
     var m = h.method;
     return '<div class="fx-rv-form">' +
       '<div class="chips fx-rv-m" role="radiogroup" aria-label="' + esc(t("fx_s_recv")) + '">' + RECV.map(function (k) {
@@ -524,29 +525,26 @@
           act + '="rvm" data-m="' + k + '">' + esc(recvName(k)) + "</button>";
       }).join("") + "</div>" +
       (m
-        ? '<label class="field"><span>' + esc(t("fx_rv_acc_" + m)) + '</span><input id="' + pre + '-rv-acc" type="text" maxlength="120" autocomplete="off" value="' + esc(acc || "") + '"></label>' +
-          '<label class="field"><span>' + esc(t("fx_rv_name")) + '</span><input id="' + pre + '-rv-name" type="text" maxlength="120" autocomplete="off" value="' + esc(name || "") + '"></label>' +
-          '<div class="field fx-rv-qr"><span>' + esc(t("fx_rv_qr")) + "</span>" +
+        ? '<div class="field fx-rv-qr"><span>' + esc(t("fx_rv_qr_" + m)) + "</span>" +
             '<input id="' + pre + '-rvfile" type="file" accept="image/*" hidden>' +
             (h.file
               ? rcptHtml(h, act + '="rvqr"', act + '="rvunqr"')
-              : oldQr && !h.dropQr
+              : oldQr
                 ? '<div class="fx-rcpt"><i class="fx-rcpt-pdf">QR</i><span class="fx-rcpt-n">' + esc(t("fx_rv_qr_on")) + "</span>" +
-                    '<button type="button" class="btn btn-sm" ' + act + '="rvqr">' + esc(t("fx_replace")) + "</button>" +
-                    '<button type="button" class="fx-rcpt-x" ' + act + '="rvunqr" aria-label="' + esc(t("fx_rv_qr_del")) + '">×</button></div>'
+                    '<button type="button" class="btn btn-sm" ' + act + '="rvqr">' + esc(t("fx_replace")) + "</button></div>"
                 : '<button type="button" class="fx-rcpt-add" ' + act + '="rvqr">' + U.icon("qr", 20) + "<span>" + esc(t("fx_rv_qr_add")) + "</span></button>") +
-            '<small class="fine-print">' + esc(t("fx_rv_qr_hint")) + "</small></div>"
+            '<small class="fine-print">' + esc(t("fx_rv_qr_hint_" + m)) + "</small></div>"
         : "") +
       "</div>";
   }
   // проверить форму; ошибка — текст, иначе ""
-  function recvError(method, acc, hasQr) {
+  function recvError(method, hasQr) {
     if (RECV.indexOf(method) === -1) return t("fx_e_rv_method");
-    if (acc.length < 3 && !hasQr) return t("fx_e_rv_acc");
+    if (!hasQr) return t("fx_e_rv_qr");
     return "";
   }
   // загрузить QR клиента в закрытое «fx-proofs» и сохранить реквизиты заявки
-  async function saveRecv(id, method, acc, name, file, dropQr) {
+  async function saveRecv(id, method, file) {
     var qr = null;
     if (file) {
       var blob = await prepImg(file);
@@ -554,20 +552,20 @@
       var up = await c.db().storage.from("fx-proofs").upload(qr, blob, { contentType: blob.type || "image/jpeg", upsert: false });
       if (up.error) throw up.error;
     }
-    var res = await c.db().rpc("fx_set_recv", { p_id: id, p_method: method, p_account: acc || null, p_name: name || null, p_qr: qr, p_drop_qr: !!dropQr });
+    var res = await c.db().rpc("fx_set_recv", { p_id: id, p_method: method, p_account: null, p_name: null, p_qr: qr, p_drop_qr: false });
     if (res.error) throw res.error;
     return res.data;
   }
   // для обменника и администратора: куда отправить юани
   function recvViewHtml(r) {
-    if (!r.recv_method && !r.recv_qr) return "";
+    if (!r.recv_qr && !r.recv_account) return "";
     var changed = r.recv_at && r.created_at && new Date(r.recv_at) - new Date(r.created_at) > 120000;
     return '<div class="fx-rv-view"><small>' + esc(t("fx_rv_to")) + "</small>" +
       "<b>" + esc(recvName(r.recv_method)) + "</b>" +
       (r.recv_account ? '<div class="fx-rv-acc"><span>' + esc(r.recv_account) + "</span>" +
         '<button type="button" class="btn btn-sm" data-fx-copytext="' + esc(r.recv_account) + '">' + esc(t("fx_copy")) + "</button></div>" : "") +
       (r.recv_name ? "<div>" + esc(r.recv_name) + "</div>" : "") +
-      (r.recv_qr ? '<button type="button" class="btn btn-sm" data-fx-proof="' + esc(r.recv_qr) + '">' + U.icon("qr", 16) + esc(t("fx_rv_qr_open")) + "</button>" : "") +
+      (r.recv_qr ? '<button type="button" class="btn btn-sm btn-primary" data-fx-proof="' + esc(r.recv_qr) + '">' + U.icon("qr", 16) + esc(t("fx_rv_qr_open")) + "</button>" : "") +
       (changed ? '<div class="fx-rv-changed">' + U.icon("alert", 14) + esc(t("fx_rv_changed", { t: when(r.recv_at) })) + "</div>" : "") +
       "</div>";
   }
@@ -1516,9 +1514,11 @@
   // =====================================================
   // step: calc → form → pay (реквизиты, загрузка скриншота) → done
   // mode: "cny" — клиент знает, сколько юаней нужно; "som" — знает, сколько у него сомов
-  // rv — куда получить юани: method и QR (file/local); номер и имя — rvAcc, rvName
-  var pub = { kind: "", token: "", fx: null, cny: "", som: "", mode: "cny", name: "", phone: "", comment: "", step: "calc", error: "", busy: false, req: null,
-    rv: { method: "", file: null, local: "" }, rvAcc: "", rvName: "" };
+  // rv — куда получить юани: method и QR (file/local)
+  // По шагам, по одному на экране: 1 сумма (step "calc") → 2 ваш QR → 3 реквизиты обменника и чек → 4 имя и телефон (step "form", fstep 2–4)
+  var pub = { kind: "", token: "", fx: null, cny: "", som: "", mode: "cny", name: "", phone: "", comment: "", step: "calc", fstep: 2, error: "", busy: false, req: null,
+    rv: { method: "", file: null, local: "" } };
+  var WIZ = 4;
 
   // kind: 'shop' | 'order' | 'cab'; slot — пустой <div>, куда рисуется блок
   function mountPublic(slot, data, kind, token) {
@@ -1530,8 +1530,6 @@
     slot.oninput = function (e) {
       if (e.target.id === "fxc-cny") { pub.cny = e.target.value; showSom(slot); }
       else if (e.target.id === "fxc-som") { pub.som = e.target.value; showSom(slot); }
-      else if (e.target.id === "fxc-rv-acc") pub.rvAcc = e.target.value;
-      else if (e.target.id === "fxc-rv-name") pub.rvName = e.target.value;
       else if (e.target.id === "fxc-name") pub.name = e.target.value;
       else if (e.target.id === "fxc-phone") pub.phone = e.target.value;
       else if (e.target.id === "fxc-comment") pub.comment = e.target.value;
@@ -1561,7 +1559,7 @@
         var inp = slot.querySelector(md === "som" ? "#fxc-som" : "#fxc-cny"); if (inp) inp.focus();
         return;
       }
-      if (a === "rvm") { pub.rv.method = b.getAttribute("data-m"); pub.error = ""; renderPublic(slot); var ra = slot.querySelector("#fxc-rv-acc"); if (ra) ra.focus(); return; }
+      if (a === "rvm") { pub.rv.method = b.getAttribute("data-m"); pub.error = ""; renderPublic(slot); return; }
       if (a === "rvqr") { var rq = slot.querySelector("#fxc-rvfile"); if (rq) { rq.value = ""; rq.click(); } return; }
       if (a === "rvunqr") { rcptDrop(pub.rv); renderPublic(slot); return; }
       if (a === "form") {
@@ -1575,17 +1573,39 @@
         var cny = parseNum(pub.cny) || 0;
         if (!(cny > 0)) { pub.error = t("fx_e_amount"); renderPublic(slot); return; }
         if (!rateFor(pub.fx.tiers, cny)) { pub.error = t("fx_e_min", { n: money(minOf(pub.fx.tiers)) }); renderPublic(slot); return; }
-        pub.error = ""; pub.step = "form"; renderPublic(slot);
-        var n = slot.querySelector("#fxc-name"); if (n) n.focus();
-      } else if (a === "back") { pub.step = "calc"; pub.error = ""; renderPublic(slot); }
+        pub.error = ""; pub.step = "form"; pub.fstep = 2; wizGo(slot);
+      } else if (a === "next") {
+        // шаг 2 — нужен QR, шаг 3 — нужен чек
+        var er = pub.fstep === 2 ? recvError(pub.rv.method, !!pub.rv.file) : pub.fstep === 3 && !pub.file ? t("fx_e_receipt") : "";
+        if (er) { pub.error = er; renderPublic(slot); return; }
+        pub.error = ""; pub.fstep = Math.min(WIZ, pub.fstep + 1); wizGo(slot);
+      } else if (a === "back") {
+        pub.error = "";
+        if (pub.step === "form" && pub.fstep > 2) pub.fstep--; else pub.step = "calc";
+        wizGo(slot);
+      }
       else if (a === "pick") { var f = slot.querySelector("#fxc-file"); if (f) f.click(); }
       else if (a === "unfile") { rcptDrop(pub); renderPublic(slot); }
       else if (a === "copyreq") { c.copyText(splitNote(pub.fx && pub.fx.note).text).then(function (ok) { if (ok) toast(t("fx_req_copied"), "ok"); }); }
-      else if (a === "again") { pub.step = "calc"; pub.cny = ""; pub.som = ""; pub.comment = ""; pub.req = null; rcptDrop(pub); renderPublic(slot); }
+      else if (a === "again") { pub.step = "calc"; pub.fstep = 2; pub.cny = ""; pub.som = ""; pub.comment = ""; pub.req = null; rcptDrop(pub); rcptDrop(pub.rv); renderPublic(slot); }
     };
     slot.onsubmit = function (e) {
       if (e.target.id === "fxc-form") { e.preventDefault(); sendPublic(slot); }
     };
+  }
+
+  // показать шаг и прокрутить к началу блока (на телефоне шаг иначе может оказаться ниже экрана)
+  function wizGo(slot) {
+    renderPublic(slot);
+    var top = slot.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.5) slot.scrollIntoView({ block: "start" });
+    var n = pub.step === "form" && pub.fstep === 4 ? slot.querySelector("#fxc-name") : null;
+    if (n && !n.value) n.focus();
+  }
+  function wizHead(n, title) {
+    return '<div class="fx-wiz"><div class="fx-wiz-bar" aria-hidden="true">' +
+      [1, 2, 3, 4].map(function (k) { return '<i class="' + (k < n ? "ok" : k === n ? "cur" : "") + '"></i>'; }).join("") + "</div>" +
+      '<p class="fx-wiz-n">' + esc(t("fx_wiz", { n: n, m: WIZ })) + "</p></div>" + stepHead(n, title);
   }
 
   function showSom(slot) {
@@ -1634,35 +1654,52 @@
       slot.innerHTML = html + "</section>";
       return;
     }
-    html += (f.updated_at ? '<p class="fx-date ' + (isToday(f.updated_at) ? "" : "old") + '">' + esc(dateLine(f.updated_at)) + "</p>" : "") +
-      (f.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(f.eta) })) + "</p>" : "") +
-      '<p class="kyc-pub">' + U.icon("shield", 16) + esc(t("kyc_pub_badge")) + "</p>" +
-      '<div class="fx-tiers-wrap fx-tiers-c">' + tiersHtml(f.tiers, pub.mode === "som" ? ((cnyForSom(f.tiers, parseNum(pub.som) || 0) || {}).cny || 0) : (parseNum(pub.cny) || 0)) + "</div>";
+    var err = pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "";
+    var back = '<button type="button" class="btn btn-ghost btn-block" data-fxc="back">← ' + esc(t("a11y_back")) + "</button>";
+    var next = '<button type="button" class="btn btn-primary btn-block" data-fxc="next">' + esc(t("fx_next")) + " →</button>";
     if (pub.step === "form") {
-      var cny = parseNum(pub.cny);
-      html += '<div class="fx-sumbox"><span>' + esc(t("fx_to_pay")) + "</span><b>" + esc(money(somFor(f.tiers, cny))) + " " + esc(t("fx_som_short")) + "</b>" +
-          "<small>¥ " + esc(money(cny)) + "</small></div>" +
-        stepHead(1, t("fx_s1")) +
-        (reqHtml(f.note, 'data-fxc="copyreq"')
-          || '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
-        '<form id="fxc-form" novalidate autocomplete="on">' +
-        stepHead(2, t("fx_s2")) +
-        '<input id="fxc-file" type="file" accept="image/*" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
-        stepHead(3, t("fx_s_recv")) +
-        recvFormHtml(pub.rv, "fxc", "data-fxc", pub.rvAcc, pub.rvName, false) +
-        stepHead(4, t("fx_s3")) +
-        '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="fxc-name" type="text" autocomplete="name" maxlength="120" value="' + esc(pub.name) + '"></label>' +
-        '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(pub.phone) + '"></label>' +
-        '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="fxc-comment" rows="2" maxlength="500" placeholder="' + esc(t("fx_comment_ph")) + '">' + esc(pub.comment) + "</textarea></label>" +
-        '<div class="hp" aria-hidden="true"><label>Website<input id="fxc-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
-        (pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "") +
-        '<button class="btn btn-primary btn-block" type="submit"' + (pub.busy ? " disabled" : "") + ">" + esc(t(pub.busy ? "rq_sending" : "fx_send_rcpt")) + "</button>" +
-        '<button type="button" class="btn btn-ghost btn-block" data-fxc="back">← ' + esc(t("fx_back")) + "</button>" +
-        '<p class="fine-print">' + esc(t("rq_consent")) + ' <a href="privacy.html">' + esc(t("legal_privacy")) + "</a>.</p>" +
-        "</form>";
+      var cny = parseNum(pub.cny), som = somFor(f.tiers, cny);
+      html += '<div class="fx-sumbox"><span>' + esc(t("fx_to_pay")) + "</span><b>" + esc(money(som)) + " " + esc(t("fx_som_short")) + "</b>" +
+        "<small>¥ " + esc(money(cny)) + " · " + esc(t("fx_rate_line", { r: rateStr(rateFor(f.tiers, cny)) })) + "</small></div>";
+      if (pub.fstep === 2) {
+        // 2. Ваш QR: куда обменник отправит юани
+        html += wizHead(2, t("fx_s_recv")) +
+          '<p class="muted">' + esc(t("fx_rv_why")) + "</p>" +
+          recvFormHtml(pub.rv, "fxc", "data-fxc", false) + err + next + back;
+      } else if (pub.fstep === 3) {
+        // 3. Реквизиты обменника: оплатить и прикрепить чек
+        html += wizHead(3, t("fx_s1")) +
+          '<p class="muted">' + esc(t("fx_pay_exact", { n: money(som) })) + "</p>" +
+          (reqHtml(f.note, 'data-fxc="copyreq"') || '<p class="muted fx-req-none">' + esc(t("fx_req_none")) + "</p>") +
+          '<h4 class="fx-sub">' + esc(t("fx_s2")) + "</h4>" +
+          '<input id="fxc-file" type="file" accept="image/*" hidden>' + rcptHtml(pub, 'data-fxc="pick"', 'data-fxc="unfile"') +
+          err + next + back;
+      } else {
+        // 4. Имя и телефон — и итог: что уже готово
+        html += wizHead(4, t("fx_s3")) +
+          '<ul class="fx-sum-list">' +
+            "<li>" + U.icon("check", 14) + esc(t("fx_sum_recv", { m: recvName(pub.rv.method) })) + "</li>" +
+            "<li>" + U.icon("check", 14) + esc(t("fx_sum_rcpt")) + "</li></ul>" +
+          '<form id="fxc-form" novalidate autocomplete="on">' +
+          '<label class="field"><span>' + esc(t("rq_name")) + '</span><input id="fxc-name" type="text" autocomplete="name" maxlength="120" value="' + esc(pub.name) + '"></label>' +
+          '<label class="field"><span>' + esc(t("rq_phone")) + '</span><input id="fxc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+__ ___ ___ ____" value="' + esc(pub.phone) + '"></label>' +
+          '<label class="field"><span>' + esc(t("rq_comment")) + '</span><textarea id="fxc-comment" rows="2" maxlength="500">' + esc(pub.comment) + "</textarea></label>" +
+          '<div class="hp" aria-hidden="true"><label>Website<input id="fxc-website" type="text" tabindex="-1" autocomplete="off"></label></div>' +
+          err +
+          '<button class="btn btn-primary btn-block" type="submit"' + (pub.busy ? " disabled" : "") + ">" + esc(t(pub.busy ? "rq_sending" : "fx_send_rcpt")) + "</button>" +
+          back +
+          '<p class="fine-print">' + esc(t("rq_consent")) + ' <a href="privacy.html">' + esc(t("legal_privacy")) + "</a>.</p>" +
+          "</form>";
+      }
     } else {
+      // 1. Сколько юаней (или сколько сомов есть)
       var bySom = pub.mode === "som";
-      html += '<div class="chips fx-mode" role="radiogroup">' + ["cny", "som"].map(function (k) {
+      html += (f.updated_at ? '<p class="fx-date ' + (isToday(f.updated_at) ? "" : "old") + '">' + esc(dateLine(f.updated_at)) + "</p>" : "") +
+        (f.eta ? '<p class="fx-eta-usual">⏱ ' + esc(t("fx_eta_usual", { n: etaName(f.eta) })) + "</p>" : "") +
+        '<p class="kyc-pub">' + U.icon("shield", 16) + esc(t("kyc_pub_badge")) + "</p>" +
+        wizHead(1, t("fx_s_amount")) +
+        '<div class="fx-tiers-wrap fx-tiers-c">' + tiersHtml(f.tiers, bySom ? ((cnyForSom(f.tiers, parseNum(pub.som) || 0) || {}).cny || 0) : (parseNum(pub.cny) || 0)) + "</div>" +
+        '<div class="chips fx-mode" role="radiogroup">' + ["cny", "som"].map(function (k) {
           return '<button type="button" class="chip' + (pub.mode === k ? " active" : "") + '" role="radio" aria-checked="' + (pub.mode === k) + '" data-fxc="mode" data-m="' + k + '">' +
             esc(t("fx_mode_" + k)) + "</button>";
         }).join("") + "</div>" +
@@ -1673,8 +1710,8 @@
             '<p id="fxc-paysom" class="fine-print fx-paysom"></p>'
           : '<label class="field"><span>' + esc(t("fx_cny")) + '</span><input id="fxc-cny" type="text" inputmode="decimal" autocomplete="off" placeholder="' + esc(money(minOf(f.tiers) || 1000)) + '" value="' + esc(pub.cny) + '"></label>' +
             '<div class="fx-out"><span>' + esc(t("fx_pay")) + '</span><b id="fxc-out">0</b></div></div>') +
-        (pub.error ? '<p class="form-error" role="alert">' + esc(pub.error) + "</p>" : "") +
-        '<button type="button" class="btn btn-primary btn-block" data-fxc="form">' + esc(t("fx_pub_btn")) + "</button>";
+        err +
+        '<button type="button" class="btn btn-primary btn-block" data-fxc="form">' + esc(t("fx_next")) + " →</button>";
     }
     slot.innerHTML = html + "</section>";
     if (pub.step === "calc") showSom(slot);
@@ -1685,37 +1722,30 @@
     var name = pub.name.trim(), phone = c.cleanPhone(pub.phone);
     if (name.length < 2) { pub.error = t("e_name"); return renderPublic(slot); }
     if (!/^\+?\d{9,15}$/.test(phone)) { pub.error = t("e_phone"); return renderPublic(slot); }
-    if (!pub.file) { pub.error = t("fx_e_receipt"); return renderPublic(slot); }
-    var rvAcc = pub.rvAcc.trim(), rvName = pub.rvName.trim(), rvErr = recvError(pub.rv.method, rvAcc, !!pub.rv.file);
-    if (rvErr) { pub.error = rvErr; return renderPublic(slot); }
+    // что-то пропало с прошлых шагов — вернуть на этот шаг
+    var rvErr = recvError(pub.rv.method, !!pub.rv.file);
+    if (rvErr) { pub.error = rvErr; pub.fstep = 2; return wizGo(slot); }
+    if (!pub.file) { pub.error = t("fx_e_receipt"); pub.fstep = 3; return wizGo(slot); }
     pub.error = ""; pub.busy = true; renderPublic(slot);
     try {
       var hp = slot.querySelector("#fxc-website");
       var args = {
         p_kind: pub.kind, p_token: pub.token, p_name: name, p_phone: phone,
         p_cny: parseNum(pub.cny), p_comment: pub.comment.trim() || null, p_website: (hp && hp.value) || null,
-        p_recv_method: pub.rv.method, p_recv_account: rvAcc.length >= 3 ? rvAcc : null, p_recv_name: rvName || null
+        p_recv_method: pub.rv.method
       };
-      var res = await c.db().rpc("submit_exchange", args), recvSaved = true;
-      // файл 78 ещё не запущен: отправить по-старому, реквизиты — в комментарий, чтобы обменник их увидел
-      if (res.error && /PGRST202|submit_exchange|p_recv/i.test(String(res.error.code || "") + " " + String(res.error.message || ""))) {
-        var line = [recvName(pub.rv.method), rvAcc, rvName].filter(Boolean).join(" · ");
-        args.p_comment = ((args.p_comment ? args.p_comment + "\n" : "") + t("fx_rv_to") + ": " + line).slice(0, 500);
-        delete args.p_recv_method; delete args.p_recv_account; delete args.p_recv_name;
-        res = await c.db().rpc("submit_exchange", args);
-        recvSaved = false;
-      }
+      var res = await c.db().rpc("submit_exchange", args);
       if (res.error) throw res.error;
       var r = res.data || {};
       pub.req = { id: r.id, cny: num(r.cny), som: num(r.som), rate: num(r.rate), note: r.note || "" };
       if (r.id) rememberReq(r.id);
       pub.step = "pay";
-      // QR-код получателя — к заявке (не вышло — не страшно: номер уже в заявке, QR можно добавить на странице заявки)
-      if (r.id && recvSaved && pub.rv.file) {
-        try { await saveRecv(r.id, pub.rv.method, rvAcc.length >= 3 ? rvAcc : "", rvName, pub.rv.file, false); }
+      // QR-код получателя — к заявке (не вышло — страница заявки сама попросит прикрепить его ещё раз)
+      if (r.id && pub.rv.file) {
+        try { await saveRecv(r.id, pub.rv.method, pub.rv.file); }
         catch (eq) { console.error(eq); toast(t("fx_rv_qr_fail"), "error"); }
       }
-      rcptDrop(pub.rv); pub.rvAcc = ""; pub.rvName = ""; pub.rv.method = "";
+      rcptDrop(pub.rv); pub.rv.method = "";
       // сообщить байеру в Telegram (если подключён)
       try { if (r.id) c.db().functions.invoke("telegram-notify", { body: { action: "exchange_notify", id: r.id } }).catch(function () {}); if (U.alerts) U.alerts.push({ action: "exchange", id: r.id }); } catch (e) { /* ignore */ }
       // чек уже выбран: сразу прикладываем к заявке. Не получилось — клиент увидит «Прикрепить чек» ещё раз
@@ -1777,8 +1807,8 @@
   var page = { mode: "fx", token: "", data: null, state: "loading", id: "", st: null, busy: false, error: "", timer: null,
     // чат: pending — ещё отправляются; local — свои фото этой вкладки (номер сообщения → адрес); seen — что уже отмечено прочитанным
     chat: { pending: [], local: {}, seen: 0, n: 0, last: null, fresh: {}, bottom: true }, isNew: false, mainHtml: "", composeKey: "",
-    // реквизиты клиента: edit — открыта форма; a0/n0 — что показать в полях (набранное хранит saveTyped)
-    rv: { edit: false, method: "", file: null, local: "", dropQr: false, a0: "", n0: "" } };
+    // реквизиты клиента: edit — открыта форма; method и новый QR (file/local)
+    rv: { edit: false, method: "", file: null, local: "" } };
 
   async function initPage(token) {
     c.showView("shop");
@@ -1796,11 +1826,11 @@
       page.state = "error";
     }
     renderPage();
-    // пришли с главной с суммой (?fx=…&cny=12000) — сразу шаг оплаты: реквизиты, скриншот, имя и телефон
+    // пришли с главной с суммой (?fx=…&cny=12000) — сумма уже есть, сразу шаг 2: QR для получения
     var cny = parseNum(new URLSearchParams(location.search).get("cny") || "");
     var slot = $("#fx-pub-slot-page");
     if (page.state === "ok" && slot && cny > 0 && cny <= 10000000 && rateFor(page.data.fx.tiers, cny)) {
-      pub.cny = String(cny); pub.step = "form"; pub.error = "";
+      pub.cny = String(cny); pub.step = "form"; pub.fstep = 2; pub.error = "";
       renderPublic(slot);
     }
   }
@@ -1941,35 +1971,35 @@
   }
 
   // куда получить юани: показать, изменить, а если не указано — сразу форма (файл 78)
+  // QR, который уже лежит в заявке, годится, только если способ не меняли (QR Alipay не подойдёт для WeChat)
+  function oldQrFits(s, rv) { return !!s.has_recv_qr && s.recv_method === rv.method; }
   function statusRecvHtml(s) {
     if (!Object.prototype.hasOwnProperty.call(s, "recv_edit")) return "";   // файл 78 ещё не запущен
-    var has = !!(s.recv_method || s.has_recv_qr), rv = page.rv;
+    var has = !!(s.has_recv_qr || s.recv_account), rv = page.rv;
     if (!has && !s.recv_edit) return "";
-    var html = '<div class="fx-rv-box" id="fxs-rv"><h4>' + U.icon("wallet", 16) + esc(t("fx_s_recv")) + "</h4>";
+    var html = '<div class="fx-rv-box" id="fxs-rv"><h4>' + U.icon("qr", 16) + esc(t("fx_s_recv")) + "</h4>";
     if (rv.edit || (!has && s.recv_edit)) {
-      if (!rv.edit) { rv.edit = true; rv.method = ""; rv.dropQr = false; rv.a0 = ""; rv.n0 = ""; }
+      if (!rv.edit) { rv.edit = true; rv.method = s.recv_method && RECV.indexOf(s.recv_method) !== -1 ? s.recv_method : ""; }
       html += (!has ? '<p class="fx-rv-warn">' + U.icon("alert", 14) + esc(t("fx_rv_missing")) + "</p>" : "") +
-        recvFormHtml(rv, "fxs", "data-fxs", rv.a0, rv.n0, s.has_recv_qr) +
+        recvFormHtml(rv, "fxs", "data-fxs", oldQrFits(s, rv)) +
         '<div class="fx-row-act"><button type="button" class="btn btn-sm btn-primary" data-fxs="rvsave"' + (page.busy ? " disabled" : "") + ">" + esc(t("fx_rv_save")) + "</button>" +
         (has ? '<button type="button" class="btn btn-sm btn-ghost" data-fxs="rvcancel">' + esc(t("fx_rv_cancel")) + "</button>" : "") + "</div>";
     } else {
       html += "<b>" + esc(recvName(s.recv_method)) + "</b>" +
         (s.recv_account ? '<div class="fx-rv-acc"><span>' + esc(s.recv_account) + "</span></div>" : "") +
-        (s.recv_name ? "<div>" + esc(s.recv_name) + "</div>" : "") +
-        (s.has_recv_qr ? '<div class="muted">' + U.icon("qr", 14) + esc(t("fx_rv_qr_on")) + "</div>" : "") +
+        (s.has_recv_qr ? '<div class="muted">' + U.icon("check", 14) + esc(t("fx_rv_qr_on")) + "</div>" : "") +
         (s.recv_edit ? '<button type="button" class="btn btn-sm" data-fxs="rvedit">' + esc(t("fx_rv_edit")) + "</button>" : "");
     }
     return html + "</div>";
   }
   async function statusRecvSave() {
-    var rv = page.rv, acc = (($("#fxs-rv-acc") || {}).value || "").trim(), nm = (($("#fxs-rv-name") || {}).value || "").trim();
-    var hasQr = !!rv.file || (page.st.has_recv_qr && !rv.dropQr);
-    var err = recvError(rv.method, acc, hasQr);
-    if (err) { page.error = err; rv.a0 = acc; rv.n0 = nm; renderPage(); return; }
+    var rv = page.rv;
+    var err = recvError(rv.method, !!rv.file || oldQrFits(page.st, rv));
+    if (err) { page.error = err; renderPage(); return; }
     if (page.busy) return;
-    page.busy = true; page.error = ""; rv.a0 = acc; rv.n0 = nm; renderPage();
+    page.busy = true; page.error = ""; renderPage();
     try {
-      await saveRecv(page.id, rv.method, acc.length >= 3 ? acc : "", nm, rv.file, rv.dropQr && !rv.file);
+      await saveRecv(page.id, rv.method, rv.file);
       rcptDrop(rv); rv.edit = false;
       toast(t("fx_rv_saved"), "ok");
       // сообщение «🔄 Новые реквизиты» в чате — обменнику в Telegram и push
@@ -1978,7 +2008,7 @@
     } catch (e) {
       console.error(e);
       var m = String((e && e.message) || "");
-      page.error = /recv_locked/.test(m) ? t("fx_rv_locked") : /recv_empty|invalid_recv_account/.test(m) ? t("fx_e_rv_acc")
+      page.error = /recv_locked/.test(m) ? t("fx_rv_locked") : /recv_empty/.test(m) ? t("fx_e_rv_qr")
         : /bad_type/.test(m) ? t("logo_err_type") : /too_big/.test(m) ? t("logo_err_size") : t("fx_d_err");
     }
     page.busy = false;
@@ -2163,17 +2193,11 @@
       var rb = e.target.closest("[data-fxs]");
       if (rb) {
         var ra = rb.getAttribute("data-fxs"), rv = page.rv, s0 = page.st || {};
-        if (ra === "rvedit") {
-          rv.edit = true; rv.method = s0.recv_method || ""; rv.a0 = s0.recv_account || ""; rv.n0 = s0.recv_name || ""; rv.dropQr = false;
-          page.keep["fxs-rv-acc"] = ""; page.keep["fxs-rv-name"] = "";
-          renderPage();
-        } else if (ra === "rvcancel") { rv.edit = false; rcptDrop(rv); page.error = ""; renderPage(); }
-        else if (ra === "rvm") {
-          var acc0 = $("#fxs-rv-acc"), nm0 = $("#fxs-rv-name");
-          if (acc0) rv.a0 = acc0.value; if (nm0) rv.n0 = nm0.value;
-          rv.method = rb.getAttribute("data-m"); page.error = ""; renderPage();
-        } else if (ra === "rvqr") { var qf = $("#fxs-rvfile"); if (qf) { qf.value = ""; qf.click(); } }
-        else if (ra === "rvunqr") { if (rv.file) rcptDrop(rv); else rv.dropQr = true; renderPage(); }
+        if (ra === "rvedit") { rv.edit = true; rv.method = RECV.indexOf(s0.recv_method) !== -1 ? s0.recv_method : ""; rcptDrop(rv); renderPage(); }
+        else if (ra === "rvcancel") { rv.edit = false; rcptDrop(rv); page.error = ""; renderPage(); }
+        else if (ra === "rvm") { rv.method = rb.getAttribute("data-m"); page.error = ""; renderPage(); }
+        else if (ra === "rvqr") { var qf = $("#fxs-rvfile"); if (qf) { qf.value = ""; qf.click(); } }
+        else if (ra === "rvunqr") { rcptDrop(rv); renderPage(); }
         else if (ra === "rvsave") statusRecvSave();
         return;
       }
@@ -2200,9 +2224,7 @@
     });
     box.addEventListener("change", async function (e) {
       if (page.mode === "status" && e.target.id === "fxs-rvfile" && e.target.files && e.target.files[0]) {
-        var a1 = $("#fxs-rv-acc"), n1 = $("#fxs-rv-name");
-        if (a1) page.rv.a0 = a1.value; if (n1) page.rv.n0 = n1.value;
-        if (rcptPick(page.rv, e.target.files[0], false)) { page.rv.dropQr = false; page.error = ""; renderPage(); }
+        if (rcptPick(page.rv, e.target.files[0], false)) { page.error = ""; renderPage(); }
         return;
       }
       if (page.mode === "status" && e.target.id === "fxs-cfile" && e.target.files && e.target.files[0]) {
@@ -2236,7 +2258,7 @@
     var list = myReqs();
     if (!list.length) return "";
     return '<section class="client-block"><h2>' + esc(t("fx_my_reqs")) + '</h2><div class="fx-my-list">' + list.map(function (x) {
-      return '<a class="btn btn-block" href="' + esc(statusUrl(x.id)) + '">' + esc(t("fx_req_from", { d: c.fmtDate(new Date(x.at)) + " " + hhmm(new Date(x.at)) })) + "</a>";
+      return '<a class="btn btn-block" href="' + esc(statusUrl(x.id)) + '">' + esc(t("fx_req_from", { d: when(x.at) })) + "</a>";
     }).join("") + "</div></section>";
   }
 
@@ -2256,7 +2278,7 @@
         (page.isNew ? newBannerHtml() : "");
       // текст спора, который клиент набирает, не стирается автообновлением
       page.keep = page.keep || {};
-      var KEEP = ["fxs-msg", "fxs-reason", "fxs-rv-acc", "fxs-rv-name"];
+      var KEEP = ["fxs-msg", "fxs-reason"];
       var saveTyped = function () { KEEP.forEach(function (k) { var el = $("#" + k); if (el) page.keep[k] = el.value; }); };
       var putTyped = function () { KEEP.forEach(function (k) { var el = $("#" + k); if (el && page.keep[k]) el.value = page.keep[k]; }); };
       if (!hasChat(page.st)) {

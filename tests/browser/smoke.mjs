@@ -161,7 +161,7 @@ const SCREENS = [
   { id: "home-rate", name: "Главная: курс юаня", go: async () => { await open("?scn=loggedout#/"); }, see: "#lp-rate .lp-rate-big b" },
   { id: "home-nofx", name: "Главная без курса", go: async () => { await open("?scn=nofx#/"); }, see: "#view-home .lp-h1" },
   { id: "home-guestfx", name: "Главная: обмен без регистрации", go: async () => { await open("?scn=guestfx#/"); }, see: "#lp-rate .lp-rate-big b" },
-  { id: "fx-guest-form", name: "Обмен гостя: сразу шаг оплаты", go: async () => { await open("?fx=" + "e".repeat(32) + "&cny=12000"); }, see: "#fxc-form" },
+  { id: "fx-guest-form", name: "Обмен гостя: с суммой — сразу шаг 2 (QR для получения)", go: async () => { await open("?fx=" + "e".repeat(32) + "&cny=12000"); }, see: ".fx-rv-form" },
   { id: "fx-status-new", name: "Заявка отправлена: статус и чат", go: async () => { await open("?xr=11111111-2222-4333-8444-555555555555&new=1"); }, see: ".xc-hello .xc-quick" },
   { id: "fx-buyer-chat", name: "Обменник: заявки с новыми сообщениями", go: async () => { await open("?scn=fxchat"); await tab("exchange"); await waitFor(visible(".xc-btn .xc-badge"), "кнопка «Чат» с числом новых"); }, see: ".xc-btn .xc-badge" },
   { id: "fx-status-chat", name: "Чат по заявке: переписка с обменником", go: async () => { await open("?xr=11111111-2222-4333-8444-555555555556"); }, see: ".xc-row.theirs .xc-text" },
