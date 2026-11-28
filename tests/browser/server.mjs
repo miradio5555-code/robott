@@ -47,8 +47,10 @@ function build(scn) {
     const at = (m) => iso(new Date(Date.now() - m * 60000));
     const base = { workspace_id: "ws1", source: "shop", rate: 12.62, comment: null, buyer_note: null, eta_until: null, sent_at: null, sent_proof: null, rating: null, dispute: null, client_flag: false };
     db.exchange_requests.push(
-      { ...base, id: "fxr-1", client_name: "Азамат", client_phone: "+996555111222", cny: 1000, som: 12620, status: "paid", created_at: at(40), status_at: at(38), paid_at: at(38), proof_path: "fxr-1/pay.jpg", chat_buyer_seen: 11, chat_client_seen: 0 },
-      { ...base, id: "fxr-2", client_name: "Бакыт", client_phone: "+996777000111", cny: 3000, som: 37860, status: "new", created_at: at(6), status_at: at(6), paid_at: null, proof_path: null, chat_buyer_seen: 0, chat_client_seen: 0 });
+      { ...base, id: "fxr-1", client_name: "Азамат", client_phone: "+996555111222", cny: 1000, som: 12620, status: "paid", created_at: at(40), status_at: at(38), paid_at: at(38), proof_path: "fxr-1/pay.jpg", chat_buyer_seen: 11, chat_client_seen: 0,
+        recv_method: "alipay", recv_account: "+86 138 0013 8000", recv_name: "Azamat K", recv_qr: "fxr-1/q-abcdefgh12.jpg", recv_at: at(10) },
+      { ...base, id: "fxr-2", client_name: "Бакыт", client_phone: "+996777000111", cny: 3000, som: 37860, status: "new", created_at: at(6), status_at: at(6), paid_at: null, proof_path: null, chat_buyer_seen: 0, chat_client_seen: 0,
+        recv_method: null, recv_account: null, recv_name: null, recv_qr: null, recv_at: null });
     db.exchange_events = [
       { id: 11, request_id: "fxr-1", kind: "msg", author: "client", body: "Здравствуйте! Оплатил, проверьте, пожалуйста", file_path: null, file_pub: false, created_at: at(30) },
       { id: 12, request_id: "fxr-1", kind: "msg", author: "client", body: "Когда придут юани?", file_path: null, file_pub: false, created_at: at(3) },
@@ -283,7 +285,9 @@ function fxReq(db, id) {
     const view = { status: talk ? "confirmed" : "paid", cny: 1000, som: 12620, rate: 12.62, created_at: at(40), paid_at: at(38), status_at: at(talk ? 20 : 38),
       eta_until: talk ? iso(new Date(NOW().getTime() + 25 * 60000)) : null, buyer_note: null, has_proof: true, note: null, eta: 30, can_upload: false,
       brand: { name: "ULA Factory", logo: null }, sent_at: null, sent_proof: null, close_at: null, received_at: null, rating: null,
-      dispute: null, dispute_by: null, dispute_result: null, dispute_note: null, can_dispute: false, dispute_from: at(-80) };
+      dispute: null, dispute_by: null, dispute_result: null, dispute_note: null, can_dispute: false, dispute_from: at(-80),
+      // файл 78: в переписке клиент уже указал Alipay, у новой заявки реквизитов нет
+      recv_method: talk ? "alipay" : null, recv_account: talk ? "+86 138 0013 8000" : null, recv_name: talk ? "Azamat K" : null, has_recv_qr: false, recv_edit: true };
     const events = talk ? [
       { id: 11, kind: "msg", author: "client", body: "Здравствуйте! Я оплатил 12 620 сом, проверьте, пожалуйста", file: null, photo: false, at: at(30) },
       { id: 12, kind: "msg", author: "client", body: null, file: null, photo: true, at: at(29) },
@@ -307,10 +311,19 @@ function clientRpc(db, name, a) {
       if (a.p_token !== GUEST_FX) return err("link_not_found", "P0002");
       const cny = Number(a.p_cny), rate = cny >= 50000 ? 12.48 : cny >= 10000 ? 12.55 : cny >= 1000 ? 12.62 : 0;
       if (!rate) return err("below_min", "22023");
-      (db.writes = db.writes || []).push("exchange:" + cny);
+      (db.writes = db.writes || []).push("exchange:" + cny + (a.p_recv_method ? ":" + a.p_recv_method + ":" + (a.p_recv_account || "") : ""));
       return ok({ ok: true, id: "11111111-2222-4333-8444-555555555555", cny, som: Math.round(cny * rate * 100) / 100, rate, note: "Mbank 0555 000 000 · ULA" });
     }
     case "fx_attach_proof": (db.writes = db.writes || []).push("exchange_proof"); return ok(true);
+    case "fx_set_recv": {
+      const r = fxReq(db, a.p_id); if (!r) return err("request_not_found", "P0002");
+      if (!["alipay", "wechat", "bank"].includes(a.p_method)) return err("invalid_recv_method", "22023");
+      const qr = a.p_qr ? true : a.p_drop_qr ? false : r.view.has_recv_qr;
+      if (!a.p_account && !qr) return err("recv_empty", "22023");
+      Object.assign(r.view, { recv_method: a.p_method, recv_account: a.p_account || null, recv_name: a.p_name || null, has_recv_qr: qr });
+      (db.writes = db.writes || []).push("fx_recv:" + a.p_method + ":" + (a.p_account || "") + (qr ? ":qr" : ""));
+      return ok({ ok: true });
+    }
     // страница заявки клиента с чатом (файл 76): …555 — новая заявка без сообщений, …556 — идёт переписка
     case "get_exchange_status": {
       const r = fxReq(db, a.p_id); if (!r) return ok(null);
